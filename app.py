@@ -1,14 +1,12 @@
 from flask import (Flask, Request, request, render_template,
                    make_response, flash, redirect, url_for, abort)
 from flask_login import (login_user, logout_user, LoginManager,
-                         UserMixin, login_required)
-from flask_wtf import FlaskForm
+                         UserMixin, login_required, current_user)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
-from flask_bcrypt import Bcrypt, generate_password_hash
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired
+from flask_bcrypt import Bcrypt
 import random
+import os
 
 
 app = Flask(__name__)
@@ -21,7 +19,18 @@ User = UserMixin
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "therapist_signin"
-therapists_online = []
+login_manager.session_protection = None
+therapists_available = []
+connected_therapist = dict()
+connected_guest = dict()
+pending_messages = dict()
+
+
+@app.before_request
+def before_request():
+    user = load_user(request.headers.get("username", ""))
+    if user and user.is_correct_password(request.headers.get("password", "")):
+        login_user(user)
 
 
 class User(db.Model, UserMixin):
@@ -47,23 +56,32 @@ def load_user(username):
     return User.query.filter(User.username == username).first()
 
 
-@app.route("/request_therapist", methods=['GET'])
+@app.route("/request_therapist", methods=['POST'])
 def request_therapist():
-    return random.choice([therapist.username
-                          for therapist in therapists_online])
+    guest_id = request.form['guest_id']
+    if therapists_available:
+        chosen_therapist = random.choice(therapists_available)
+        therapists_available.remove(chosen_therapist)
+        connected_therapist[guest_id] = chosen_therapist.username
+        connected_guest[chosen_therapist.username] = guest_id
+        return chosen_therapist.username
+    return None
 
 
-def try_login(username, password):
-    user = load_user(username)
-    if user:
-        return user.is_correct_password(password)
+@login_required
+@app.route("/therapy_complete", methods=['POST'])
+def therapy_complete():
+    connected_therapist.pop(connected_guest[current_user.username])
+    connected_guest.pop(current_user.username)
+    therapists_available.append(current_user)
 
 
 @app.route("/therapist_signout", methods=["POST"])
+@login_required
 def therapist_signout():
     user = load_user(request.form['username'])
     logout_user(user)
-    therapists_online.remove(user)
+    therapists_available.remove(user)
 
 
 @app.route("/therapist_signup", methods=["POST"])
@@ -79,20 +97,37 @@ def therapist_signup():
     return abort(401)
 
 
-@app.route("/therapist_signin", methods=['GET', 'POST'])
-def therapist_signin():
-    if request.method == "POST":
-        user = load_user(request.form['username'])
-        if user:
-            if user.is_correct_password(request.form['password']):
-                login_user(user, remember=True)
-                therapists_online.append(user)
-                return "Success"
-            return "Incorrect password"
-        return "User does not exist"
+@app.route("/generate_guest_id")
+def generate_guest_id():
+    return os.urandom(4)
 
 
-@app.route("/therapist_view")
+@app.route("/message_from_therapist", methods=['POST'])
 @login_required
-def therapist_view():
-    return "WHat"
+def message_from_therapist():
+    message = request.form['message']
+    guest_id = connected_guest[current_user.username]
+    pending_messages[guest_id] = (pending_messages.get(guest_id, "")
+                                  + message + "\n")
+
+
+@app.route("/message_from_user", methods=['POST'])
+def message_from_user():
+    message = request.form['message']
+    guest_id = request.form['guest_id']
+    therapist_username = connected_therapist[guest_id]
+    pending_messages[therapist_username] = pending_messages.get(
+        therapist_username, "")+message+"\n"
+
+
+@app.route("/collect_guest_messages")
+def collect_guest_messages():
+    guest_id = request.form['guest_id']
+    return pending_messages.pop(guest_id, "")
+
+
+@app.route("/collect_therapist_messages")
+@login_required
+def collect_therapist_messages():
+    therapist_username = current_user.username
+    return pending_messages.pop(therapist_username, "")
