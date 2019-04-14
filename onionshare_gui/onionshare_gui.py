@@ -167,6 +167,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
+        self.timer.start(1)
+
     def send_message(self):
         if not self.uid and not self.username:
             self.get_uid()
@@ -189,8 +191,11 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
     def server_switcher(self, server):
         self.url = server.text()
-        self.get_uid()
-        self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
+        if self.is_therapist:
+            requests.post(f"{self.url}/therapist_signup", data={"masterkey":"megumin","username":self.uname,"password":self.passwd})
+        else:
+            self.get_uid()
+            self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
 
 
     def add_server(self):
@@ -289,13 +294,27 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def timer_callback(self):
         # Collecting messages as a user:
 
+        if self.url == '':
+            self.timer.start(10)
+            return
         if self.is_therapist:
             new_messages = session.get(f"{self.url}/collect_therapist_messages",
                                        data={"username":self.uname, "password":self.passwd}).text
-            self.chat_history += new_messages.split('\n')
+            print(new_messages)
+            if new_messages: 
+                new_messages = new_messages.split('\n')
+                for message in new_messages:
+                    message = 'Guest: ' + message   
+                self.chat_window.addItems(new_messages)
         elif self.uid:
             new_messages = session.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
-            self.chat_history += new_messages.split('\n')
+            if new_messages:
+                new_messages = new_messages.split('\n')
+                for message in new_messages:
+                    message = self.therapist+ ': ' + message
+                self.chat_window.addItems(new_messages)
+        
+        self.timer.start(10)
 
 
     def copy_url(self):
