@@ -9,14 +9,15 @@ from flask import (Flask, Request, request, render_template,
                    make_response, flash, redirect, url_for, abort)
 from flask_login import (login_user, logout_user, LoginManager,
                          UserMixin, login_required, current_user)
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, model
 from sqlalchemy.ext.hybrid import hybrid_property
-from flask.bcrypt import bcrypt
+from flask_bcrypt import Bcrypt
 import random
 import os
 
 from .. import strings
 
+login_manager = LoginManager()
 
 
 
@@ -54,17 +55,16 @@ class ShareModeWeb(object):
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.self.db'
         self.db = SQLAlchemy(web.app)
-        self.bcrypt = self.bcrypt(web.app)
-        self.login_manager = LoginManager()
-        self.login_manager.init_app(web.app)
-        self.login_manager.login_view = "therapist_signin"
-        self.login_manager.session_protection = None
+        self.bcrypt = Bcrypt(web.app)
+        login_manager.init_app(web.app)
+        login_manager.login_view = "therapist_signin"
+        login_manager.session_protection = None
         self.therapists_available = []
         self.connected_therapist = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
 
-        class User  (db.Model, UserMixin):
+        class User(model.DefaultMeta, UserMixin):
             bcrypt = None
             __tablename__ = 'users'
             id = None#self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
@@ -97,7 +97,7 @@ class ShareModeWeb(object):
             if user and user.is_correct_password(request.headers.get("password", "")):
                 login_user(user)
 
-        @self.login_manager.user_loader
+        @login_manager.user_loader
         def load_user(username):
             return User.query.filter(User.username == username).first()
 
