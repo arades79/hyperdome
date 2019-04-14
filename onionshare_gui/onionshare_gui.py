@@ -25,7 +25,6 @@ from onionshare.web import Web
 
 from .mode.share_mode import ShareMode
 from .mode.receive_mode import ReceiveMode
-from .chat import ChatWidget
 
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
