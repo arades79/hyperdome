@@ -300,7 +300,6 @@ class OnionShareGui(QtWidgets.QMainWindow):
         if self.is_therapist:
             new_messages = session.get(f"{self.url}/collect_therapist_messages",
                                        headers={"username":self.uname, "password":self.passwd}).text
-            print(new_messages)
             if new_messages: 
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
@@ -360,6 +359,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def closeEvent(self, e):
         self.common.log('OnionShareGui', 'closeEvent')
         try:
+            if self.is_therapist:
+                session.post(f"{self.url}/therapist_signout",data={"username":self.uname, "password":self.passwd})
             if server_status.status != server_status.STATUS_STOPPED:
                 self.common.log('OnionShareGui', 'closeEvent, opening warning dialog')
                 dialog = QtWidgets.QMessageBox()
