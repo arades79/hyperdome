@@ -117,7 +117,7 @@ class ShareModeWeb(object):
                 self.connected_therapist[guest_id] = chosen_therapist.username
                 self.connected_guest[chosen_therapist.username] = guest_id
                 return chosen_therapist.username
-            return None
+            return ''
 
 
         @login_required
