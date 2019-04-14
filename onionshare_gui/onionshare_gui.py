@@ -33,13 +33,13 @@ from .widgets import Alert
 from .update_checker import UpdateThread
 from .server_status import ServerStatus
 
+import requests
+
 class OnionShareGui(QtWidgets.QMainWindow):
     """
     OnionShareGui is the main window for the GUI that contains all of the
     GUI elements.
     """
-    MODE_SHARE = 'share'
-    MODE_RECEIVE = 'receive'
 
     def __init__(self, common, onion, qtapp, app, filenames, config=False, local_only=False):
         super(OnionShareGui, self).__init__()
@@ -48,13 +48,18 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', '__init__')
         self.setMinimumWidth(820)
         self.setMinimumHeight(660)
+        self.uid = None
+        self.uname = ''
+        self.passwd = ''
+        self.url = r'http://127.0.0.1:5000'
+        self.chat_history = []
+        self.servers = []
+        self.is_therapist = False
 
         self.onion = onion
         self.qtapp = qtapp
         self.app = app
         self.local_only = local_only
-
-        # self.mode = self.MODE_SHARE
 
         self.setWindowTitle('crungus mcspingus')
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
@@ -82,126 +87,62 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
-        # Mode switcher, to switch between share files and receive files
-        # self.share_mode_button = QtWidgets.QPushButton(strings._('gui_mode_share_button'));
-        # self.share_mode_button.setFixedHeight(50)
-        # self.share_mode_button.clicked.connect(self.share_mode_clicked)
-        # self.receive_mode_button = QtWidgets.QPushButton(strings._('gui_mode_receive_button'));
-        # self.receive_mode_button.setFixedHeight(50)
-        # self.receive_mode_button.clicked.connect(self.receive_mode_clicked)
-        # self.settings_button = QtWidgets.QPushButton()
-        # self.settings_button.setDefault(False)
-        # self.settings_button.setFixedWidth(40)
-        # self.settings_button.setFixedHeight(50)
-        # self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
-        # self.settings_button.clicked.connect(self.open_settings)
-        # self.settings_button.setStyleSheet(self.common.css['settings_button'])
-        # mode_switcher_layout = QtWidgets.QHBoxLayout();
-        # mode_switcher_layout.setSpacing(0)
-        # mode_switcher_layout.addWidget(self.share_mode_button)
-        # mode_switcher_layout.addWidget(self.receive_mode_button)
-        # mode_switcher_layout.addWidget(self.settings_button)
-
-        # Server status indicator on the status bar
-        # self.server_status_image_stopped = QtGui.QImage(self.common.get_resource_path('images/server_stopped.png'))
-        # self.server_status_image_working = QtGui.QImage(self.common.get_resource_path('images/server_working.png'))
-        # self.server_status_image_started = QtGui.QImage(self.common.get_resource_path('images/server_started.png'))
-        # self.server_status_image_label = QtWidgets.QLabel()
-        # self.server_status_image_label.setFixedWidth(20)
-        # self.server_status_label = QtWidgets.QLabel('')
-        # self.server_status_label.setStyleSheet(self.common.css['server_status_indicator_label'])
-        # server_status_indicator_layout = QtWidgets.QHBoxLayout()
-        # server_status_indicator_layout.addWidget(self.server_status_image_label)
-        # server_status_indicator_layout.addWidget(self.server_status_label)
-        # self.server_status_indicator = QtWidgets.QWidget()
-        # self.server_status_indicator.setLayout(server_status_indicator_layout)
-
-        # Status bar
-        # self.status_bar = QtWidgets.QStatusBar()
-        # self.status_bar.setSizeGripEnabled(False)
-        # self.status_bar.setStyleSheet(self.common.css['status_bar'])
-        # self.status_bar.addPermanentWidget(self.server_status_indicator)
-        # self.setStatusBar(self.status_bar)
-
-        # Share mode
-        # self.share_mode = ShareMode(self.common, qtapp, app, self.status_bar, self.server_status_label, self.system_tray, filenames, self.local_only)
-        # self.share_mode.init()
-        # self.share_mode.server_status.server_started.connect(self.update_server_status_indicator)
-        # self.share_mode.server_status.server_stopped.connect(self.update_server_status_indicator)
-        # self.share_mode.start_server_finished.connect(self.update_server_status_indicator)
-        # self.share_mode.stop_server_finished.connect(self.update_server_status_indicator)
-        # self.share_mode.stop_server_finished.connect(self.stop_server_finished)
-        # self.share_mode.start_server_finished.connect(self.clear_message)
-        # self.share_mode.server_status.button_clicked.connect(self.clear_message)
-        # self.share_mode.server_status.url_copied.connect(self.copy_url)
-        # self.share_mode.server_status.hidservauth_copied.connect(self.copy_hidservauth)
-        # self.share_mode.set_server_active.connect(self.set_server_active)
-
-        # Receive mode
-        # self.receive_mode = ReceiveMode(self.common, qtapp, app, self.status_bar, self.server_status_label, self.system_tray, None, self.local_only)
-        # self.receive_mode.init()
-        # self.receive_mode.server_status.server_started.connect(self.update_server_status_indicator)
-        # self.receive_mode.server_status.server_stopped.connect(self.update_server_status_indicator)
-        # self.receive_mode.start_server_finished.connect(self.update_server_status_indicator)
-        # self.receive_mode.stop_server_finished.connect(self.update_server_status_indicator)
-        # self.receive_mode.stop_server_finished.connect(self.stop_server_finished)
-        # self.receive_mode.start_server_finished.connect(self.clear_message)
-        # self.receive_mode.server_status.button_clicked.connect(self.clear_message)
-        # self.receive_mode.server_status.url_copied.connect(self.copy_url)
-        # self.receive_mode.server_status.hidservauth_copied.connect(self.copy_hidservauth)
-        # self.receive_mode.set_server_active.connect(self.set_server_active)
-
-        # self.update_mode_switcher()
-        # self.update_server_status_indicator()
-        self.chat_history = []
-        self.servers = []
-
-        self.chat = ChatWidget(qtapp, self.servers, self.chat_history, self.send_message)
+        self.settings_button = QtWidgets.QPushButton()
+        self.settings_button.setDefault(False)
+        self.settings_button.setFixedWidth(40)
+        self.settings_button.setFixedHeight(50)
+        self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
+        self.settings_button.clicked.connect(self.open_settings)
+        self.settings_button.setStyleSheet(self.common.css['settings_button'])
         
-        # self.enter_button = QtWidgets.QPushButton("Send")
-        # self.enter_button.click = None
+        self.message_text_field = QtWidgets.QPlainTextEdit()
+        self.message_text_field.setFixedHeight(50)
 
-        # self.enter_text = QtWidgets.QHBoxLayout()
-        # self.enter_text.addWidget(QtWidgets.QPlainTextEdit())
-        # self.enter_text.addWidget(self.enter_button)
+        self.enter_button = QtWidgets.QPushButton("Send")
+        self.enter_button.clicked.connect(self.send_message)
+        self.enter_button.setFixedHeight(50)
 
-        # self.chat_history = QtWidgets.QListWidget()
-        # self.chat_history.addItems(["old","chat"])
+        self.enter_text = QtWidgets.QHBoxLayout()
+        self.enter_text.addWidget(self.message_text_field)
+        self.enter_text.addWidget(self.enter_button)
 
-        # self.chat_pane = QtWidgets.QVBoxLayout()
-        # self.chat_pane.addWidget(self.chat_history, stretch=1)
-        # self.chat_pane.addLayout(self.enter_text)
+        self.chat_window = QtWidgets.QListWidget()
+        self.chat_window.addItems(self.chat_history)
 
-        # self.connection_pane = QtWidgets.QListWidget()
-        # self.connection_pane.addItems(["the","rapist"])
+        self.chat_pane = QtWidgets.QVBoxLayout()
+        self.chat_pane.addWidget(self.chat_window, stretch=1)
+        self.chat_pane.addLayout(self.enter_text)
 
-        # self.full_layout = QtWidgets.QHBoxLayout()
-        # self.full_layout.addWidget(self.connection_pane)
-        # self.full_layout.addLayout(self.chat_pane)
+        self.server_list_view = QtWidgets.QListWidget()
+        self.server_list_view.addItems(self.servers)
+        self.server_list_view.setFixedWidth(200)
 
-        # Layouts
-        # contents_layout = QtWidgets.QVBoxLayout()
-        # contents_layout.setContentsMargins(10, 0, 10, 0)
-        # contents_layout.addWidget(self.receive_mode)
-        # contents_layout.addWidget(self.share_mode)
-        # contents_layout.addWidget(self.chat)
+        self.add_server_button = QtWidgets.QPushButton('Add Server')
+        self.add_server_button.setFixedHeight(50)
+        self.add_server_button.setFixedWidth(155)
 
-        # layout = QtWidgets.QVBoxLayout()
-        # layout.setContentsMargins(0, 0, 0, 0)
-        # layout.addLayout(mode_switcher_layout)
-        # layout.addLayout(contents_layout)
+        self.server_buttons = QtWidgets.QHBoxLayout()
+        self.server_buttons.addWidget(self.settings_button)
+        self.server_buttons.addWidget(self.add_server_button)
 
-        # central_widget = QtWidgets.QWidget()
-        # central_widget.setLayout(self.full_layout)
-        self.setCentralWidget(self.chat)
+        self.server_pane = QtWidgets.QVBoxLayout()
+        self.server_pane.addWidget(self.server_list_view)
+        self.server_pane.addLayout(self.server_buttons)
+
+        self.full_layout = QtWidgets.QHBoxLayout()
+        self.full_layout.addLayout(self.server_pane)
+        self.full_layout.addLayout(self.chat_pane)
+        self.setLayout(self.full_layout)
+
+        self.main_widget = QtWidgets.QWidget()
+        self.main_widget.setLayout(self.full_layout)
+
+        self.setCentralWidget(self.main_widget)
         self.show()
 
-        # The server isn't active yet
-        # self.set_server_active(False)
-
         # Create the timer
-        # self.timer = QtCore.QTimer()
-        # self.timer.timeout.connect(self.timer_callback)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.timer_callback)
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
         tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
@@ -210,79 +151,27 @@ class OnionShareGui(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
-        # Start the timer
-        # self.timer.start(500)
-
-        # After connecting to Tor, check for updates
-        # self.check_for_updates()
-
-    def send_message(self, message):
+    def send_message(self):
+        message = self.message_text_field.toPlainText()
+        self.message_text_field.clear()
         self.chat_history.append("You: " + message)
-        pass
+        self.on_history_added()
+        if self.is_therapist: # needs auth
+            requests.post(f"{self.url}/message_from_therapist",data={"username":self.uname, "password":self.passwd,"message":message})
+        else: # normal user
+            requests.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+
+    def on_history_added(self):
+        self.chat_window.addItems(self.chat_history)
+        self.chat_history = []
+
+    def get_uid(self):
+        self.uid = requests.get(self.url + '/generate_guest_id').text
+        
 
     def server_switcher(self):
         pass
-        # Based on the current mode, switch the mode switcher button styles,
-        # and show and hide widgets to switch modes
-        # if self.mode == self.MODE_SHARE:
-        #     self.share_mode_button.setStyleSheet(self.common.css['mode_switcher_selected_style'])
-        #     self.receive_mode_button.setStyleSheet(self.common.css['mode_switcher_unselected_style'])
 
-        #     self.receive_mode.hide()
-        #     self.share_mode.show()
-        # else:
-        #     self.share_mode_button.setStyleSheet(self.common.css['mode_switcher_unselected_style'])
-        #     self.receive_mode_button.setStyleSheet(self.common.css['mode_switcher_selected_style'])
-
-        #     self.share_mode.hide()
-        #     self.receive_mode.show()
-
-        # self.update_server_status_indicator()
-
-    def share_mode_clicked(self):
-        pass
-    #     if self.mode != self.MODE_SHARE:
-    #         self.common.log('OnionShareGui', 'share_mode_clicked')
-    #         self.mode = self.MODE_SHARE
-    #         self.update_mode_switcher()
-
-    def receive_mode_clicked(self):
-        pass
-    #     if self.mode != self.MODE_RECEIVE:
-    #         self.common.log('OnionShareGui', 'receive_mode_clicked')
-    #         self.mode = self.MODE_RECEIVE
-    #         self.update_mode_switcher()
-
-    def update_server_status_indicator(self):
-        pass
-        # Set the status image
-        # if self.mode == self.MODE_SHARE:
-        #     # Share mode
-        #     if self.share_mode.server_status.status == ServerStatus.STATUS_STOPPED:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_stopped))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_share_stopped'))
-        #     elif self.share_mode.server_status.status == ServerStatus.STATUS_WORKING:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_working))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_share_working'))
-        #     elif self.share_mode.server_status.status == ServerStatus.STATUS_STARTED:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_started))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_share_started'))
-        # else:
-        #     # Receive mode
-        #     if self.receive_mode.server_status.status == ServerStatus.STATUS_STOPPED:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_stopped))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_receive_stopped'))
-        #     elif self.receive_mode.server_status.status == ServerStatus.STATUS_WORKING:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_working))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_receive_working'))
-        #     elif self.receive_mode.server_status.status == ServerStatus.STATUS_STARTED:
-        #         self.server_status_image_label.setPixmap(QtGui.QPixmap.fromImage(self.server_status_image_started))
-        #         self.server_status_label.setText(strings._('gui_status_indicator_receive_started'))
-
-    def stop_server_finished(self):
-        pass
-        # When the server stopped, cleanup the ephemeral onion service
-        # self.onion.cleanup(stop_tor=False)
 
     def _tor_connection_canceled(self):
         """
@@ -355,8 +244,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
         d.exec_()
 
         # When settings close, refresh the server status UI
-        self.share_mode.server_status.update()
-        self.receive_mode.server_status.update()
+        # self.share_mode.server_status.update()
+        # self.receive_mode.server_status.update()
 
     def check_for_updates(self):
         """
@@ -372,75 +261,13 @@ class OnionShareGui(QtWidgets.QMainWindow):
                 self.update_thread.start()
 
     def timer_callback(self):
-        pass
-        # """
-        # Check for messages communicated from the web app, and update the GUI accordingly. Also,
-        # call ShareMode and ReceiveMode's timer_callbacks.
-        # """
-        # self.update()
+        # Collecting messages as a user:
+        if self.is_therapist:
+            requests.post()
+        else:
+            new_messages = requests.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
+            self.chat_history += new_messages.split('\n')
 
-        # if not self.local_only:
-        #     # Have we lost connection to Tor somehow?
-        #     if not self.onion.is_authenticated():
-        #         self.timer.stop()
-        #         self.status_bar.showMessage(strings._('gui_tor_connection_lost'))
-        #         self.system_tray.showMessage(strings._('gui_tor_connection_lost'), strings._('gui_tor_connection_error_settings'))
-
-                # self.share_mode.handle_tor_broke()
-                # self.receive_mode.handle_tor_broke()
-
-        # Process events from the web object
-        # if self.mode == self.MODE_SHARE:
-        #     mode = self.share_mode
-        # else:
-        #     mode = self.receive_mode
-
-        # events = []
-
-        # done = False
-        # while not done:
-        #     try:
-        #         r = mode.web.q.get(False)
-        #         events.append(r)
-        #     except queue.Empty:
-        #         done = True
-
-        # for event in events:
-        #     if event["type"] == Web.REQUEST_LOAD:
-        #         mode.handle_request_load(event)
-
-        #     elif event["type"] == Web.REQUEST_STARTED:
-        #         mode.handle_request_started(event)
-
-        #     elif event["type"] == Web.REQUEST_RATE_LIMIT:
-        #         mode.handle_request_rate_limit(event)
-
-        #     elif event["type"] == Web.REQUEST_PROGRESS:
-        #         mode.handle_request_progress(event)
-
-        #     elif event["type"] == Web.REQUEST_CANCELED:
-        #         mode.handle_request_canceled(event)
-
-        #     elif event["type"] == Web.REQUEST_UPLOAD_FILE_RENAMED:
-        #         mode.handle_request_upload_file_renamed(event)
-
-        #     elif event["type"] == Web.REQUEST_UPLOAD_SET_DIR:
-        #         mode.handle_request_upload_set_dir(event)
-
-        #     elif event["type"] == Web.REQUEST_UPLOAD_FINISHED:
-        #         mode.handle_request_upload_finished(event)
-
-        #     elif event["type"] == Web.REQUEST_UPLOAD_CANCELED:
-        #         mode.handle_request_upload_canceled(event)
-
-        #     if event["type"] == Web.REQUEST_ERROR_DATA_DIR_CANNOT_CREATE:
-        #         Alert(self.common, strings._('error_cannot_create_data_dir').format(event["data"]["receive_mode_dir"]))
-
-        #     if event["type"] == Web.REQUEST_OTHER:
-        #         if event["path"] != '/favicon.ico' and event["path"] != "/{}/shutdown".format(mode.web.shutdown_slug):
-        #             self.status_bar.showMessage('[#{0:d}] {1:s}: {2:s}'.format(mode.web.error404_count, strings._('other_page_loaded'), event["path"]))
-
-        # mode.timer_callback()
 
     def copy_url(self):
         """
@@ -485,10 +312,6 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def closeEvent(self, e):
         self.common.log('OnionShareGui', 'closeEvent')
         try:
-            if self.mode == OnionShareGui.MODE_SHARE:
-                server_status = self.share_mode.server_status
-            else:
-                server_status = self.receive_mode.server_status
             if server_status.status != server_status.STATUS_STOPPED:
                 self.common.log('OnionShareGui', 'closeEvent, opening warning dialog')
                 dialog = QtWidgets.QMessageBox()

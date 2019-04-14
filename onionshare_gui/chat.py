@@ -27,16 +27,18 @@ from onionshare.onion import *
 
 class ChatWidget(QtWidgets.QWidget):
     
-    def __init__(self, qtapp, server_list, chat_history, message_sender):
+    def __init__(self, qtapp, server_list, chat_history, message_sender, settings_button):
         super(ChatWidget, self).__init__()
 
         self.qtapp = qtapp
         self.message_sender = message_sender
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
+        self.message_text_field.setFixedHeight(50)
 
         self.enter_button = QtWidgets.QPushButton("Send")
         self.enter_button.clicked.connect(self.chat_submit)
+        self.enter_button.setFixedHeight(50)
 
         self.enter_text = QtWidgets.QHBoxLayout()
         self.enter_text.addWidget(self.message_text_field)
@@ -49,13 +51,27 @@ class ChatWidget(QtWidgets.QWidget):
         self.chat_pane.addWidget(self.chat_history, stretch=1)
         self.chat_pane.addLayout(self.enter_text)
 
-        self.connection_pane = QtWidgets.QListWidget()
-        self.connection_pane.addItems(server_list)
+        self.server_list = QtWidgets.QListWidget()
+        self.server_list.addItems(server_list)
+        self.server_list.setFixedWidth(200)
+
+        self.add_server_button = QtWidgets.QPushButton('Add Server')
+        self.add_server_button.setFixedHeight(50)
+        self.add_server_button.setFixedWidth(155)
+
+        self.server_buttons = QtWidgets.QHBoxLayout()
+        self.server_buttons.addWidget(settings_button)
+        self.server_buttons.addWidget(self.add_server_button)
+
+        self.server_pane = QtWidgets.QVBoxLayout()
+        self.server_pane.addWidget(self.server_list)
+        self.server_pane.addLayout(self.server_buttons)
 
         self.full_layout = QtWidgets.QHBoxLayout()
-        self.full_layout.addWidget(self.connection_pane)
+        self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
         self.setLayout(self.full_layout)
+
 
     def chat_submit(self):
         message = self.message_text_field.toPlainText()
