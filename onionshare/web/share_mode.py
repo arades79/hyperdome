@@ -9,7 +9,7 @@ from flask import (Flask, Request, request, render_template,
                    make_response, flash, redirect, url_for, abort)
 from flask_login import (login_user, logout_user, LoginManager,
                          UserMixin, login_required, current_user)
-from flask_sqlalchemy import SQLAlchemy, model
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from flask_bcrypt import Bcrypt
 import random
@@ -18,6 +18,10 @@ import os
 from .. import strings
 
 login_manager = LoginManager()
+
+userfuck = None
+bcryptfuck = None
+dbfuck = None
 
 
 
@@ -53,9 +57,14 @@ class ShareModeWeb(object):
 
 
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.self.db'
+        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
         self.db = SQLAlchemy(web.app)
+        global dbfuck
+        dbfuck = self.db
+
         self.bcrypt = Bcrypt(web.app)
+        global bcryptfuck
+        bcryptfuck = self.bcrypt
         login_manager.init_app(web.app)
         login_manager.login_view = "therapist_signin"
         login_manager.session_protection = None
@@ -64,12 +73,12 @@ class ShareModeWeb(object):
         self.connected_guest = dict()
         self.pending_messages = dict()
 
-        class User(model.DefaultMeta, UserMixin):
-            bcrypt = None
+
+        class User(self.db.Model, UserMixin):
             __tablename__ = 'users'
-            id = None#self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
-            username = None#self.db.Column(self.db.String(64), unique=True)
-            _password = None#self.db.Column(self.db.String(128))
+            id = self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
+            username = self.db.Column(self.db.String(64), unique=True)
+            _password = self.db.Column(self.db.String(128))
 
             @hybrid_property
             def password(self):
@@ -77,19 +86,14 @@ class ShareModeWeb(object):
 
             @password.setter
             def password(self, plaintext):
-                self._password = bcrypt.generate_password_hash(plaintext)
+                self._password = bcryptfuck.generate_password_hash(plaintext)
 
             def is_correct_password(self, plaintext):
-                return bcrypt.check_password_hash(self._password, plaintext)
-        User.bcrypt = self.bcrypt
-        User.id = self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
-        User.username = self.db.Column(self.db.String(64), unique=True)
-        User._password = self.db.Column(self.db.String(128))
+                return bcryptfuck.check_password_hash(self._password, plaintext)
+        global userfuck
+        userfuck = User
 
     def define_routes(self):
-
-
-
 
         @self.web.app.before_request
         def before_request():
@@ -99,7 +103,8 @@ class ShareModeWeb(object):
 
         @login_manager.user_loader
         def load_user(username):
-            return User.query.filter(User.username == username).first()
+            dbfuck.create_all()
+            return userfuck.query.filter(userfuck.username == username).first()
 
 
         @self.web.app.route("/request_therapist", methods=['POST'])
@@ -135,7 +140,7 @@ class ShareModeWeb(object):
             if request.form.get('masterkey', "") == "megumin":
                 if load_user(request.form['username']):
                     return "Username already exists"
-                user = User(username=request.form['username'],
+                user = userfuck(username=request.form['username'],
                             password=request.form['password'])
                 self.db.session.add(user)
                 self.db.session.commit()
@@ -516,3 +521,4 @@ class ZipWriter(object):
         Close the zip archive.
         """
         self.z.close()
+
