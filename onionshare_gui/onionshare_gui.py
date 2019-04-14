@@ -50,7 +50,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.uid = None
         self.uname = ''
         self.passwd = ''
-        self.url = r'http://127.0.0.1:5000'
+        self.url = r'http://127.0.0.1:17641'
         self.chat_history = []
         self.servers = []
         self.is_therapist = False
@@ -151,6 +151,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
             tor_con.start()
 
     def send_message(self):
+        if (self.uid == None):
+            self.get_uid()
         message = self.message_text_field.toPlainText()
         self.message_text_field.clear()
         self.chat_history.append("You: " + message)
