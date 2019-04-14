@@ -34,6 +34,7 @@ from .server_status import ServerStatus
 
 import requests
 
+
 session = requests.Session()
 # session.proxies = {'http': 'socks5://127.0.0.1:9050',
 #                    'https': 'socks5://127.0.0.1:9050'}
@@ -52,13 +53,13 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.setMinimumWidth(820)
         self.setMinimumHeight(660)
         self.uid = None
-        self.uname = ''
-        self.passwd = ''
+        self.uname = input("Please enter your therapist username (or leave blank if you are a client")
+        self.passwd = input("Please enter your (currently) EXTREMELY insecure password") if self.uname else ''
         self.url = ''
         # self.url = 'http://mqvgnrpo7sjdwgyizkjnk6bq4hedm4hiuqvvdxudmmaacni5f5pgtlad.onion'
         self.chat_history = []
         self.servers = []
-        self.is_therapist = False
+        self.is_therapist = bool(self.uname)
 
         self.onion = onion
         self.qtapp = qtapp
@@ -167,7 +168,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
             tor_con.start()
 
     def send_message(self):
-        if (self.uid == None):
+        if not self.uid and not self.username:
             self.get_uid()
         message = self.message_text_field.toPlainText()
         self.message_text_field.clear()
@@ -287,10 +288,12 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
     def timer_callback(self):
         # Collecting messages as a user:
-        
+
         if self.is_therapist:
-            session.post()
-        elif self.uid != None:
+            new_messages = session.get(f"{self.url}/collect_therapist_messages",
+                                       data={"username":self.uname, "password":self.passwd}).text
+            self.chat_history += new_messages.split('\n')
+        elif self.uid:
             new_messages = session.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
             self.chat_history += new_messages.split('\n')
 
