@@ -14,6 +14,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from flask_bcrypt import Bcrypt
 import random
 import os
+import binascii
 
 from .. import strings
 
@@ -150,7 +151,7 @@ class ShareModeWeb(object):
 
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
-            return os.urandom(4)
+            return binascii.b2a_hex(os.urandom(15))
 
 
         @self.web.app.route("/message_from_therapist", methods=['POST'])
