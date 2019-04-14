@@ -360,6 +360,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def closeEvent(self, e):
         self.common.log('OnionShareGui', 'closeEvent')
         try:
+            if self.is_therapist:
+                session.post(f"{self.url}/therapist_signout",data={"username":self.uname, "password":self.passwd})
             if server_status.status != server_status.STATUS_STOPPED:
                 self.common.log('OnionShareGui', 'closeEvent, opening warning dialog')
                 dialog = QtWidgets.QMessageBox()
