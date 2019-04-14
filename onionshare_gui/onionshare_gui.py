@@ -177,7 +177,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.chat_history.append("You: " + message)
         self.on_history_added()
         if self.is_therapist: # needs auth
-            session.post(f"{self.url}/message_from_therapist",data={"username":self.uname, "password":self.passwd,"message":message})
+            session.post(f"{self.url}/message_from_therapist",headers={"username":self.uname, "password":self.passwd,"message":message})
         else: # normal user
             session.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
 
@@ -299,7 +299,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
             return
         if self.is_therapist:
             new_messages = session.get(f"{self.url}/collect_therapist_messages",
-                                       data={"username":self.uname, "password":self.passwd}).text
+                                       headers={"username":self.uname, "password":self.passwd}).text
             print(new_messages)
             if new_messages: 
                 new_messages = new_messages.split('\n')
