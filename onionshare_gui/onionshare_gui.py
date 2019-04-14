@@ -167,7 +167,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
-        self.timer.start(1)
+        self.timer.start(1000)
 
     def send_message(self):
         if not self.uid and not self.username:
@@ -295,7 +295,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         # Collecting messages as a user:
 
         if self.url == '':
-            self.timer.start(10)
+            self.timer.start(1000)
             return
         if self.is_therapist:
             new_messages = session.get(f"{self.url}/collect_therapist_messages",
@@ -314,7 +314,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
                     message = self.therapist+ ': ' + message
                 self.chat_window.addItems(new_messages)
         
-        self.timer.start(10)
+        self.timer.start(1000)
 
 
     def copy_url(self):
