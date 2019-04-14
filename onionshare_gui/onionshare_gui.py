@@ -66,7 +66,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.app = app
         self.local_only = local_only
 
-        self.setWindowTitle('crungus mcspingus')
+        self.setWindowTitle('hyperdome')
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
 
         # Load settings, if a custom config was passed in
