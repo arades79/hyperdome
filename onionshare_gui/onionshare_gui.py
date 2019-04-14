@@ -187,9 +187,10 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
 
     def server_switcher(self, server):
-        print(server.text())
         self.url = server.text()
         self.get_uid()
+        self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
+
 
     def add_server(self):
         server = self.server_add_text.toPlainText()
