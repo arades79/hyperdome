@@ -34,6 +34,10 @@ from .server_status import ServerStatus
 
 import requests
 
+session = requests.Session()
+# session.proxies = {'http': 'socks5://127.0.0.1:9050',
+#                    'https': 'socks5://127.0.0.1:9050'}
+
 class OnionShareGui(QtWidgets.QMainWindow):
     """
     OnionShareGui is the main window for the GUI that contains all of the
@@ -50,7 +54,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.uid = None
         self.uname = ''
         self.passwd = ''
-        self.url = r'http://127.0.0.1:17641'
+        self.url = ''
+        # self.url = 'http://mqvgnrpo7sjdwgyizkjnk6bq4hedm4hiuqvvdxudmmaacni5f5pgtlad.onion'
         self.chat_history = []
         self.servers = []
         self.is_therapist = False
@@ -93,7 +98,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setStyleSheet(self.common.css['settings_button'])
-        
+
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
 
@@ -106,6 +111,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.enter_text.addWidget(self.enter_button)
 
         self.chat_window = QtWidgets.QListWidget()
+        self.chat_window.setWordWrap(True)
+        self.chat_window.setWrapping(True)
         self.chat_window.addItems(self.chat_history)
 
         self.chat_pane = QtWidgets.QVBoxLayout()
@@ -113,19 +120,28 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.chat_pane.addLayout(self.enter_text)
 
         self.server_list_view = QtWidgets.QListWidget()
+        self.server_list_view.setWordWrap(True)
+        self.server_list_view.setWrapping(True)
         self.server_list_view.addItems(self.servers)
         self.server_list_view.setFixedWidth(200)
+        self.server_list_view.itemDoubleClicked.connect(self.server_switcher)
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
         self.add_server_button.setFixedHeight(50)
         self.add_server_button.setFixedWidth(155)
+        self.add_server_button.clicked.connect(self.add_server)
 
         self.server_buttons = QtWidgets.QHBoxLayout()
         self.server_buttons.addWidget(self.settings_button)
         self.server_buttons.addWidget(self.add_server_button)
 
+        self.server_add_text = QtWidgets.QPlainTextEdit()
+        self.server_add_text.setFixedHeight(50)
+        self.server_add_text.setFixedWidth(200)
+
         self.server_pane = QtWidgets.QVBoxLayout()
         self.server_pane.addWidget(self.server_list_view)
+        self.server_pane.addWidget(self.server_add_text)
         self.server_pane.addLayout(self.server_buttons)
 
         self.full_layout = QtWidgets.QHBoxLayout()
@@ -158,20 +174,27 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.chat_history.append("You: " + message)
         self.on_history_added()
         if self.is_therapist: # needs auth
-            requests.post(f"{self.url}/message_from_therapist",data={"username":self.uname, "password":self.passwd,"message":message})
+            session.post(f"{self.url}/message_from_therapist",data={"username":self.uname, "password":self.passwd,"message":message})
         else: # normal user
-            requests.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+            session.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
 
     def on_history_added(self):
         self.chat_window.addItems(self.chat_history)
         self.chat_history = []
 
     def get_uid(self):
-        self.uid = requests.get(self.url + '/generate_guest_id').text
-        
+        self.uid = session.get(self.url + '/generate_guest_id').text
 
-    def server_switcher(self):
-        pass
+
+    def server_switcher(self, server):
+        print(server.text())
+        self.url = server.text()
+        self.get_uid()
+
+    def add_server(self):
+        server = self.server_add_text.toPlainText()
+        self.server_list_view.addItem(server)
+        self.server_add_text.clear()
 
 
     def _tor_connection_canceled(self):
@@ -263,10 +286,11 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
     def timer_callback(self):
         # Collecting messages as a user:
+        
         if self.is_therapist:
-            requests.post()
-        else:
-            new_messages = requests.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
+            session.post()
+        elif self.uid != None:
+            new_messages = session.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
             self.chat_history += new_messages.split('\n')
 
 
