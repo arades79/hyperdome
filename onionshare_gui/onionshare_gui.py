@@ -170,16 +170,19 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.timer.start(1000)
 
     def send_message(self):
-        if not self.uid and not self.username:
-            self.get_uid()
         message = self.message_text_field.toPlainText()
         self.message_text_field.clear()
-        self.chat_history.append("You: " + message)
-        self.on_history_added()
-        if self.is_therapist: # needs auth
-            session.post(f"{self.url}/message_from_therapist",headers={"username":self.uname, "password":self.passwd,"message":message})
-        else: # normal user
-            session.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+        try:
+            if not (self.uid or self.is_therapist):
+                self.get_uid()
+            self.chat_history.append("You: " + message)
+            self.on_history_added()
+            if self.is_therapist: # needs auth
+                session.post(f"{self.url}/message_from_therapist",headers={"username":self.uname, "password":self.passwd,"message":message})
+            else: # normal user
+                session.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+        except:
+            Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
     def on_history_added(self):
         self.chat_window.addItems(self.chat_history)
@@ -191,17 +194,27 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
     def server_switcher(self, server):
         self.url = server.text()
-        if self.is_therapist:
-            requests.post(f"{self.url}/therapist_signup", data={"masterkey":"megumin","username":self.uname,"password":self.passwd})
-        else:
-            self.get_uid()
-            self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
+        self.chat_window.clear()
+        self.message_text_field.clear()
+        try:
+            if self.is_therapist:
+                session.post(f"{self.url}/therapist_signup", data={"masterkey":"megumin","username":self.uname,"password":self.passwd})
+            else:
+                self.get_uid()
+                self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
+        except:
+            Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
     def add_server(self):
         server = self.server_add_text.toPlainText()
-        self.server_list_view.addItem(server)
         self.server_add_text.clear()
+        try:
+            session.get(self.url + '/generate_guest_id')
+            self.server_list_view.addItem(server)
+        except:
+            Alert(self.common, f"server {server} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+            
 
 
     def _tor_connection_canceled(self):
