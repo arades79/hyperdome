@@ -50,16 +50,17 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
         self.common = common
         self.common.log('OnionShareGui', '__init__')
-        self.setMinimumWidth(820)
+        self.setMinimumWidth(400)
         self.setMinimumHeight(660)
         self.uid = None
-        self.uname = input("Please enter your therapist username (or leave blank if you are a client")
-        self.passwd = input("Please enter your (currently) EXTREMELY insecure password") if self.uname else ''
+        # self.uname = input("Please enter your therapist username (or leave blank if you are a client")
+        # self.passwd = input("Please enter your (currently) EXTREMELY insecure password") if self.uname else ''
+        self.server = {'url': '', 'uname': '', 'passwd': ''}
         self.url = ''
         # self.url = 'http://mqvgnrpo7sjdwgyizkjnk6bq4hedm4hiuqvvdxudmmaacni5f5pgtlad.onion'
         self.chat_history = []
         self.servers = []
-        self.is_therapist = bool(self.uname)
+        self.is_therapist = False
 
         self.onion = onion
         self.qtapp = qtapp
@@ -92,6 +93,54 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
+        #server add dialog
+        self.add_server_button = QtWidgets.QPushButton('Add Server')
+        self.add_server_button.clicked.connect(self.add_server)
+
+        self.server_add_text = QtWidgets.QPlainTextEdit()
+        self.server_add_text.setFixedWidth(400)
+        self.server_add_text.setFixedHeight(25)
+        self.server_add_text.setPlaceholderText('Enter server URL:')
+
+        self.counselor_radio = QtWidgets.QRadioButton()
+        self.counselor_radio.setText('Counselor')
+        self.counselor_radio.toggled.connect(lambda:self.radio_switch(self.counselor_radio))
+
+        self.guest_radio = QtWidgets.QRadioButton()
+        self.guest_radio.setText('Guest')
+        self.guest_radio.setChecked(True)
+        self.guest_radio.toggled.connect(lambda:self.radio_switch(self.guest_radio))
+
+        self.radio_buttons = QtWidgets.QHBoxLayout()
+        self.radio_buttons.addWidget(self.counselor_radio)
+        self.radio_buttons.addWidget(self.guest_radio)
+
+        self.counselor_username_input = QtWidgets.QPlainTextEdit()
+        self.counselor_username_input.setPlaceholderText('Username:')
+        self.counselor_username_input.setFixedWidth(200)
+        self.counselor_username_input.setFixedHeight(25)
+        self.counselor_username_input.hide()
+        
+        self.counselor_password_input = QtWidgets.QPlainTextEdit()
+        self.counselor_password_input.setPlaceholderText('Password:')
+        self.counselor_password_input.setFixedWidth(200)
+        self.counselor_password_input.setFixedHeight(25)
+        self.counselor_password_input.hide()
+
+        self.counselor_credentials = QtWidgets.QHBoxLayout()
+        self.counselor_credentials.addWidget(self.counselor_username_input)
+        self.counselor_credentials.addWidget(self.counselor_password_input)
+        
+        self.server_dialog_layout = QtWidgets.QVBoxLayout()
+        self.server_dialog_layout.addWidget(self.server_add_text)
+        self.server_dialog_layout.addLayout(self.radio_buttons)
+        self.server_dialog_layout.addLayout(self.counselor_credentials)
+        self.server_dialog_layout.addWidget(self.add_server_button)
+
+        self.server_add_dialog = QtWidgets.QDialog()
+        self.server_add_dialog.setLayout(self.server_dialog_layout)
+
+        # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setFixedWidth(40)
@@ -102,6 +151,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
+        self.message_text_field.setPlaceholderText('Enter message:')
 
         self.enter_button = QtWidgets.QPushButton("Send")
         self.enter_button.clicked.connect(self.send_message)
@@ -110,6 +160,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.enter_text = QtWidgets.QHBoxLayout()
         self.enter_text.addWidget(self.message_text_field)
         self.enter_text.addWidget(self.enter_button)
+        self.enter_text.addWidget(self.settings_button)
 
         self.chat_window = QtWidgets.QListWidget()
         self.chat_window.setWordWrap(True)
@@ -120,6 +171,12 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.chat_pane.addWidget(self.chat_window, stretch=1)
         self.chat_pane.addLayout(self.enter_text)
 
+
+        # server list view
+        self.server_dropdown = QtWidgets.QComboBox()
+        self.server_dropdown.addItem('Add New Server')
+
+
         self.server_list_view = QtWidgets.QListWidget()
         self.server_list_view.setWordWrap(True)
         self.server_list_view.setWrapping(True)
@@ -127,24 +184,15 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.server_list_view.setFixedWidth(200)
         self.server_list_view.itemDoubleClicked.connect(self.server_switcher)
 
-        self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.setFixedHeight(50)
-        self.add_server_button.setFixedWidth(155)
-        self.add_server_button.clicked.connect(self.add_server)
-
-        self.server_buttons = QtWidgets.QHBoxLayout()
-        self.server_buttons.addWidget(self.settings_button)
-        self.server_buttons.addWidget(self.add_server_button)
-
-        self.server_add_text = QtWidgets.QPlainTextEdit()
-        self.server_add_text.setFixedHeight(50)
-        self.server_add_text.setFixedWidth(200)
+        self.server_dialog_button = QtWidgets.QPushButton()
+        self.server_dialog_button.clicked.connect(lambda: self.server_add_dialog.exec_())
 
         self.server_pane = QtWidgets.QVBoxLayout()
         self.server_pane.addWidget(self.server_list_view)
-        self.server_pane.addWidget(self.server_add_text)
-        self.server_pane.addLayout(self.server_buttons)
+        self.server_pane.addWidget(self.server_dialog_button)
 
+
+        # full view
         self.full_layout = QtWidgets.QHBoxLayout()
         self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
@@ -205,15 +253,33 @@ class OnionShareGui(QtWidgets.QMainWindow):
         except:
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
+    def radio_switch(self, radio_switch):
+        if radio_switch.text() == 'Counselor':
+            self.is_therapist = True
+            self.counselor_username_input.show()
+            self.counselor_password_input.show()
+        else:
+            self.is_therapist = False
+            self.counselor_username_input.hide()
+            self.counselor_password_input.hide()
 
     def add_server(self):
         server = self.server_add_text.toPlainText()
         self.server_add_text.clear()
         try:
-            session.get(self.url + '/generate_guest_id')
+            if self.is_therapist:
+                self.server['uname'] = self.counselor_username_input.toPlainText()
+                self.counselor_username_input.clear()
+                self.server['passwd'] = self.counselor_password_input.toPlainText()
+                self.counselor_password_input.clear()
+                #TODO: authenticate the therapist here when that's a thing
+            else:
+                session.get(self.url + '/generate_guest_id')
             self.server_list_view.addItem(server)
+            self.server_add_dialog.close()
         except:
             Alert(self.common, f"server {server} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+        
             
 
 
