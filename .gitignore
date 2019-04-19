@@ -49,3 +49,7 @@ tags
 # OSX
 .DS_Store
 .vscode/settings.json
+therapists.db
+
+# server specific
+*.db
