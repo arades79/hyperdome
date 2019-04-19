@@ -40,6 +40,14 @@ session = requests.Session()
 # session.proxies = {'http': 'socks5://127.0.0.1:9050',
 #                    'https': 'socks5://127.0.0.1:9050'}
 
+class Server(object):
+    def __init__(self, url='', uname='', passwd='', is_therapist=False):
+        self.url = url
+        self.username = uname
+        self.password = passwd
+        self.is_therapist = is_therapist
+
+
 class OnionShareGui(QtWidgets.QMainWindow):
     """
     OnionShareGui is the main window for the GUI that contains all of the
@@ -53,15 +61,11 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', '__init__')
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
-        self.uid = None
-        # self.uname = input("Please enter your therapist username (or leave blank if you are a client")
-        # self.passwd = input("Please enter your (currently) EXTREMELY insecure password") if self.uname else ''
-        self.server = {'url': '', 'uname': '', 'passwd': ''}
-        self.url = ''
-        # self.url = 'http://mqvgnrpo7sjdwgyizkjnk6bq4hedm4hiuqvvdxudmmaacni5f5pgtlad.onion'
+        self.uid = ''
         self.chat_history = []
         self.servers = dict()
-        self.is_therapist = False
+        self.server = Server()
+        self.is_connected = False
 
         self.onion = onion
         self.qtapp = qtapp
@@ -75,6 +79,27 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.config = config
         if self.config:
             self.common.load_settings(self.config)
+
+        # Server status indicator on the status bar
+        self.server_status_image_stopped = QtGui.QImage(self.common.get_resource_path('images/server_stopped.png'))
+        self.server_status_image_working = QtGui.QImage(self.common.get_resource_path('images/server_working.png'))
+        self.server_status_image_started = QtGui.QImage(self.common.get_resource_path('images/server_started.png'))
+        self.server_status_image_label = QtWidgets.QLabel()
+        self.server_status_image_label.setFixedWidth(20)
+        self.server_status_label = QtWidgets.QLabel('')
+        self.server_status_label.setStyleSheet(self.common.css['server_status_indicator_label'])
+        server_status_indicator_layout = QtWidgets.QHBoxLayout()
+        server_status_indicator_layout.addWidget(self.server_status_image_label)
+        server_status_indicator_layout.addWidget(self.server_status_label)
+        self.server_status_indicator = QtWidgets.QWidget()
+        self.server_status_indicator.setLayout(server_status_indicator_layout)
+
+        # Status bar
+        self.status_bar = QtWidgets.QStatusBar()
+        self.status_bar.setSizeGripEnabled(False)
+        self.status_bar.setStyleSheet(self.common.css['status_bar'])
+        self.status_bar.addPermanentWidget(self.server_status_indicator)
+        self.setStatusBar(self.status_bar)
 
         # System tray
         menu = QtWidgets.QMenu()
@@ -148,7 +173,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.full_layout = QtWidgets.QVBoxLayout()
         self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
-        self.setLayout(self.full_layout)
+        # self.setLayout(self.full_layout)
 
         self.main_widget = QtWidgets.QWidget()
         self.main_widget.setLayout(self.full_layout)
@@ -170,57 +195,62 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.timer.start(1000)
 
     def send_message(self):
-        message = self.message_text_field.toPlainText()
-        self.message_text_field.clear()
-        try:
-            if not (self.uid or self.is_therapist):
-                self.get_uid()
-            self.chat_history.append("You: " + message)
-            self.on_history_added()
-            if self.is_therapist: # needs auth
-                session.post(f"{self.url}/message_from_therapist",headers={"username":self.uname, "password":self.passwd,"message":message})
-            else: # normal user
-                session.post(self.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
-        except:
-            Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+        if self.is_connected:
+            message = self.message_text_field.toPlainText()
+            self.message_text_field.clear()
+            try:
+                if not (self.uid or self.server.is_therapist):
+                    self.get_uid()
+                self.chat_history.append("You: " + message)
+                self.on_history_added()
+                if self.server.is_therapist: # needs auth
+                    session.post(f"{self.server.url}/message_from_therapist",headers={"username":self.server.username, "password":self.server.password,"message":message})
+                else: # normal user
+                    session.post(self.server.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+            except Exception as e:
+                print(e.with_traceback())
+                Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+        else:
+            Alert(self.common, "Not connected to a counselor!", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
     def on_history_added(self):
         self.chat_window.addItems(self.chat_history)
         self.chat_history = []
 
     def get_uid(self):
-        self.uid = session.get(self.url + '/generate_guest_id').text
+        self.uid = session.get(self.server.url + '/generate_guest_id').text
 
 
     def server_switcher(self, server):
-        self.url = self.servers[server]
+        self.server = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
         try:
-            if self.is_therapist:
-                session.post(f"{self.url}/therapist_signup", data={"masterkey":"megumin","username":self.uname,"password":self.passwd})
+            if self.server.is_therapist:
+                session.post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
             else:
                 self.get_uid()
-                self.therapist = session.post(f"{self.url}/request_therapist",  data={"guest_id":self.uid}).text
+                self.therapist = session.post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
+                if self.therapist:
+                    self.is_connected = True
         except:
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
     def add_server(self, url, nick, uname, passwd, is_therapist):
-        self.server['url'] = url
-        self.servers[nick] = url
-        self.is_therapist = is_therapist
+        self.server = Server(url, uname, passwd, is_therapist)
+        self.servers[nick] = self.server
+        self.server.is_therapist = is_therapist
         try:
-            if self.is_therapist:
-                self.server['uname'] = self.counselor_username_input.toPlainText()
-                self.server['passwd'] = self.counselor_password_input.toPlainText()
+            if self.server.is_therapist:
+                pass
                 #TODO: authenticate the therapist here when that's a thing
             else:
                 session.get(url + '/generate_guest_id').text
             self.server_dropdown.addItem(nick)
             self.server_add_dialog.close()
         except Exception as e:
-            print(e)
+            print(e.with_traceback())
             Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
             
 
@@ -315,19 +345,19 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def timer_callback(self):
         # Collecting messages as a user:
 
-        if self.url == '':
+        if self.server == None:
             self.timer.start(1000)
             return
-        if self.is_therapist:
-            new_messages = session.get(f"{self.url}/collect_therapist_messages",
-                                       headers={"username":self.uname, "password":self.passwd}).text
+        if self.server.is_therapist:
+            new_messages = session.get(f"{self.server.url}/collect_therapist_messages",
+                                       headers={"username":self.server.username, "password":self.server.password}).text
             if new_messages: 
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
                     message = 'Guest: ' + message   
                 self.chat_window.addItems(new_messages)
         elif self.uid:
-            new_messages = session.get(f"{self.url}/collect_guest_messages", data={"guest_id":self.uid}).text
+            new_messages = session.get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
             if new_messages:
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
@@ -356,8 +386,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def closeEvent(self, e):
         self.common.log('OnionShareGui', 'closeEvent')
         try:
-            if self.is_therapist:
-                session.post(f"{self.url}/therapist_signout",data={"username":self.uname, "password":self.passwd})
+            if self.server.is_therapist:
+                session.post(f"{self.server.url}/therapist_signout",data={"username":self.server.username, "password":self.server.password})
             if server_status.status != server_status.STATUS_STOPPED:
                 self.common.log('OnionShareGui', 'closeEvent, opening warning dialog')
                 dialog = QtWidgets.QMessageBox()
