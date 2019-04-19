@@ -156,8 +156,6 @@ def main(cwd=None):
     t.daemon = True
     t.start()
 
-    ShareModeWeb(common, web)
-
     try:  # Trap Ctrl-C
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)

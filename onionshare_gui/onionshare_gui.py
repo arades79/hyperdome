@@ -94,7 +94,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
-        self.server_add_dialog = AddServerDialog(add_server_action=self.add_server)
+        self.server_add_dialog = AddServerDialog(common=self.common, add_server_action=self.add_server)
 
 
         # chat pane
@@ -105,6 +105,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setStyleSheet(self.common.css['settings_button'])
+
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
@@ -133,10 +134,10 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.server_dialog_button = QtWidgets.QPushButton()
         self.server_dialog_button.setText('Add New Server')
         self.server_dialog_button.setFixedWidth(100)
-        self.server_dialog_button.clicked.connect(lambda: self.server_add_dialog.exec_())
+        self.server_dialog_button.clicked.connect(self.server_add_dialog.exec_)
 
         self.server_dropdown = QtWidgets.QComboBox()
-        self.server_dropdown.currentIndexChanged.connect(self.server_switcher)
+        self.server_dropdown.currentIndexChanged.connect(lambda i:self.server_switcher(self.server_dropdown.currentText()))
 
         self.server_pane = QtWidgets.QHBoxLayout()
         self.server_pane.addWidget(self.server_dropdown)
@@ -192,7 +193,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
 
     def server_switcher(self, server):
-        self.url = server.text()
+        self.url = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
         try:
@@ -208,16 +209,18 @@ class OnionShareGui(QtWidgets.QMainWindow):
     def add_server(self, url, nick, uname, passwd, is_therapist):
         self.server['url'] = url
         self.servers[nick] = url
+        self.is_therapist = is_therapist
         try:
             if self.is_therapist:
                 self.server['uname'] = self.counselor_username_input.toPlainText()
                 self.server['passwd'] = self.counselor_password_input.toPlainText()
                 #TODO: authenticate the therapist here when that's a thing
             else:
-                session.get(url + '/generate_guest_id')
-            self.server_list_view.addItem(nick)
+                session.get(url + '/generate_guest_id').text
+            self.server_dropdown.addItem(nick)
             self.server_add_dialog.close()
-        except:
+        except Exception as e:
+            print(e)
             Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
             
 

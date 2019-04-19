@@ -30,10 +30,13 @@ from .tor_connection_dialog import TorConnectionDialog
 
 class AddServerDialog(QtWidgets.QDialog):
 
-    def __init__(self, add_server_action):
+    def __init__(self, common, add_server_action):
         super(AddServerDialog, self).__init__()
 
         self.is_therapist = False
+
+        self.setWindowTitle('Add Hyperdome Server')
+        self.setWindowIcon(QtGui.QIcon(common.get_resource_path('images/logo.png')))
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
         self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.text(),
