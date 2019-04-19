@@ -60,7 +60,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.url = ''
         # self.url = 'http://mqvgnrpo7sjdwgyizkjnk6bq4hedm4hiuqvvdxudmmaacni5f5pgtlad.onion'
         self.chat_history = []
-        self.servers = []
+        self.servers = dict()
         self.is_therapist = False
 
         self.onion = onion
@@ -205,8 +205,9 @@ class OnionShareGui(QtWidgets.QMainWindow):
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
-    def add_server(self, url, uname, passwd, is_therapist):
+    def add_server(self, url, nick, uname, passwd, is_therapist):
         self.server['url'] = url
+        self.servers[nick] = url
         try:
             if self.is_therapist:
                 self.server['uname'] = self.counselor_username_input.toPlainText()
@@ -214,11 +215,10 @@ class OnionShareGui(QtWidgets.QMainWindow):
                 #TODO: authenticate the therapist here when that's a thing
             else:
                 session.get(url + '/generate_guest_id')
-            self.server_list_view.addItem(server)
+            self.server_list_view.addItem(nick)
             self.server_add_dialog.close()
         except:
             Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
-        
             
 
 

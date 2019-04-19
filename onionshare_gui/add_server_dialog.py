@@ -36,14 +36,19 @@ class AddServerDialog(QtWidgets.QDialog):
         self.is_therapist = False
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.text(), 
+        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.text(),
+                                                                        nick = self.server_nick_text.text(), 
                                                                         uname = self.counselor_username_input.text(), 
                                                                         passwd = self.counselor_password_input.text(),
                                                                         is_therapist = self.is_therapist))
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
-        self.server_add_text.setPlaceholderText('Enter server URL:')
+        self.server_add_text.setPlaceholderText('Server URL:')
+
+        self.server_nick_text = QtWidgets.QLineEdit()
+        self.server_nick_text.setFixedWidth(400)
+        self.server_nick_text.setPlaceholderText('Nickname:')
 
         self.counselor_radio = QtWidgets.QRadioButton()
         self.counselor_radio.setText('Counselor')
@@ -74,6 +79,7 @@ class AddServerDialog(QtWidgets.QDialog):
         
         self.server_dialog_layout = QtWidgets.QVBoxLayout()
         self.server_dialog_layout.addWidget(self.server_add_text)
+        self.server_dialog_layout.addWidget(self.server_nick_text)
         self.server_dialog_layout.addLayout(self.radio_buttons)
         self.server_dialog_layout.addLayout(self.counselor_credentials)
         self.server_dialog_layout.addWidget(self.add_server_button)
