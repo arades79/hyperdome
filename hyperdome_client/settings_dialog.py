@@ -20,9 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from PyQt5 import QtCore, QtWidgets, QtGui
 import sys, platform, datetime, re
 
-from onionshare import strings, common
-from onionshare.settings import Settings
-from onionshare.onion import *
+from hyperdome_server import strings, common
+from hyperdome_server.settings import Settings
+from hyperdome_server.onion import *
 
 from .widgets import Alert
 from .update_checker import *

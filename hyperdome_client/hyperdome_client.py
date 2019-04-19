@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import queue
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from onionshare import strings
-from onionshare.web import Web
+from hyperdome_server import strings
+from hyperdome_server.web.web import Web
 
 from .mode.share_mode import ShareMode
 from .mode.receive_mode import ReceiveMode
@@ -48,14 +48,14 @@ class Server(object):
         self.is_therapist = is_therapist
 
 
-class OnionShareGui(QtWidgets.QMainWindow):
+class HyperdomeClient(QtWidgets.QMainWindow):
     """
     OnionShareGui is the main window for the GUI that contains all of the
     GUI elements.
     """
 
     def __init__(self, common, onion, qtapp, app, filenames, config=False, local_only=False):
-        super(OnionShareGui, self).__init__()
+        super(HyperdomeClient, self).__init__()
 
         self.common = common
         self.common.log('OnionShareGui', '__init__')

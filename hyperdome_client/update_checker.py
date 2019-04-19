@@ -22,8 +22,8 @@ import datetime, time, socket, re, platform
 import socks
 from distutils.version import LooseVersion as Version
 
-from onionshare.settings import Settings
-from onionshare.onion import Onion
+from hyperdome_server.settings import Settings
+from hyperdome_server.onion import Onion
 
 from . import strings
 

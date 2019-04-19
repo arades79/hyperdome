@@ -20,10 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from onionshare import strings
-from onionshare.onion import *
-from onionshare.common import Common
-from onionshare.web import Web
+from hyperdome_server import strings
+from hyperdome_server.onion import *
+from hyperdome_server.common import Common
+from hyperdome_server.web import Web
 
 from .file_selection import FileSelection
 from .threads import CompressThread
