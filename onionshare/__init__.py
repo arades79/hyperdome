@@ -23,6 +23,7 @@ import os, sys, time, argparse, threading
 from . import strings
 from .common import Common
 from .web import Web
+from .web.share_mode import ShareModeWeb
 from .onion import *
 from .onionshare import OnionShare
 
@@ -154,6 +155,8 @@ def main(cwd=None):
     t = threading.Thread(target=web.start, args=(app.port, stay_open, common.settings.get('public_mode'), common.settings.get('slug')))
     t.daemon = True
     t.start()
+
+    ShareModeWeb(common, web)
 
     try:  # Trap Ctrl-C
         # Wait for web.generate_slug() to finish running
