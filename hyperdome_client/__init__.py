@@ -26,12 +26,12 @@ import signal
 from .widgets import Alert
 from PyQt5 import QtCore, QtWidgets
 
-from onionshare import strings
-from onionshare.common import Common
-from onionshare.onion import Onion
-from onionshare.onionshare import OnionShare
+from hyperdome_server import strings
+from hyperdome_server.common import Common
+from hyperdome_server.onion import Onion
+from hyperdome_server.hyperdome_server import HyperdomeServer
 
-from .onionshare_gui import OnionShareGui
+from .hyperdome_client import HyperdomeClient
 
 class Application(QtWidgets.QApplication):
     """
@@ -120,10 +120,10 @@ def main():
     onion = Onion(common)
 
     # Start the OnionShare app
-    app = OnionShare(common, onion, local_only)
+    app = HyperdomeServer(common, onion, local_only)
 
     # Launch the gui
-    gui = OnionShareGui(common, onion, qtapp, app, filenames, config, local_only)
+    gui = HyperdomeClient(common, onion, qtapp, app, filenames, config, local_only)
 
     # Clean up when app quits
     def shutdown():

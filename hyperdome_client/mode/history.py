@@ -23,7 +23,7 @@ import os
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from onionshare import strings
+from hyperdome_server import strings
 from ..widgets import Alert
 
 

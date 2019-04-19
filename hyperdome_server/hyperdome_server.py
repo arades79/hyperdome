@@ -24,7 +24,7 @@ from . import common, strings
 from .onion import TorTooOld, TorErrorProtocolError
 from .common import ShutdownTimer
 
-class OnionShare(object):
+class HyperdomeServer(object):
     """
     OnionShare is the main application class. Pass in options and run
     start_onion_service and it will do the magic.

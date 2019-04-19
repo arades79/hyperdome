@@ -23,8 +23,9 @@ import os, sys, time, argparse, threading
 from . import strings
 from .common import Common
 from .web import Web
+from .web.share_mode import ShareModeWeb
 from .onion import *
-from .onionshare import OnionShare
+from .hyperdome_server import HyperdomeServer
 
 def main(cwd=None):
     """
@@ -122,7 +123,7 @@ def main(cwd=None):
 
     # Start the onionshare app
     try:
-        app = OnionShare(common, onion, local_only, shutdown_timeout)
+        app = HyperdomeServer(common, onion, local_only, shutdown_timeout)
         app.set_stealth(stealth)
         app.choose_port()
         app.start_onion_service()

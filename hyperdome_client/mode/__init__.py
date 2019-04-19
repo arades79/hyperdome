@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from onionshare import strings
-from onionshare.common import ShutdownTimer
+from hyperdome_server import strings
+from hyperdome_server.common import ShutdownTimer
 
 from ..server_status import ServerStatus
 from ..threads import OnionThread
