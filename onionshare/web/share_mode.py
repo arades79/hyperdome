@@ -5,11 +5,29 @@ import zipfile
 import mimetypes
 import gzip
 from flask import Response, request, render_template, make_response
+from flask import (Flask, Request, request, render_template,
+                   make_response, flash, redirect, url_for, abort)
+from flask_login import (login_user, logout_user, LoginManager,
+                         UserMixin, login_required, current_user)
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.hybrid import hybrid_property
+from flask_bcrypt import Bcrypt
+import random
+import os
+import binascii
 
 from .. import strings
 
+login_manager = LoginManager()
+
+userfuck = None
+bcryptfuck = None
+dbfuck = None
+
+
 
 class ShareModeWeb(object):
+
     """
     All of the web logic for share mode
     """
@@ -36,7 +54,137 @@ class ShareModeWeb(object):
 
         self.define_routes()
 
+
+
+
+        web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
+        self.db = SQLAlchemy(web.app)
+        global dbfuck
+        dbfuck = self.db
+
+        self.bcrypt = Bcrypt(web.app)
+        global bcryptfuck
+        bcryptfuck = self.bcrypt
+        login_manager.init_app(web.app)
+        login_manager.login_view = "therapist_signin"
+        login_manager.session_protection = None
+        self.therapists_available = []
+        self.connected_therapist = dict()
+        self.connected_guest = dict()
+        self.pending_messages = dict()
+
+
+        class User(self.db.Model, UserMixin):
+            __tablename__ = 'users'
+            id = self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
+            username = self.db.Column(self.db.String(64), unique=True)
+            _password = self.db.Column(self.db.String(128))
+
+            @hybrid_property
+            def password(self):
+                return self._password
+
+            @password.setter
+            def password(self, plaintext):
+                self._password = bcryptfuck.generate_password_hash(plaintext)
+
+            def is_correct_password(self, plaintext):
+                return bcryptfuck.check_password_hash(self._password, plaintext)
+        global userfuck
+        userfuck = User
+
     def define_routes(self):
+
+        @self.web.app.before_request
+        def before_request():
+            user = load_user(request.headers.get("username", ""))
+            if user and user.is_correct_password(request.headers.get("password", "")):
+                login_user(user)
+
+        @login_manager.user_loader
+        def load_user(username):
+            dbfuck.create_all()
+            return userfuck.query.filter(userfuck.username == username).first()
+
+
+        @self.web.app.route("/request_therapist", methods=['POST'])
+        def request_therapist():
+            guest_id = request.form['guest_id']
+            if self.therapists_available:
+                chosen_therapist = random.choice(self.therapists_available)
+                self.therapists_available.remove(chosen_therapist)
+                self.connected_therapist[guest_id] = chosen_therapist.username
+                self.connected_guest[chosen_therapist.username] = guest_id
+                return chosen_therapist.username
+            return ''
+
+
+        @login_required
+        @self.web.app.route("/therapy_complete", methods=['POST'])
+        def therapy_complete():
+            self.connected_therapist.pop(self.connected_guest[current_user.username])
+            self.connected_guest.pop(current_user.username)
+            self.therapists_available.append(current_user)
+
+
+        @self.web.app.route("/therapist_signout", methods=["POST"])
+        @login_required
+        def therapist_signout():
+            user = load_user(request.form['username'])
+            logout_user(user)
+            self.therapists_available.remove(user)
+
+
+        @self.web.app.route("/therapist_signup", methods=["POST"])
+        def therapist_signup():
+            if request.form.get('masterkey', "") == "megumin":
+                if load_user(request.form['username']):
+                    return "Username already exists"
+                user = userfuck(username=request.form['username'],
+                            password=request.form['password'])
+                self.db.session.add(user)
+                self.db.session.commit()
+                return "Success"
+            return abort(401)
+
+
+        @self.web.app.route("/generate_guest_id")
+        def generate_guest_id():
+            return binascii.b2a_hex(os.urandom(15))
+
+
+        @self.web.app.route("/message_from_therapist", methods=['POST'])
+        @login_required
+        def message_from_therapist():
+            message = request.form['message']
+            guest_id = self.connected_guest[current_user.username]
+            self.pending_messages[guest_id] = (self.pending_messages.get(guest_id, "")
+                                          + message + "\n")
+
+
+        @self.web.app.route("/message_from_user", methods=['POST'])
+        def message_from_user():
+            message = request.form['message']
+            guest_id = request.form['guest_id']
+            therapist_username = self.connected_therapist[guest_id]
+            self.pending_messages[therapist_username] = self.pending_messages.get(
+                therapist_username, "")+message+"\n"
+
+
+        @self.web.app.route("/collect_guest_messages")
+        def collect_guest_messages():
+            guest_id = request.form['guest_id']
+            return self.pending_messages.pop(guest_id, "")
+
+
+        @self.web.app.route("/collect_therapist_messages")
+        @login_required
+        def collect_therapist_messages():
+            therapist_username = current_user.username
+            return self.pending_messages.pop(therapist_username, "")
+
+
         """
         The web app routes for sharing files
         """
@@ -374,3 +522,4 @@ class ZipWriter(object):
         Close the zip archive.
         """
         self.z.close()
+
