@@ -36,14 +36,13 @@ class AddServerDialog(QtWidgets.QDialog):
         self.is_therapist = False
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.toPlainText(), 
-                                                                        uname = self.counselor_username_input.toPlainText(), 
-                                                                        passwd = self.counselor_password_input.toPlainText(),
+        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.text(), 
+                                                                        uname = self.counselor_username_input.text(), 
+                                                                        passwd = self.counselor_password_input.text(),
                                                                         is_therapist = self.is_therapist))
 
-        self.server_add_text = QtWidgets.QPlainTextEdit()
+        self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
-        self.server_add_text.setFixedHeight(25)
         self.server_add_text.setPlaceholderText('Enter server URL:')
 
         self.counselor_radio = QtWidgets.QRadioButton()
@@ -59,16 +58,14 @@ class AddServerDialog(QtWidgets.QDialog):
         self.radio_buttons.addWidget(self.counselor_radio)
         self.radio_buttons.addWidget(self.guest_radio)
 
-        self.counselor_username_input = QtWidgets.QPlainTextEdit()
+        self.counselor_username_input = QtWidgets.QLineEdit()
         self.counselor_username_input.setPlaceholderText('Username:')
         self.counselor_username_input.setFixedWidth(200)
-        self.counselor_username_input.setFixedHeight(25)
         self.counselor_username_input.hide()
         
-        self.counselor_password_input = QtWidgets.QPlainTextEdit()
+        self.counselor_password_input = QtWidgets.QLineEdit()
         self.counselor_password_input.setPlaceholderText('Password:')
         self.counselor_password_input.setFixedWidth(200)
-        self.counselor_password_input.setFixedHeight(25)
         self.counselor_password_input.hide()
 
         self.counselor_credentials = QtWidgets.QHBoxLayout()
