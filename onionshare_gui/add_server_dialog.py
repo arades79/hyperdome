@@ -36,8 +36,8 @@ class AddServerDialog(QtWidgets.QDialog):
         self.is_therapist = False
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.toPlainText(), \
-                                                                        uname = self.counselor_username_input.toPlainText(), \
+        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.toPlainText(), 
+                                                                        uname = self.counselor_username_input.toPlainText(), 
                                                                         passwd = self.counselor_password_input.toPlainText(),
                                                                         is_therapist = self.is_therapist))
 
