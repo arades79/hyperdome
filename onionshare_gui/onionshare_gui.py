@@ -51,7 +51,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
         self.common = common
         self.common.log('OnionShareGui', '__init__')
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(500)
         self.setMinimumHeight(660)
         self.uid = None
         # self.uname = input("Please enter your therapist username (or leave blank if you are a client")
@@ -95,6 +95,8 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.system_tray.show()
 
         self.server_add_dialog = AddServerDialog(add_server_action=self.add_server)
+
+
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
@@ -128,27 +130,21 @@ class OnionShareGui(QtWidgets.QMainWindow):
 
 
         # server list view
-        self.server_dropdown = QtWidgets.QComboBox()
-        self.server_dropdown.addItem('Add New Server')
-
-
-        self.server_list_view = QtWidgets.QListWidget()
-        self.server_list_view.setWordWrap(True)
-        self.server_list_view.setWrapping(True)
-        self.server_list_view.addItems(self.servers)
-        self.server_list_view.setFixedWidth(200)
-        self.server_list_view.itemDoubleClicked.connect(self.server_switcher)
-
         self.server_dialog_button = QtWidgets.QPushButton()
+        self.server_dialog_button.setText('Add New Server')
+        self.server_dialog_button.setFixedWidth(100)
         self.server_dialog_button.clicked.connect(lambda: self.server_add_dialog.exec_())
 
-        self.server_pane = QtWidgets.QVBoxLayout()
-        self.server_pane.addWidget(self.server_list_view)
+        self.server_dropdown = QtWidgets.QComboBox()
+        self.server_dropdown.currentIndexChanged.connect(self.server_switcher)
+
+        self.server_pane = QtWidgets.QHBoxLayout()
+        self.server_pane.addWidget(self.server_dropdown)
         self.server_pane.addWidget(self.server_dialog_button)
 
 
         # full view
-        self.full_layout = QtWidgets.QHBoxLayout()
+        self.full_layout = QtWidgets.QVBoxLayout()
         self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
         self.setLayout(self.full_layout)
