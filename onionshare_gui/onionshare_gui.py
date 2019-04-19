@@ -31,6 +31,7 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .server_status import ServerStatus
+from .add_server_dialog import AddServerDialog
 
 import requests
 
@@ -93,53 +94,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
-        #server add dialog
-        self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(self.add_server)
-
-        self.server_add_text = QtWidgets.QPlainTextEdit()
-        self.server_add_text.setFixedWidth(400)
-        self.server_add_text.setFixedHeight(25)
-        self.server_add_text.setPlaceholderText('Enter server URL:')
-
-        self.counselor_radio = QtWidgets.QRadioButton()
-        self.counselor_radio.setText('Counselor')
-        self.counselor_radio.toggled.connect(lambda:self.radio_switch(self.counselor_radio))
-
-        self.guest_radio = QtWidgets.QRadioButton()
-        self.guest_radio.setText('Guest')
-        self.guest_radio.setChecked(True)
-        self.guest_radio.toggled.connect(lambda:self.radio_switch(self.guest_radio))
-
-        self.radio_buttons = QtWidgets.QHBoxLayout()
-        self.radio_buttons.addWidget(self.counselor_radio)
-        self.radio_buttons.addWidget(self.guest_radio)
-
-        self.counselor_username_input = QtWidgets.QPlainTextEdit()
-        self.counselor_username_input.setPlaceholderText('Username:')
-        self.counselor_username_input.setFixedWidth(200)
-        self.counselor_username_input.setFixedHeight(25)
-        self.counselor_username_input.hide()
-        
-        self.counselor_password_input = QtWidgets.QPlainTextEdit()
-        self.counselor_password_input.setPlaceholderText('Password:')
-        self.counselor_password_input.setFixedWidth(200)
-        self.counselor_password_input.setFixedHeight(25)
-        self.counselor_password_input.hide()
-
-        self.counselor_credentials = QtWidgets.QHBoxLayout()
-        self.counselor_credentials.addWidget(self.counselor_username_input)
-        self.counselor_credentials.addWidget(self.counselor_password_input)
-        
-        self.server_dialog_layout = QtWidgets.QVBoxLayout()
-        self.server_dialog_layout.addWidget(self.server_add_text)
-        self.server_dialog_layout.addLayout(self.radio_buttons)
-        self.server_dialog_layout.addLayout(self.counselor_credentials)
-        self.server_dialog_layout.addWidget(self.add_server_button)
-
-        self.server_add_dialog = QtWidgets.QDialog()
-        self.server_add_dialog.setLayout(self.server_dialog_layout)
-
+        self.server_add_dialog = AddServerDialog(add_server_action=self.add_server)
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
@@ -253,32 +208,20 @@ class OnionShareGui(QtWidgets.QMainWindow):
         except:
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
-    def radio_switch(self, radio_switch):
-        if radio_switch.text() == 'Counselor':
-            self.is_therapist = True
-            self.counselor_username_input.show()
-            self.counselor_password_input.show()
-        else:
-            self.is_therapist = False
-            self.counselor_username_input.hide()
-            self.counselor_password_input.hide()
 
-    def add_server(self):
-        server = self.server_add_text.toPlainText()
-        self.server_add_text.clear()
+    def add_server(self, url, uname, passwd, is_therapist):
+        self.server['url'] = url
         try:
             if self.is_therapist:
                 self.server['uname'] = self.counselor_username_input.toPlainText()
-                self.counselor_username_input.clear()
                 self.server['passwd'] = self.counselor_password_input.toPlainText()
-                self.counselor_password_input.clear()
                 #TODO: authenticate the therapist here when that's a thing
             else:
-                session.get(self.url + '/generate_guest_id')
+                session.get(url + '/generate_guest_id')
             self.server_list_view.addItem(server)
             self.server_add_dialog.close()
         except:
-            Alert(self.common, f"server {server} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+            Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
         
             
 
@@ -409,31 +352,7 @@ class OnionShareGui(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', 'copy_hidservauth')
         self.system_tray.showMessage(strings._('gui_copied_hidservauth_title'), strings._('gui_copied_hidservauth'))
 
-    def clear_message(self):
-        """
-        Clear messages from the status bar.
-        """
-        self.status_bar.clearMessage()
 
-    def set_server_active(self, active):
-        """
-        Disable the Settings and Receive Files buttons while an Share Files server is active.
-        """
-        # if active:
-        #     self.settings_button.hide()
-        #     if self.mode == self.MODE_SHARE:
-        #         self.share_mode_button.show()
-        #         self.receive_mode_button.hide()
-        #     else:
-        #         self.share_mode_button.hide()
-        #         self.receive_mode_button.show()
-        # else:
-        #     self.settings_button.show()
-        #     self.share_mode_button.show()
-        #     self.receive_mode_button.show()
-
-        # Disable settings menu action when server is active
-        self.settings_action.setEnabled(not active)
 
     def closeEvent(self, e):
         self.common.log('OnionShareGui', 'closeEvent')
