@@ -1,4 +1,4 @@
-<p style="text-align:center"><img src="hyperdome_logo.png" width="25%"></p>
+<p align="center"><img src="hyperdome_logo.png" width="25%"></p>
 
 # Hyperdome
 
