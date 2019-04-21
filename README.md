@@ -1,7 +1,8 @@
+<p style="text-align:center"><img src="hyperdome_logo.png" width="25%"></p>
+
 # Hyperdome
 
 The safest place to reach out
-![hyperdome logo](hyperdome_logo.png)
 
 ## Concept
 
