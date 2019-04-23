@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

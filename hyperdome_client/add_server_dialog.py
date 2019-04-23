@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
 Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
 
