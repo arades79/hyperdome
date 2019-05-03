@@ -33,19 +33,25 @@ from .update_checker import UpdateThread
 from .server_status import ServerStatus
 from .add_server_dialog import AddServerDialog
 
+
+import socks
+import socket
 import requests
 
 
-session = requests.Session()
-# session.proxies = {'http': 'socks5://127.0.0.1:9050',
-#                    'https': 'socks5://127.0.0.1:9050'}
-
 class Server(object):
     def __init__(self, url='', uname='', passwd='', is_therapist=False):
+
         self.url = url
+        self._check_url()
+        print(self.url)
         self.username = uname
         self.password = passwd
         self.is_therapist = is_therapist
+    
+    def _check_url(self):
+        if self.url.find('http://') is -1 and self.url.find('https://') is -1:
+            self.url = 'http://' + self.url
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -71,6 +77,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.qtapp = qtapp
         self.app = app
         self.local_only = local_only
+        
+        self.session = None
 
         self.setWindowTitle('hyperdome')
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
@@ -192,6 +200,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
+        # Above should print an IP different than your public IP
+
+        # Following prints your normal public IP
+
         self.timer.start(1000)
 
     def send_message(self):
@@ -204,9 +216,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.chat_history.append("You: " + message)
                 self.on_history_added()
                 if self.server.is_therapist: # needs auth
-                    session.post(f"{self.server.url}/message_from_therapist",headers={"username":self.server.username, "password":self.server.password,"message":message})
+                    self._get_session().post(f"{self.server.url}/message_from_therapist",headers={"username":self.server.username, "password":self.server.password,"message":message})
                 else: # normal user
-                    session.post(self.server.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+                    self._get_session().post(self.server.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
             except Exception as e:
                 print(e.with_traceback())
                 Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
@@ -218,7 +230,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.chat_history = []
 
     def get_uid(self):
-        self.uid = session.get(self.server.url + '/generate_guest_id').text
+        try:
+            self.uid = self._get_session().get(self.server.url + '/generate_guest_id').text
+        except Exception as e:
+            raise e
+
+    def _get_session(self):
+        if self.session is None:
+            self.session = requests.Session()
+            if self.onion.is_authenticated():
+                socks_address, socks_port = self.onion.get_tor_socks_port()
+                self.session.proxies = {'http': f'socks5h://{socks_address}:{socks_port}',
+                                    'https': f'socks5h://{socks_address}:{socks_port}'}                
+        return self.session
 
 
     def server_switcher(self, server):
@@ -227,7 +251,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
         try:
             if self.server.is_therapist:
-                session.post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
+                self._get_session().post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
             else:
                 self.get_uid()
                 self.therapist = session.post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
@@ -240,18 +264,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     def add_server(self, url, nick, uname, passwd, is_therapist):
         self.server = Server(url, uname, passwd, is_therapist)
         self.servers[nick] = self.server
-        self.server.is_therapist = is_therapist
         try:
             if self.server.is_therapist:
                 pass
                 #TODO: authenticate the therapist here when that's a thing
             else:
-                session.get(url + '/generate_guest_id').text
+                self._get_session().get(self.server.url + '/generate_guest_id').text
             self.server_dropdown.addItem(nick)
             self.server_add_dialog.close()
         except Exception as e:
-            print(e.with_traceback())
-            Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+            print(e)
+            Alert(self.common, f"server {self.server.url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
             
 
 
@@ -349,7 +372,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.timer.start(1000)
             return
         if self.server.is_therapist:
-            new_messages = session.get(f"{self.server.url}/collect_therapist_messages",
+            new_messages = self._get_session().get(f"{self.server.url}/collect_therapist_messages",
                                        headers={"username":self.server.username, "password":self.server.password}).text
             if new_messages: 
                 new_messages = new_messages.split('\n')
@@ -357,7 +380,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     message = 'Guest: ' + message   
                 self.chat_window.addItems(new_messages)
         elif self.uid:
-            new_messages = session.get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
+            new_messages = self._get_session().get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
             if new_messages:
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
