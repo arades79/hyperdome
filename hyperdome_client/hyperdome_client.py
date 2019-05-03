@@ -254,10 +254,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self._get_session().post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
             else:
                 self.get_uid()
-                self.therapist = session.post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
+                self.therapist = self._get_session().post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
                 if self.therapist:
                     self.is_connected = True
-        except:
+        except Exception as e:
+            print (e)
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
