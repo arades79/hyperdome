@@ -55,7 +55,6 @@ def main(cwd=None):
     parser.add_argument('--shutdown-timeout', metavar='<int>', dest='shutdown_timeout', default=0, help=strings._("help_shutdown_timeout"))
     parser.add_argument('--connect-timeout', metavar='<int>', dest='connect_timeout', default=120, help=strings._("help_connect_timeout"))
     parser.add_argument('--stealth', action='store_true', dest='stealth', help=strings._("help_stealth"))
-    parser.add_argument('--receive', action='store_true', dest='receive', help=strings._("help_receive"))
     parser.add_argument('--config', metavar='config', default=False, help=strings._('help_config'))
     parser.add_argument('--debug', action='store_true', dest='debug', help=strings._("help_debug"))
     parser.add_argument('filename', metavar='filename', nargs='*', help=strings._('help_filename'))
@@ -70,18 +69,8 @@ def main(cwd=None):
     shutdown_timeout = int(args.shutdown_timeout)
     connect_timeout = int(args.connect_timeout)
     stealth = bool(args.stealth)
-    receive = bool(args.receive)
     config = args.config
 
-    if receive:
-        mode = 'receive'
-    else:
-        mode = 'share'
-
-    # Make sure filenames given if not using receiver mode
-    if mode == 'share' and len(filenames) == 0:
-        parser.print_help()
-        sys.exit()
 
     # Validate filenames
     if mode == 'share':
@@ -175,28 +164,6 @@ def main(cwd=None):
             url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
 
         print('')
-        if mode == 'receive':
-            print(strings._('receive_mode_data_dir').format(common.settings.get('data_dir')))
-            print('')
-            print(strings._('receive_mode_warning'))
-            print('')
-
-            if stealth:
-                print(strings._("give_this_url_receive_stealth"))
-                print(url)
-                print(app.auth_string)
-            else:
-                print(strings._("give_this_url_receive"))
-                print(url)
-        else:
-            if stealth:
-                print(strings._("give_this_url_stealth"))
-                print(url)
-                print(app.auth_string)
-            else:
-                print(strings._("give_this_url"))
-                print(url)
-        print('')
         print(strings._("ctrlc_to_stop"))
 
         # Wait for app to close
@@ -204,19 +171,9 @@ def main(cwd=None):
             if app.shutdown_timeout > 0:
                 # if the shutdown timer was set and has run out, stop the server
                 if not app.shutdown_timer.is_alive():
-                    if mode == 'share':
-                        # If there were no attempts to download the share, or all downloads are done, we can stop
-                        if web.share_mode.download_count == 0 or web.done:
-                            print(strings._("close_on_timeout"))
-                            web.stop(app.port)
-                            break
-                    if mode == 'receive':
-                        if web.receive_mode.upload_count == 0 or not web.receive_mode.uploads_in_progress:
-                            print(strings._("close_on_timeout"))
-                            web.stop(app.port)
-                            break
-                        else:
-                            web.receive_mode.can_upload = False
+                    pass
+                    # TODO if hyperdome session is over, break. Or just add
+                    # to the conditions with app.shutdown_timer.is_alive().
             # Allow KeyboardInterrupt exception to be handled with threads
             # https://stackoverflow.com/questions/3788208/python-threading-ignores-keyboardinterrupt-exception
             time.sleep(0.2)
