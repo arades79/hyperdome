@@ -24,7 +24,6 @@ from hyperdome_server import strings
 from hyperdome_server.web.web import Web
 
 from .mode.share_mode import ShareMode
-from .mode.receive_mode import ReceiveMode
 
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
@@ -252,7 +251,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         except Exception as e:
             print(e.with_traceback())
             Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
-            
+
 
 
     def _tor_connection_canceled(self):
@@ -313,21 +312,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     if not self.timer.isActive():
                         self.timer.start(500)
                     self.share_mode.on_reload_settings()
-                    self.receive_mode.on_reload_settings()
                     self.status_bar.clearMessage()
 
             # If we switched off the shutdown timeout setting, ensure the widget is hidden.
             if not self.common.settings.get('shutdown_timeout'):
                 self.share_mode.server_status.shutdown_timeout_container.hide()
-                self.receive_mode.server_status.shutdown_timeout_container.hide()
 
         d = SettingsDialog(self.common, self.onion, self.qtapp, self.config, self.local_only)
         d.settings_saved.connect(reload_settings)
         d.exec_()
-
-        # When settings close, refresh the server status UI
-        # self.share_mode.server_status.update()
-        # self.receive_mode.server_status.update()
 
     def check_for_updates(self):
         """
@@ -351,10 +344,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server.is_therapist:
             new_messages = session.get(f"{self.server.url}/collect_therapist_messages",
                                        headers={"username":self.server.username, "password":self.server.password}).text
-            if new_messages: 
+            if new_messages:
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
-                    message = 'Guest: ' + message   
+                    message = 'Guest: ' + message
                 self.chat_window.addItems(new_messages)
         elif self.uid:
             new_messages = session.get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
@@ -363,7 +356,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 for message in new_messages:
                     message = self.therapist+ ': ' + message
                 self.chat_window.addItems(new_messages)
-        
+
         self.timer.start(1000)
 
 

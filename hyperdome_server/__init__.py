@@ -57,12 +57,7 @@ def main(cwd=None):
     parser.add_argument('--stealth', action='store_true', dest='stealth', help=strings._("help_stealth"))
     parser.add_argument('--config', metavar='config', default=False, help=strings._('help_config'))
     parser.add_argument('--debug', action='store_true', dest='debug', help=strings._("help_debug"))
-    parser.add_argument('filename', metavar='filename', nargs='*', help=strings._('help_filename'))
     args = parser.parse_args()
-
-    filenames = args.filename
-    for i in range(len(filenames)):
-        filenames[i] = os.path.abspath(filenames[i])
 
     local_only = bool(args.local_only)
     debug = bool(args.debug)
@@ -71,19 +66,6 @@ def main(cwd=None):
     stealth = bool(args.stealth)
     config = args.config
 
-
-    # Validate filenames
-    if mode == 'share':
-        valid = True
-        for filename in filenames:
-            if not os.path.isfile(filename) and not os.path.isdir(filename):
-                print(strings._("not_a_file").format(filename))
-                valid = False
-            if not os.access(filename, os.R_OK):
-                print(strings._("not_a_readable_file").format(filename))
-                valid = False
-        if not valid:
-            sys.exit()
 
     # Re-load settings, if a custom config was passed in
     if config:
@@ -95,7 +77,7 @@ def main(cwd=None):
     common.debug = debug
 
     # Create the Web object
-    web = Web(common, False, mode)
+    web = Web(common, False)
 
     # Start the Onion object
     onion = Onion(common)
@@ -121,21 +103,6 @@ def main(cwd=None):
         print(e.args[0])
         sys.exit()
 
-    if mode == 'share':
-        # Prepare files to share
-        print(strings._("preparing_files"))
-        try:
-            web.share_mode.set_file_info(filenames)
-            app.cleanup_filenames += web.share_mode.cleanup_filenames
-        except OSError as e:
-            print(e.strerror)
-            sys.exit(1)
-
-        # Warn about sending large files over Tor
-        if web.share_mode.download_filesize >= 157286400:  # 150mb
-            print('')
-            print(strings._("large_filesize"))
-            print('')
 
     # Start OnionShare http service in new thread
     t = threading.Thread(target=web.start, args=(app.port, True, common.settings.get('public_mode'), common.settings.get('slug')))

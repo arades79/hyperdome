@@ -14,7 +14,6 @@ from flask import Flask, request, render_template, abort, make_response, __versi
 from .. import strings
 
 from .share_mode import ShareModeWeb
-from .receive_mode import ReceiveModeWeb, ReceiveModeWSGIMiddleware, ReceiveModeRequest
 
 
 # Stub out flask's show_server_banner function, to avoiding showing warnings that
@@ -41,9 +40,9 @@ class Web(object):
     REQUEST_UPLOAD_CANCELED = 9
     REQUEST_ERROR_DATA_DIR_CANNOT_CREATE = 10
 
-    def __init__(self, common, is_gui, mode='share'):
+    def __init__(self, common, is_gui):
         self.common = common
-        self.common.log('Web', '__init__', 'is_gui={}, mode={}'.format(is_gui, mode))
+        self.common.log('Web', '__init__', 'is_gui={}'.format(is_gui))
 
         # The flask app
         self.app = Flask(__name__,
@@ -63,13 +62,7 @@ class Web(object):
         # is a queue. If anything is in it, then the user stopped the server
         self.stop_q = queue.Queue()
 
-        # Are we using receive mode?
-        self.mode = mode
-        if self.mode == 'receive':
-            # Use custom WSGI middleware, to modify environ
-            self.app.wsgi_app = ReceiveModeWSGIMiddleware(self.app.wsgi_app, self)
-            # Use a custom Request class to track upload progess
-            self.app.request_class = ReceiveModeRequest
+        self.mode = 'share'
 
         # Starting in Flask 0.11, render_template_string autoescapes template variables
         # by default. To prevent content injection through template variables in
@@ -104,12 +97,7 @@ class Web(object):
         self.define_common_routes()
 
         # Create the mode web object, which defines its own routes
-        self.share_mode = None
-        self.receive_mode = None
-        if self.mode == 'receive':
-            self.receive_mode = ReceiveModeWeb(self.common, self)
-        elif self.mode == 'share':
-            self.share_mode = ShareModeWeb(self.common, self)
+        self.share_mode = ShareModeWeb(self.common, self)
 
 
     def define_common_routes(self):
