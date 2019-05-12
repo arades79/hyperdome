@@ -52,7 +52,6 @@ def main(cwd=None):
     # Parse arguments
     parser = argparse.ArgumentParser(formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=28))
     parser.add_argument('--local-only', action='store_true', dest='local_only', help=strings._("help_local_only"))
-    parser.add_argument('--stay-open', action='store_true', dest='stay_open', help=strings._("help_stay_open"))
     parser.add_argument('--shutdown-timeout', metavar='<int>', dest='shutdown_timeout', default=0, help=strings._("help_shutdown_timeout"))
     parser.add_argument('--connect-timeout', metavar='<int>', dest='connect_timeout', default=120, help=strings._("help_connect_timeout"))
     parser.add_argument('--stealth', action='store_true', dest='stealth', help=strings._("help_stealth"))
@@ -68,7 +67,6 @@ def main(cwd=None):
 
     local_only = bool(args.local_only)
     debug = bool(args.debug)
-    stay_open = bool(args.stay_open)
     shutdown_timeout = int(args.shutdown_timeout)
     connect_timeout = int(args.connect_timeout)
     stealth = bool(args.stealth)
@@ -151,11 +149,12 @@ def main(cwd=None):
             print('')
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, stay_open, common.settings.get('public_mode'), common.settings.get('slug')))
+    t = threading.Thread(target=web.start, args=(app.port, True, common.settings.get('public_mode'), common.settings.get('slug')))
     t.daemon = True
     t.start()
 
     try:  # Trap Ctrl-C
+        #TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
 
