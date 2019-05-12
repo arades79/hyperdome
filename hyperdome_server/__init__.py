@@ -46,9 +46,8 @@ def main(cwd=None):
     print(strings._('version_string').format(common.version))
 
     # OnionShare CLI in OSX needs to change current working directory (#132)
-    if common.platform == 'Darwin':
-        if cwd:
-            os.chdir(cwd)
+    if common.platform == 'Darwin' and cwd:
+        os.chdir(cwd)
 
     # Parse arguments
     parser = argparse.ArgumentParser(formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=28))
