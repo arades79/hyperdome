@@ -72,11 +72,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', '__init__')
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
+        
         self.uid = ''
         self.chat_history = []
         self.servers = dict()
         self.server = Server()
         self.is_connected = False
+        self._session = None
 
         self.onion = onion
         self.qtapp = qtapp
@@ -254,7 +256,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Lazy getter for tor proxy session.
         Ensures proxy isn't attempted until tor circuit established.
         """
-        if getattr(self, '_session', None) is None:
+        if self._session is None:
             self._session = requests.Session()
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
