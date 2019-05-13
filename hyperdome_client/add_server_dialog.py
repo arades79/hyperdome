@@ -29,6 +29,9 @@ from .update_checker import *
 from .tor_connection_dialog import TorConnectionDialog
 
 class AddServerDialog(QtWidgets.QDialog):
+    """
+    Dialog for entering server connection details and or credentials.
+    """
 
     def __init__(self, common, add_server_action):
         super(AddServerDialog, self).__init__()
@@ -90,6 +93,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setLayout(self.server_dialog_layout)
 
     def radio_switch(self, radio_switch):
+        """
+        Show or hide crediential fields based on user type selected.
+        """
         if radio_switch.text() == 'Counselor':
             self.is_therapist = True
             self.counselor_username_input.show()
@@ -100,6 +106,9 @@ class AddServerDialog(QtWidgets.QDialog):
             self.counselor_password_input.hide()
 
     def close(self):
+        """
+        Cleanup for when window is closed.
+        """
         self.counselor_username_input.clear()
         self.counselor_password_input.clear()
         self.server_add_text.clear()

@@ -40,16 +40,21 @@ import requests
 
 
 class Server(object):
+    """
+    Holder class for server connection details
+    """
     def __init__(self, url='', uname='', passwd='', is_therapist=False):
 
         self.url = url
         self._check_url()
-        print(self.url)
         self.username = uname
         self.password = passwd
         self.is_therapist = is_therapist
     
     def _check_url(self):
+        """
+        Ensure URL is properly formatted
+        """
         if self.url.find('http://') is -1 and self.url.find('https://') is -1:
             self.url = 'http://' + self.url
 
@@ -189,7 +194,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # Create the timer
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.timer_callback)
+        self.timer.timeout.connect(self._timer_callback)
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
         tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
@@ -205,6 +210,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.timer.start(1000)
 
     def send_message(self):
+        """
+        Send the contents of the message box to the server to be forwarded to
+        either counsel or guest.
+        """
         if self.is_connected:
             message = self.message_text_field.toPlainText()
             self.message_text_field.clear()
@@ -224,10 +233,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             Alert(self.common, "Not connected to a counselor!", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
     def on_history_added(self):
+        """
+        Update UI with messages retrieved from server.
+        """
         self.chat_window.addItems(self.chat_history)
         self.chat_history = []
 
     def get_uid(self):
+        """
+        Ask server for a new UID for a new user session
+        """
         try:
             self.uid = self.session.get(self.server.url + '/generate_guest_id').text
         except Exception as e:
@@ -235,6 +250,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     @property
     def session(self):
+        """
+        Lazy getter for tor proxy session.
+        Ensures proxy isn't attempted until tor circuit established.
+        """
         if getattr(self, '_session', None) is None:
             self._session = requests.Session()
             if self.onion.is_authenticated():
@@ -245,6 +264,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
 
     def server_switcher(self, server):
+        """
+        handle a switch to a different saved server by establishing a new connection and retrieving new UID.
+        """
         self.server = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
@@ -262,6 +284,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
 
     def add_server(self, url, nick, uname, passwd, is_therapist):
+        """
+        Reciever for the add server dialog to handle the new server details.
+        """
         self.server = Server(url, uname, passwd, is_therapist)
         self.servers[nick] = self.server
         try:
@@ -365,8 +390,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.update_thread.update_available.connect(update_available)
                 self.update_thread.start()
 
-    def timer_callback(self):
-        # Collecting messages as a user:
+    def _timer_callback(self):
+        """
+        Passed to timer to continually check for new messages on the server
+        """
 
         if self.server == None:
             self.timer.start(1000)
@@ -407,6 +434,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
 
     def closeEvent(self, e):
+        """
+        When the main window is closed, do some cleanup
+        """
         self.common.log('OnionShareGui', 'closeEvent')
         try:
             if self.server.is_therapist:
