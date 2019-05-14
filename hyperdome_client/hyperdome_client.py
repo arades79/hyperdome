@@ -31,32 +31,12 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .server_status import ServerStatus
-from .add_server_dialog import AddServerDialog
+from .add_server_dialog import AddServerDialog, Server
 
 
 import socks
 import socket
 import requests
-
-
-class Server(object):
-    """
-    Holder class for server connection details
-    """
-    def __init__(self, url='', uname='', passwd='', is_therapist=False):
-
-        self.url = url
-        self._check_url()
-        self.username = uname
-        self.password = passwd
-        self.is_therapist = is_therapist
-    
-    def _check_url(self):
-        """
-        Ensure URL is properly formatted
-        """
-        if self.url.find('http://') is -1 and self.url.find('https://') is -1:
-            self.url = 'http://' + self.url
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -285,19 +265,18 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
-    def add_server(self, url, nick, uname, passwd, is_therapist):
+    def add_server(self, server):
         """
         Reciever for the add server dialog to handle the new server details.
         """
-        self.server = Server(url, uname, passwd, is_therapist)
-        self.servers[nick] = self.server
+        self.servers[server.nick] = self.server
         try:
             if self.server.is_therapist:
                 pass
                 #TODO: authenticate the therapist here when that's a thing
             else:
                 self.session.get(self.server.url + '/generate_guest_id').text
-            self.server_dropdown.addItem(nick)
+            self.server_dropdown.addItem(server.nick)
             self.server_add_dialog.close()
         except Exception as e:
             print(e)

@@ -28,6 +28,26 @@ from .widgets import Alert
 from .update_checker import *
 from .tor_connection_dialog import TorConnectionDialog
 
+class Server(object):
+    """
+    Holder class for server connection details
+    """
+    def __init__(self, url='', nick='', uname='', passwd='', is_therapist=False):
+
+        self.url = url
+        self._check_url()
+        self.nick = nick
+        self.username = uname
+        self.password = passwd
+        self.is_therapist = is_therapist
+    
+    def _check_url(self):
+        """
+        Ensure URL is properly formatted
+        """
+        if self.url.find('http://') is -1 and self.url.find('https://') is -1:
+            self.url = 'http://' + self.url
+
 class AddServerDialog(QtWidgets.QDialog):
     """
     Dialog for entering server connection details and or credentials.
@@ -42,11 +62,7 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setWindowIcon(QtGui.QIcon(common.get_resource_path('images/logo.png')))
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(lambda:add_server_action(url = self.server_add_text.text(),
-                                                                        nick = self.server_nick_text.text(), 
-                                                                        uname = self.counselor_username_input.text(), 
-                                                                        passwd = self.counselor_password_input.text(),
-                                                                        is_therapist = self.is_therapist))
+        self.add_server_button.clicked.connect(lambda:add_server_action(self._make_server_from_fields()))
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
@@ -91,6 +107,18 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server_dialog_layout.addWidget(self.add_server_button)
 
         self.setLayout(self.server_dialog_layout)
+
+    def _make_server_from_fields(self):
+        """
+        Take text fields and package into server object to pass.
+        """
+        url = self.server_add_text.text()
+        nick = self.server_nick_text.text()
+        uname = self.counselor_username_input.text() 
+        passwd = self.counselor_password_input.text()
+        is_therapist = self.is_therapist
+
+        return Server(url=url, nick=nick, uname=uname, passwd=passwd, is_therapist=is_therapist)
 
     def radio_switch(self, radio_switch):
         """
