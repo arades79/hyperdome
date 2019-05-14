@@ -33,7 +33,6 @@ class Server(object):
     Holder class for server connection details
     """
     def __init__(self, url='', nick='', uname='', passwd='', is_therapist=False):
-
         self.url = url
         self._check_url()
         self.nick = nick
@@ -45,7 +44,7 @@ class Server(object):
         """
         Ensure URL is properly formatted
         """
-        if self.url.find('http://') is -1 and self.url.find('https://') is -1:
+        if not self.url.startswith('http://') and not self.url.startswith('https://'):
             self.url = 'http://' + self.url
 
 class AddServerDialog(QtWidgets.QDialog):

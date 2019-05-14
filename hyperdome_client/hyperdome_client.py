@@ -33,11 +33,10 @@ from .update_checker import UpdateThread
 from .server_status import ServerStatus
 from .add_server_dialog import AddServerDialog, Server
 
-
 import socks
 import socket
 import requests
-
+import traceback
 
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
@@ -48,25 +47,27 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     def __init__(self, common, onion, qtapp, app, filenames, config=False, local_only=False):
         super(HyperdomeClient, self).__init__()
 
+        # set application variables
         self.common = common
+        self.onion = onion
+        self.qtapp = qtapp
+        self.app = app
+        self.local_only = local_only
         self.common.log('OnionShareGui', '__init__')
+        
+        # set window constants
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
+        self.setWindowTitle('hyperdome')
+        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
         
+        # initialize session variables
         self.uid = ''
         self.chat_history = []
         self.servers = dict()
         self.server = Server()
         self.is_connected = False
         self._session = None
-
-        self.onion = onion
-        self.qtapp = qtapp
-        self.app = app
-        self.local_only = local_only
-        
-        self.setWindowTitle('hyperdome')
-        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -114,7 +115,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.server_add_dialog = AddServerDialog(common=self.common, add_server_action=self.add_server)
 
-
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
@@ -123,7 +123,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setStyleSheet(self.common.css['settings_button'])
-
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
@@ -161,12 +160,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server_pane.addWidget(self.server_dropdown)
         self.server_pane.addWidget(self.server_dialog_button)
 
-
         # full view
         self.full_layout = QtWidgets.QVBoxLayout()
         self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
-        # self.setLayout(self.full_layout)
 
         self.main_widget = QtWidgets.QWidget()
         self.main_widget.setLayout(self.full_layout)
@@ -185,10 +182,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
-        # Above should print an IP different than your public IP
-
-        # Following prints your normal public IP
-
         self.timer.start(1000)
 
     def send_message(self):
@@ -205,11 +198,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.chat_history.append("You: " + message)
                 self.on_history_added()
                 if self.server.is_therapist: # needs auth
-                    self.session.post(f"{self.server.url}/message_from_therapist",headers={"username":self.server.username, "password":self.server.password,"message":message})
+                    self.session.post(f"{self.server.url}/message_from_therapist", 
+                                      headers={"username":self.server.username, 
+                                               "password":self.server.password, 
+                                               "message":message})
                 else: # normal user
-                    self.session.post(self.server.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+                    self.session.post(f'{self.server.url}/message_from_user', 
+                                      data={'message':message, 'guest_id':self.uid})
             except Exception as e:
-                print(e.with_traceback())
+                print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
                 Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
         else:
             Alert(self.common, "Not connected to a counselor!", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
@@ -225,10 +222,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        try:
-            self.uid = self.session.get(self.server.url + '/generate_guest_id').text
-        except Exception as e:
-            raise e
+        self.uid = self.session.get(f'{self.server.url}/generate_guest_id').text
 
     @property
     def session(self):
@@ -241,7 +235,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
                 self._session.proxies = {'http': f'socks5h://{socks_address}:{socks_port}',
-                                    'https': f'socks5h://{socks_address}:{socks_port}'}                
+                                         'https': f'socks5h://{socks_address}:{socks_port}'}                
         return self._session
 
 
@@ -261,7 +255,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 if self.therapist:
                     self.is_connected = True
         except Exception as e:
-            print (e)
+            print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
@@ -275,11 +269,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 pass
                 #TODO: authenticate the therapist here when that's a thing
             else:
-                self.session.get(self.server.url + '/generate_guest_id').text
+                self.session.get(f'{self.server.url}/generate_guest_id').text
             self.server_dropdown.addItem(server.nick)
             self.server_add_dialog.close()
         except Exception as e:
-            print(e)
+            print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             Alert(self.common, f"server {self.server.url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
             
 
