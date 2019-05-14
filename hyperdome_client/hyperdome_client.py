@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com> and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,22 +31,12 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .server_status import ServerStatus
-from .add_server_dialog import AddServerDialog
+from .add_server_dialog import AddServerDialog, Server
 
+import socks
+import socket
 import requests
-
-
-session = requests.Session()
-# session.proxies = {'http': 'socks5://127.0.0.1:9050',
-#                    'https': 'socks5://127.0.0.1:9050'}
-
-class Server(object):
-    def __init__(self, url='', uname='', passwd='', is_therapist=False):
-        self.url = url
-        self.username = uname
-        self.password = passwd
-        self.is_therapist = is_therapist
-
+import traceback
 
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
@@ -57,23 +47,27 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     def __init__(self, common, onion, qtapp, app, filenames, config=False, local_only=False):
         super(HyperdomeClient, self).__init__()
 
+        # set application variables
         self.common = common
+        self.onion = onion
+        self.qtapp = qtapp
+        self.app = app
+        self.local_only = local_only
         self.common.log('OnionShareGui', '__init__')
+        
+        # set window constants
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
+        self.setWindowTitle('hyperdome')
+        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
+        
+        # initialize session variables
         self.uid = ''
         self.chat_history = []
         self.servers = dict()
         self.server = Server()
         self.is_connected = False
-
-        self.onion = onion
-        self.qtapp = qtapp
-        self.app = app
-        self.local_only = local_only
-
-        self.setWindowTitle('hyperdome')
-        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
+        self._session = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -121,7 +115,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.server_add_dialog = AddServerDialog(common=self.common, add_server_action=self.add_server)
 
-
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
@@ -130,7 +123,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/settings.png')) )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setStyleSheet(self.common.css['settings_button'])
-
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
@@ -168,12 +160,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server_pane.addWidget(self.server_dropdown)
         self.server_pane.addWidget(self.server_dialog_button)
 
-
         # full view
         self.full_layout = QtWidgets.QVBoxLayout()
         self.full_layout.addLayout(self.server_pane)
         self.full_layout.addLayout(self.chat_pane)
-        # self.setLayout(self.full_layout)
 
         self.main_widget = QtWidgets.QWidget()
         self.main_widget.setLayout(self.full_layout)
@@ -183,7 +173,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # Create the timer
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.timer_callback)
+        self.timer.timeout.connect(self._timer_callback)
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
         tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
@@ -195,6 +185,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.timer.start(1000)
 
     def send_message(self):
+        """
+        Send the contents of the message box to the server to be forwarded to
+        either counsel or guest.
+        """
         if self.is_connected:
             message = self.message_text_field.toPlainText()
             self.message_text_field.clear()
@@ -204,54 +198,83 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.chat_history.append("You: " + message)
                 self.on_history_added()
                 if self.server.is_therapist: # needs auth
-                    session.post(f"{self.server.url}/message_from_therapist",headers={"username":self.server.username, "password":self.server.password,"message":message})
+                    self.session.post(f"{self.server.url}/message_from_therapist", 
+                                      headers={"username":self.server.username, 
+                                               "password":self.server.password, 
+                                               "message":message})
                 else: # normal user
-                    session.post(self.server.url + '/message_from_user', data = {'message':message, 'guest_id':self.uid} )
+                    self.session.post(f'{self.server.url}/message_from_user', 
+                                      data={'message':message, 'guest_id':self.uid})
             except Exception as e:
-                print(e.with_traceback())
+                print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
                 Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
         else:
             Alert(self.common, "Not connected to a counselor!", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
     def on_history_added(self):
+        """
+        Update UI with messages retrieved from server.
+        """
         self.chat_window.addItems(self.chat_history)
         self.chat_history = []
 
     def get_uid(self):
-        self.uid = session.get(self.server.url + '/generate_guest_id').text
+        """
+        Ask server for a new UID for a new user session
+        """
+        self.uid = self.session.get(f'{self.server.url}/generate_guest_id').text
+
+    @property
+    def session(self):
+        """
+        Lazy getter for tor proxy session.
+        Ensures proxy isn't attempted until tor circuit established.
+        """
+        if self._session is None:
+            self._session = requests.Session()
+            if self.onion.is_authenticated():
+                socks_address, socks_port = self.onion.get_tor_socks_port()
+                self._session.proxies = {'http': f'socks5h://{socks_address}:{socks_port}',
+                                         'https': f'socks5h://{socks_address}:{socks_port}'}                
+        return self._session
 
 
     def server_switcher(self, server):
+        """
+        handle a switch to a different saved server by establishing a new connection and retrieving new UID.
+        """
         self.server = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
         try:
             if self.server.is_therapist:
-                session.post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
+                self.session.post(f"{self.server.url}/therapist_signup", data={"masterkey":"megumin","username":self.server.username,"password":self.server.password})
             else:
                 self.get_uid()
-                self.therapist = session.post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
+                self.therapist = self.session.post(f"{self.server.url}/request_therapist",  data={"guest_id":self.uid}).text
                 if self.therapist:
                     self.is_connected = True
-        except:
+        except Exception as e:
+            print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             Alert(self.common, "therapy machine broke", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
 
 
-    def add_server(self, url, nick, uname, passwd, is_therapist):
-        self.server = Server(url, uname, passwd, is_therapist)
-        self.servers[nick] = self.server
-        self.server.is_therapist = is_therapist
+    def add_server(self, server):
+        """
+        Reciever for the add server dialog to handle the new server details.
+        """
+        self.servers[server.nick] = self.server
         try:
             if self.server.is_therapist:
                 pass
                 #TODO: authenticate the therapist here when that's a thing
             else:
-                session.get(url + '/generate_guest_id').text
-            self.server_dropdown.addItem(nick)
+                self.session.get(f'{self.server.url}/generate_guest_id').text
+            self.server_dropdown.addItem(server.nick)
             self.server_add_dialog.close()
         except Exception as e:
-            print(e.with_traceback())
-            Alert(self.common, f"server {url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
+            print (''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+            Alert(self.common, f"server {self.server.url} is invalid", QtWidgets.QMessageBox.Warning, buttons=QtWidgets.QMessageBox.Ok)
             
 
 
@@ -342,14 +365,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.update_thread.update_available.connect(update_available)
                 self.update_thread.start()
 
-    def timer_callback(self):
-        # Collecting messages as a user:
+    def _timer_callback(self):
+        """
+        Passed to timer to continually check for new messages on the server
+        """
 
         if self.server == None:
             self.timer.start(1000)
             return
         if self.server.is_therapist:
-            new_messages = session.get(f"{self.server.url}/collect_therapist_messages",
+            new_messages = self.session.get(f"{self.server.url}/collect_therapist_messages",
                                        headers={"username":self.server.username, "password":self.server.password}).text
             if new_messages: 
                 new_messages = new_messages.split('\n')
@@ -357,7 +382,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     message = 'Guest: ' + message   
                 self.chat_window.addItems(new_messages)
         elif self.uid:
-            new_messages = session.get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
+            new_messages = self.session.get(f"{self.server.url}/collect_guest_messages", data={"guest_id":self.uid}).text
             if new_messages:
                 new_messages = new_messages.split('\n')
                 for message in new_messages:
@@ -384,6 +409,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
 
     def closeEvent(self, e):
+        """
+        When the main window is closed, do some cleanup
+        """
         self.common.log('OnionShareGui', 'closeEvent')
         try:
             if self.server.is_therapist:
