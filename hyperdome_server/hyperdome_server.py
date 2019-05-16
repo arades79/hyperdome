@@ -43,6 +43,8 @@ class HyperdomeServer(object):
         self.stealth = None
 
         # files and dirs to delete on shutdown
+        # Note: Was originally files used for onionshare, but we could use this
+        # to ensure all traces of the program are gone from the computer
         self.cleanup_filenames = []
 
         # do not use tor -- for development

@@ -75,7 +75,7 @@ class Settings(object):
         # These are the default settings. They will get overwritten when loading from disk
         self.default_settings = {
             'version': self.common.version,
-            'connection_type': 'bundled',
+            'connection_type': 'automatic',
             'control_port_address': '127.0.0.1',
             'control_port_port': 9051,
             'socks_address': '127.0.0.1',

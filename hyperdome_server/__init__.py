@@ -46,58 +46,26 @@ def main(cwd=None):
     print(strings._('version_string').format(common.version))
 
     # OnionShare CLI in OSX needs to change current working directory (#132)
-    if common.platform == 'Darwin':
-        if cwd:
-            os.chdir(cwd)
+    if common.platform == 'Darwin' and cwd:
+        os.chdir(cwd)
 
     # Parse arguments
     parser = argparse.ArgumentParser(formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=28))
     parser.add_argument('--local-only', action='store_true', dest='local_only', help=strings._("help_local_only"))
-    parser.add_argument('--stay-open', action='store_true', dest='stay_open', help=strings._("help_stay_open"))
     parser.add_argument('--shutdown-timeout', metavar='<int>', dest='shutdown_timeout', default=0, help=strings._("help_shutdown_timeout"))
     parser.add_argument('--connect-timeout', metavar='<int>', dest='connect_timeout', default=120, help=strings._("help_connect_timeout"))
     parser.add_argument('--stealth', action='store_true', dest='stealth', help=strings._("help_stealth"))
-    parser.add_argument('--receive', action='store_true', dest='receive', help=strings._("help_receive"))
     parser.add_argument('--config', metavar='config', default=False, help=strings._('help_config'))
     parser.add_argument('--debug', action='store_true', dest='debug', help=strings._("help_debug"))
-    parser.add_argument('filename', metavar='filename', nargs='*', help=strings._('help_filename'))
     args = parser.parse_args()
-
-    filenames = args.filename
-    for i in range(len(filenames)):
-        filenames[i] = os.path.abspath(filenames[i])
 
     local_only = bool(args.local_only)
     debug = bool(args.debug)
-    stay_open = bool(args.stay_open)
     shutdown_timeout = int(args.shutdown_timeout)
     connect_timeout = int(args.connect_timeout)
     stealth = bool(args.stealth)
-    receive = bool(args.receive)
     config = args.config
 
-    if receive:
-        mode = 'receive'
-    else:
-        mode = 'share'
-
-    # Make sure filenames given if not using receiver mode
-    if mode == 'share' and len(filenames) == 0:
-        parser.print_help()
-        sys.exit()
-
-    # Validate filenames
-    if mode == 'share':
-        valid = True
-        for filename in filenames:
-            if not os.path.isfile(filename) and not os.path.isdir(filename):
-                print(strings._("not_a_file").format(filename))
-                valid = False
-            if not os.access(filename, os.R_OK):
-                print(strings._("not_a_readable_file").format(filename))
-                valid = False
-        if not valid:
-            sys.exit()
 
     # Re-load settings, if a custom config was passed in
     if config:
@@ -109,7 +77,7 @@ def main(cwd=None):
     common.debug = debug
 
     # Create the Web object
-    web = Web(common, False, mode)
+    web = Web(common, False)
 
     # Start the Onion object
     onion = Onion(common)
@@ -135,28 +103,14 @@ def main(cwd=None):
         print(e.args[0])
         sys.exit()
 
-    if mode == 'share':
-        # Prepare files to share
-        print(strings._("preparing_files"))
-        try:
-            web.share_mode.set_file_info(filenames)
-            app.cleanup_filenames += web.share_mode.cleanup_filenames
-        except OSError as e:
-            print(e.strerror)
-            sys.exit(1)
-
-        # Warn about sending large files over Tor
-        if web.share_mode.download_filesize >= 157286400:  # 150mb
-            print('')
-            print(strings._("large_filesize"))
-            print('')
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, stay_open, common.settings.get('public_mode'), common.settings.get('slug')))
+    t = threading.Thread(target=web.start, args=(app.port, True, common.settings.get('public_mode'), common.settings.get('slug')))
     t.daemon = True
     t.start()
 
     try:  # Trap Ctrl-C
+        #TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
 
@@ -177,28 +131,6 @@ def main(cwd=None):
             url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
 
         print('')
-        if mode == 'receive':
-            print(strings._('receive_mode_data_dir').format(common.settings.get('data_dir')))
-            print('')
-            print(strings._('receive_mode_warning'))
-            print('')
-
-            if stealth:
-                print(strings._("give_this_url_receive_stealth"))
-                print(url)
-                print(app.auth_string)
-            else:
-                print(strings._("give_this_url_receive"))
-                print(url)
-        else:
-            if stealth:
-                print(strings._("give_this_url_stealth"))
-                print(url)
-                print(app.auth_string)
-            else:
-                print(strings._("give_this_url"))
-                print(url)
-        print('')
         print(strings._("ctrlc_to_stop"))
 
         # Wait for app to close
@@ -206,19 +138,9 @@ def main(cwd=None):
             if app.shutdown_timeout > 0:
                 # if the shutdown timer was set and has run out, stop the server
                 if not app.shutdown_timer.is_alive():
-                    if mode == 'share':
-                        # If there were no attempts to download the share, or all downloads are done, we can stop
-                        if web.share_mode.download_count == 0 or web.done:
-                            print(strings._("close_on_timeout"))
-                            web.stop(app.port)
-                            break
-                    if mode == 'receive':
-                        if web.receive_mode.upload_count == 0 or not web.receive_mode.uploads_in_progress:
-                            print(strings._("close_on_timeout"))
-                            web.stop(app.port)
-                            break
-                        else:
-                            web.receive_mode.can_upload = False
+                    pass
+                    # TODO if hyperdome session is over, break. Or just add
+                    # to the conditions with app.shutdown_timer.is_alive().
             # Allow KeyboardInterrupt exception to be handled with threads
             # https://stackoverflow.com/questions/3788208/python-threading-ignores-keyboardinterrupt-exception
             time.sleep(0.2)
