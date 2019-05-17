@@ -116,7 +116,7 @@ def message_from_user():
     guest_id = request.form['guest_id']
     therapist_username = connected_therapist[guest_id]
     pending_messages[therapist_username] = pending_messages.get(
-        therapist_username, "")+message+"\n"
+        therapist_username, "") + message + "\n"
 
 
 @app.route("/collect_guest_messages")

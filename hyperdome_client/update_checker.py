@@ -18,7 +18,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore
-import datetime, time, socket, re, platform
+import datetime
+import time
+import socket
+import re
+import platform
 import socks
 from distutils.version import LooseVersion as Version
 
@@ -27,6 +31,7 @@ from hyperdome_server.onion import Onion
 
 from . import strings
 
+
 class UpdateCheckerCheckError(Exception):
     """
     Error checking for updates because of some Tor connection issue, or because
@@ -34,13 +39,16 @@ class UpdateCheckerCheckError(Exception):
     """
     pass
 
+
 class UpdateCheckerInvalidLatestVersion(Exception):
     """
     Successfully downloaded the latest version, but it doesn't appear to be a
     valid version string.
     """
+
     def __init__(self, latest_version):
         self.latest_version = latest_version
+
 
 class UpdateChecker(QtCore.QObject):
     """
@@ -79,7 +87,8 @@ class UpdateChecker(QtCore.QObject):
             # See if it's been 1 day since the last check
             autoupdate_timestamp = settings.get('autoupdate_timestamp')
             if autoupdate_timestamp:
-                last_checked = datetime.datetime.fromtimestamp(autoupdate_timestamp)
+                last_checked = datetime.datetime.fromtimestamp(
+                    autoupdate_timestamp)
                 now = datetime.datetime.now()
 
                 one_day = datetime.timedelta(days=1)
@@ -94,7 +103,8 @@ class UpdateChecker(QtCore.QObject):
             # Download the latest-version file over Tor
             try:
                 # User agent string includes OnionShare version and platform
-                user_agent = 'OnionShare {}, {}'.format(self.common.version, self.common.platform)
+                user_agent = 'OnionShare {}, {}'.format(
+                    self.common.version, self.common.platform)
 
                 # If the update is forced, add '?force=1' to the URL, to more
                 # accurately measure daily users
@@ -107,13 +117,15 @@ class UpdateChecker(QtCore.QObject):
                 else:
                     onion_domain = 'elx57ue5uyfplgva.onion'
 
-                self.common.log('UpdateChecker', 'check', 'loading http://{}{}'.format(onion_domain, path))
+                self.common.log('UpdateChecker', 'check',
+                                'loading http://{}{}'.format(onion_domain, path))
 
                 (socks_address, socks_port) = self.onion.get_tor_socks_port()
-                socks.set_default_proxy(socks.SOCKS5, socks_address, socks_port)
+                socks.set_default_proxy(
+                    socks.SOCKS5, socks_address, socks_port)
 
                 s = socks.socksocket()
-                s.settimeout(15) # 15 second timeout
+                s.settimeout(15)  # 15 second timeout
                 s.connect((onion_domain, 80))
 
                 http_request = 'GET {} HTTP/1.0\r\n'.format(path)
@@ -123,9 +135,13 @@ class UpdateChecker(QtCore.QObject):
                 s.sendall(http_request.encode('utf-8'))
 
                 http_response = s.recv(1024)
-                latest_version = http_response[http_response.find(b'\r\n\r\n'):].strip().decode('utf-8')
+                latest_version = http_response[http_response.find(
+                    b'\r\n\r\n'):].strip().decode('utf-8')
 
-                self.common.log('UpdateChecker', 'check', 'latest OnionShare version: {}'.format(latest_version))
+                self.common.log(
+                    'UpdateChecker',
+                    'check',
+                    'latest OnionShare version: {}'.format(latest_version))
 
             except Exception as e:
                 self.common.log('UpdateChecker', 'check', '{}'.format(e))
@@ -139,22 +155,28 @@ class UpdateChecker(QtCore.QObject):
                 self.update_invalid_version.emit(latest_version)
                 raise UpdateCheckerInvalidLatestVersion(latest_version)
 
-            # Update the last checked timestamp (dropping the seconds and milliseconds)
-            timestamp = datetime.datetime.now().replace(microsecond=0).replace(second=0).timestamp()
-            # Re-load the settings first before saving, just in case they've changed since we started our thread
+            # Update the last checked timestamp (dropping the seconds and
+            # milliseconds)
+            timestamp = datetime.datetime.now().replace(
+                microsecond=0).replace(second=0).timestamp()
+            # Re-load the settings first before saving, just in case they've
+            # changed since we started our thread
             settings.load()
             settings.set('autoupdate_timestamp', timestamp)
             settings.save()
 
             # Do we need to update?
-            update_url = 'https://github.com/micahflee/onionshare/releases/tag/v{}'.format(latest_version)
+            update_url = 'https://github.com/micahflee/onionshare/releases/tag/v{}'.format(
+                latest_version)
             installed_version = self.common.version
             if installed_version < latest_version:
-                self.update_available.emit(update_url, installed_version, latest_version)
+                self.update_available.emit(
+                    update_url, installed_version, latest_version)
                 return
 
             # No updates are available
             self.update_not_available.emit()
+
 
 class UpdateThread(QtCore.QThread):
     update_available = QtCore.pyqtSignal(str, str, str)
@@ -182,7 +204,7 @@ class UpdateThread(QtCore.QThread):
         u.update_invalid_version.connect(self._update_invalid_version)
 
         try:
-            u.check(config=self.config,force=self.force)
+            u.check(config=self.config, force=self.force)
         except Exception as e:
             # If update check fails, silently ignore
             self.common.log('UpdateThread', 'run', '{}'.format(e))
@@ -191,7 +213,8 @@ class UpdateThread(QtCore.QThread):
     def _update_available(self, update_url, installed_version, latest_version):
         self.common.log('UpdateThread', '_update_available')
         self.active = False
-        self.update_available.emit(update_url, installed_version, latest_version)
+        self.update_available.emit(
+            update_url, installed_version, latest_version)
 
     def _update_not_available(self):
         self.common.log('UpdateThread', '_update_not_available')

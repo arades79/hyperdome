@@ -26,7 +26,7 @@ import locale
 try:
     # We only need pwd module in macOS, and it's not available in Windows
     import pwd
-except:
+except BaseException:
     pass
 
 from . import strings
@@ -39,6 +39,7 @@ class Settings(object):
     which is to attempt to connect automatically using default Tor Browser
     settings.
     """
+
     def __init__(self, common, config=False):
         self.common = common
 
@@ -52,7 +53,10 @@ class Settings(object):
             if os.path.isfile(config):
                 self.filename = config
             else:
-                self.common.log('Settings', '__init__', 'Supplied config does not exist or is unreadable. Falling back to default location')
+                self.common.log(
+                    'Settings',
+                    '__init__',
+                    'Supplied config does not exist or is unreadable. Falling back to default location')
 
         # Dictionary of available languages in this version of OnionShare,
         # mapped to the language name, in that language
@@ -72,7 +76,8 @@ class Settings(object):
             'sv': 'Svenska'     # Swedish
         }
 
-        # These are the default settings. They will get overwritten when loading from disk
+        # These are the default settings. They will get overwritten when
+        # loading from disk
         self.default_settings = {
             'version': self.common.version,
             'connection_type': 'automatic',
@@ -99,7 +104,7 @@ class Settings(object):
             'slug': '',
             'hidservauth_string': '',
             'data_dir': self.build_default_data_dir(),
-            'locale': None # this gets defined in fill_in_defaults()
+            'locale': None  # this gets defined in fill_in_defaults()
         }
         self._settings = {}
         self.fill_in_defaults()
@@ -113,7 +118,8 @@ class Settings(object):
             if key not in self._settings:
                 self._settings[key] = self.default_settings[key]
 
-        # Choose the default locale based on the OS preference, and fall-back to English
+        # Choose the default locale based on the OS preference, and fall-back
+        # to English
         if self._settings['locale'] is None:
             language_code, encoding = locale.getdefaultlocale()
 
@@ -150,8 +156,9 @@ class Settings(object):
             return os.path.join(real_homedir, 'OnionShare')
         elif self.common.platform == "Windows":
             # On Windows, os.path.expanduser() needs to use backslash, or else it
-            # retains the forward slash, which breaks opening the folder in explorer.
-            return os.path.expanduser('~\OnionShare')
+            # retains the forward slash, which breaks opening the folder in
+            # explorer.
+            return os.path.expanduser(r'~\OnionShare')
         else:
             # All other OSes
             return os.path.expanduser('~/OnionShare')
@@ -165,17 +172,21 @@ class Settings(object):
         # If the settings file exists, load it
         if os.path.exists(self.filename):
             try:
-                self.common.log('Settings', 'load', 'Trying to load {}'.format(self.filename))
+                self.common.log(
+                    'Settings',
+                    'load',
+                    'Trying to load {}'.format(
+                        self.filename))
                 with open(self.filename, 'r') as f:
                     self._settings = json.load(f)
                     self.fill_in_defaults()
-            except:
+            except BaseException:
                 pass
 
         # Make sure data_dir exists
         try:
             os.makedirs(self.get('data_dir'), exist_ok=True)
-        except:
+        except BaseException:
             pass
 
     def save(self):
@@ -184,7 +195,11 @@ class Settings(object):
         """
         self.common.log('Settings', 'save')
         open(self.filename, 'w').write(json.dumps(self._settings))
-        self.common.log('Settings', 'save', 'Settings saved in {}'.format(self.filename))
+        self.common.log(
+            'Settings',
+            'save',
+            'Settings saved in {}'.format(
+                self.filename))
 
     def get(self, key):
         return self._settings[key]
@@ -194,7 +209,7 @@ class Settings(object):
         if key == 'control_port_port' or key == 'socks_port':
             try:
                 val = int(val)
-            except:
+            except BaseException:
                 if key == 'control_port_port':
                     val = self.default_settings['control_port_port']
                 elif key == 'socks_port':

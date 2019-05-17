@@ -24,6 +24,7 @@ from hyperdome_server.onion import *
 
 from .widgets import Alert
 
+
 class TorConnectionDialog(QtWidgets.QProgressDialog):
     """
     Connecting to Tor dialog.
@@ -46,7 +47,9 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         self.onion = onion
 
         self.setWindowTitle("OnionShare")
-        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
+        self.setWindowIcon(
+            QtGui.QIcon(
+                self.common.get_resource_path('images/logo.png')))
         self.setModal(True)
         self.setFixedSize(400, 150)
 
@@ -81,7 +84,8 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
     def _tor_status_update(self, progress, summary):
         self.setValue(int(progress))
-        self.setLabelText("<strong>{}</strong><br>{}".format(strings._('connecting_to_tor'), summary))
+        self.setLabelText(
+            "<strong>{}</strong><br>{}".format(strings._('connecting_to_tor'), summary))
 
     def _connected_to_tor(self):
         self.common.log('TorConnectionDialog', '_connected_to_tor')
@@ -104,7 +108,12 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         def alert_and_open_settings():
             # Display the exception in an alert box
-            Alert(self.common, "{}\n\n{}".format(msg, strings._('gui_tor_connection_error_settings')), QtWidgets.QMessageBox.Warning)
+            Alert(
+                self.common,
+                "{}\n\n{}".format(
+                    msg,
+                    strings._('gui_tor_connection_error_settings')),
+                QtWidgets.QMessageBox.Warning)
 
             # Open settings
             self.open_settings.emit()
@@ -113,6 +122,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         # Cancel connecting to Tor
         QtCore.QTimer.singleShot(1, self.cancel)
+
 
 class TorConnectionThread(QtCore.QThread):
     tor_status_update = QtCore.pyqtSignal(str, str)
@@ -144,11 +154,18 @@ class TorConnectionThread(QtCore.QThread):
                 self.canceled_connecting_to_tor.emit()
 
         except BundledTorCanceled as e:
-            self.common.log('TorConnectionThread', 'run', 'caught exception: BundledTorCanceled')
+            self.common.log(
+                'TorConnectionThread',
+                'run',
+                'caught exception: BundledTorCanceled')
             self.canceled_connecting_to_tor.emit()
 
         except Exception as e:
-            self.common.log('TorConnectionThread', 'run', 'caught exception: {}'.format(e.args[0]))
+            self.common.log(
+                'TorConnectionThread',
+                'run',
+                'caught exception: {}'.format(
+                    e.args[0]))
             self.error_connecting_to_tor.emit(str(e.args[0]))
 
     def _tor_status_update(self, progress, summary):

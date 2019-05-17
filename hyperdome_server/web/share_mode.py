@@ -25,12 +25,12 @@ bcryptfuck = None
 dbfuck = None
 
 
-
 class ShareModeWeb(object):
 
     """
     All of the web logic for share mode
     """
+
     def __init__(self, common, web):
         self.common = common
         self.common.log('ShareModeWeb', '__init__')
@@ -54,9 +54,6 @@ class ShareModeWeb(object):
 
         self.define_routes()
 
-
-
-
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
         self.db = SQLAlchemy(web.app)
@@ -74,10 +71,12 @@ class ShareModeWeb(object):
         self.connected_guest = dict()
         self.pending_messages = dict()
 
-
         class User(self.db.Model, UserMixin):
             __tablename__ = 'users'
-            id = self.db.Column(self.db.Integer, primary_key=True, autoincrement=True)
+            id = self.db.Column(
+                self.db.Integer,
+                primary_key=True,
+                autoincrement=True)
             username = self.db.Column(self.db.String(64), unique=True)
             _password = self.db.Column(self.db.String(128))
 
@@ -90,7 +89,8 @@ class ShareModeWeb(object):
                 self._password = bcryptfuck.generate_password_hash(plaintext)
 
             def is_correct_password(self, plaintext):
-                return bcryptfuck.check_password_hash(self._password, plaintext)
+                return bcryptfuck.check_password_hash(
+                    self._password, plaintext)
         global userfuck
         userfuck = User
 
@@ -99,14 +99,14 @@ class ShareModeWeb(object):
         @self.web.app.before_request
         def before_request():
             user = load_user(request.headers.get("username", ""))
-            if user and user.is_correct_password(request.headers.get("password", "")):
+            if user and user.is_correct_password(
+                    request.headers.get("password", "")):
                 login_user(user)
 
         @login_manager.user_loader
         def load_user(username):
             dbfuck.create_all()
             return userfuck.query.filter(userfuck.username == username).first()
-
 
         @self.web.app.route("/request_therapist", methods=['POST'])
         def request_therapist():
@@ -119,14 +119,13 @@ class ShareModeWeb(object):
                 return chosen_therapist.username
             return ''
 
-
         @login_required
         @self.web.app.route("/therapy_complete", methods=['POST'])
         def therapy_complete():
-            self.connected_therapist.pop(self.connected_guest[current_user.username])
+            self.connected_therapist.pop(
+                self.connected_guest[current_user.username])
             self.connected_guest.pop(current_user.username)
             self.therapists_available.append(current_user)
-
 
         @self.web.app.route("/therapist_signout", methods=["POST"])
         @login_required
@@ -135,33 +134,30 @@ class ShareModeWeb(object):
             logout_user(user)
             self.therapists_available.remove(user)
 
-
         @self.web.app.route("/therapist_signup", methods=["POST"])
         def therapist_signup():
             if request.form.get('masterkey', "") == "megumin":
                 if load_user(request.form['username']):
                     return "Username already exists"
                 user = userfuck(username=request.form['username'],
-                            password=request.form['password'])
+                                password=request.form['password'])
                 self.db.session.add(user)
                 self.db.session.commit()
                 return "Success"
             return abort(401)
 
-
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
-
 
         @self.web.app.route("/message_from_therapist", methods=['POST'])
         @login_required
         def message_from_therapist():
             message = request.form['message']
             guest_id = self.connected_guest[current_user.username]
-            self.pending_messages[guest_id] = (self.pending_messages.get(guest_id, "")
-                                          + message + "\n")
-
+            self.pending_messages[guest_id] = (
+                self.pending_messages.get(
+                    guest_id, "") + message + "\n")
 
         @self.web.app.route("/message_from_user", methods=['POST'])
         def message_from_user():
@@ -169,21 +165,18 @@ class ShareModeWeb(object):
             guest_id = request.form['guest_id']
             therapist_username = self.connected_therapist[guest_id]
             self.pending_messages[therapist_username] = self.pending_messages.get(
-                therapist_username, "")+message+"\n"
-
+                therapist_username, "") + message + "\n"
 
         @self.web.app.route("/collect_guest_messages")
         def collect_guest_messages():
             guest_id = request.form['guest_id']
             return self.pending_messages.pop(guest_id, "")
 
-
         @self.web.app.route("/collect_therapist_messages")
         @login_required
         def collect_therapist_messages():
             therapist_username = current_user.username
             return self.pending_messages.pop(therapist_username, "")
-
 
         """
         The web app routes for sharing files
@@ -219,23 +212,29 @@ class ShareModeWeb(object):
                 self.filesize = self.download_filesize
 
             if self.web.slug:
-                r = make_response(render_template(
-                    'send.html',
-                    slug=self.web.slug,
-                    file_info=self.file_info,
-                    filename=os.path.basename(self.download_filename),
-                    filesize=self.filesize,
-                    filesize_human=self.common.human_readable_filesize(self.download_filesize),
-                    is_zipped=self.is_zipped))
+                r = make_response(
+                    render_template(
+                        'send.html',
+                        slug=self.web.slug,
+                        file_info=self.file_info,
+                        filename=os.path.basename(
+                            self.download_filename),
+                        filesize=self.filesize,
+                        filesize_human=self.common.human_readable_filesize(
+                            self.download_filesize),
+                        is_zipped=self.is_zipped))
             else:
                 # If download is allowed to continue, serve download page
-                r = make_response(render_template(
-                    'send.html',
-                    file_info=self.file_info,
-                    filename=os.path.basename(self.download_filename),
-                    filesize=self.filesize,
-                    filesize_human=self.common.human_readable_filesize(self.download_filesize),
-                    is_zipped=self.is_zipped))
+                r = make_response(
+                    render_template(
+                        'send.html',
+                        file_info=self.file_info,
+                        filename=os.path.basename(
+                            self.download_filename),
+                        filesize=self.filesize,
+                        filesize_human=self.common.human_readable_filesize(
+                            self.download_filesize),
+                        is_zipped=self.is_zipped))
             return self.web.add_security_headers(r)
 
         @self.web.app.route("/<slug_candidate>/download")
@@ -299,7 +298,8 @@ class ShareModeWeb(object):
                 self.web.done = False
                 canceled = False
                 while not self.web.done:
-                    # The user has canceled the download, so stop serving the file
+                    # The user has canceled the download, so stop serving the
+                    # file
                     if not self.web.stop_q.empty():
                         self.web.add_request(self.web.REQUEST_CANCELED, path, {
                             'id': download_id
@@ -315,28 +315,30 @@ class ShareModeWeb(object):
 
                             # tell GUI the progress
                             downloaded_bytes = fp.tell()
-                            percent = (1.0 * downloaded_bytes / self.filesize) * 100
+                            percent = (
+                                1.0 * downloaded_bytes / self.filesize) * 100
 
-                            # only output to stdout if running onionshare in CLI mode, or if using Linux (#203, #304)
+                            # only output to stdout if running onionshare in
+                            # CLI mode, or if using Linux (#203, #304)
                             if not self.web.is_gui or self.common.platform == 'Linux' or self.common.platform == 'BSD':
                                 sys.stdout.write(
-                                    "\r{0:s}, {1:.2f}%          ".format(self.common.human_readable_filesize(downloaded_bytes), percent))
+                                    "\r{0:s}, {1:.2f}%          ".format(
+                                        self.common.human_readable_filesize(downloaded_bytes), percent))
                                 sys.stdout.flush()
 
-                            self.web.add_request(self.web.REQUEST_PROGRESS, path, {
-                                'id': download_id,
-                                'bytes': downloaded_bytes
-                                })
+                            self.web.add_request(
+                                self.web.REQUEST_PROGRESS, path, {
+                                    'id': download_id, 'bytes': downloaded_bytes})
                             self.web.done = False
-                        except:
+                        except BaseException:
                             # looks like the download was canceled
                             self.web.done = True
                             canceled = True
 
                             # tell the GUI the download has canceled
-                            self.web.add_request(self.web.REQUEST_CANCELED, path, {
-                                'id': download_id
-                            })
+                            self.web.add_request(
+                                self.web.REQUEST_CANCELED, path, {
+                                    'id': download_id})
 
                 fp.close()
 
@@ -353,16 +355,20 @@ class ShareModeWeb(object):
                     self.web.running = False
                     try:
                         if shutdown_func is None:
-                            raise RuntimeError('Not running with the Werkzeug Server')
+                            raise RuntimeError(
+                                'Not running with the Werkzeug Server')
                         shutdown_func()
-                    except:
+                    except BaseException:
                         pass
 
             r = Response(generate())
             if use_gzip:
                 r.headers.set('Content-Encoding', 'gzip')
             r.headers.set('Content-Length', self.filesize)
-            r.headers.set('Content-Disposition', 'attachment', filename=basename)
+            r.headers.set(
+                'Content-Disposition',
+                'attachment',
+                filename=basename)
             r = self.web.add_security_headers(r)
             # guess content type
             (content_type, _) = mimetypes.guess_type(basename, strict=False)
@@ -390,23 +396,36 @@ class ShareModeWeb(object):
             }
             if os.path.isfile(filename):
                 info['size'] = os.path.getsize(filename)
-                info['size_human'] = self.common.human_readable_filesize(info['size'])
+                info['size_human'] = self.common.human_readable_filesize(
+                    info['size'])
                 self.file_info['files'].append(info)
             if os.path.isdir(filename):
                 info['size'] = self.common.dir_size(filename)
-                info['size_human'] = self.common.human_readable_filesize(info['size'])
+                info['size_human'] = self.common.human_readable_filesize(
+                    info['size'])
                 self.file_info['dirs'].append(info)
-        self.file_info['files'] = sorted(self.file_info['files'], key=lambda k: k['basename'])
-        self.file_info['dirs'] = sorted(self.file_info['dirs'], key=lambda k: k['basename'])
+        self.file_info['files'] = sorted(
+            self.file_info['files'],
+            key=lambda k: k['basename'])
+        self.file_info['dirs'] = sorted(
+            self.file_info['dirs'],
+            key=lambda k: k['basename'])
 
         # Check if there's only 1 file and no folders
-        if len(self.file_info['files']) == 1 and len(self.file_info['dirs']) == 0:
+        if len(
+                self.file_info['files']) == 1 and len(
+                self.file_info['dirs']) == 0:
             self.download_filename = self.file_info['files'][0]['filename']
             self.download_filesize = self.file_info['files'][0]['size']
 
-            # Compress the file with gzip now, so we don't have to do it on each request
+            # Compress the file with gzip now, so we don't have to do it on
+            # each request
             self.gzip_filename = tempfile.mkstemp('wb+')[1]
-            self._gzip_compress(self.download_filename, self.gzip_filename, 6, processed_size_callback)
+            self._gzip_compress(
+                self.download_filename,
+                self.gzip_filename,
+                6,
+                processed_size_callback)
             self.gzip_filesize = os.path.getsize(self.gzip_filename)
 
             # Make sure the gzip file gets cleaned up when onionshare stops
@@ -416,7 +435,8 @@ class ShareModeWeb(object):
 
         else:
             # Zip up the files and folders
-            self.zip_writer = ZipWriter(self.common, processed_size_callback=processed_size_callback)
+            self.zip_writer = ZipWriter(
+                self.common, processed_size_callback=processed_size_callback)
             self.download_filename = self.zip_writer.zip_filename
             for info in self.file_info['files']:
                 self.zip_writer.add_file(info['filename'])
@@ -443,15 +463,24 @@ class ShareModeWeb(object):
         """
         Should we use gzip for this browser?
         """
-        return (not self.is_zipped) and ('gzip' in request.headers.get('Accept-Encoding', '').lower())
+        return (
+            not self.is_zipped) and (
+            'gzip' in request.headers.get(
+                'Accept-Encoding',
+                '').lower())
 
-    def _gzip_compress(self, input_filename, output_filename, level, processed_size_callback=None):
+    def _gzip_compress(
+            self,
+            input_filename,
+            output_filename,
+            level,
+            processed_size_callback=None):
         """
         Compress a file with gzip, without loading the whole thing into memory
         Thanks: https://stackoverflow.com/questions/27035296/python-how-to-gzip-a-large-text-file-without-memoryerror
         """
         bytes_processed = 0
-        blocksize = 1 << 16 # 64kB
+        blocksize = 1 << 16  # 64kB
         with open(input_filename, 'rb') as input_file:
             output_file = gzip.open(output_filename, 'wb', level)
             while True:
@@ -473,14 +502,20 @@ class ZipWriter(object):
     with. If a zip_filename is not passed in, it will use the default onionshare
     filename.
     """
-    def __init__(self, common, zip_filename=None, processed_size_callback=None):
+
+    def __init__(
+            self,
+            common,
+            zip_filename=None,
+            processed_size_callback=None):
         self.common = common
         self.cancel_compression = False
 
         if zip_filename:
             self.zip_filename = zip_filename
         else:
-            self.zip_filename = '{0:s}/onionshare_{1:s}.zip'.format(tempfile.mkdtemp(), self.common.random_string(4, 6))
+            self.zip_filename = '{0:s}/onionshare_{1:s}.zip'.format(
+                tempfile.mkdtemp(), self.common.random_string(4, 6))
 
         self.z = zipfile.ZipFile(self.zip_filename, 'w', allowZip64=True)
         self.processed_size_callback = processed_size_callback
@@ -493,7 +528,10 @@ class ZipWriter(object):
         """
         Add a file to the zip archive.
         """
-        self.z.write(filename, os.path.basename(filename), zipfile.ZIP_DEFLATED)
+        self.z.write(
+            filename,
+            os.path.basename(filename),
+            zipfile.ZIP_DEFLATED)
         self._size += os.path.getsize(filename)
         self.processed_size_callback(self._size)
 
@@ -501,7 +539,7 @@ class ZipWriter(object):
         """
         Add a directory, and all of its children, to the zip archive.
         """
-        dir_to_strip = os.path.dirname(filename.rstrip('/'))+'/'
+        dir_to_strip = os.path.dirname(filename.rstrip('/')) + '/'
         for dirpath, dirnames, filenames in os.walk(filename):
             for f in filenames:
                 # Canceling early?
@@ -511,7 +549,10 @@ class ZipWriter(object):
                 full_filename = os.path.join(dirpath, f)
                 if not os.path.islink(full_filename):
                     arc_filename = full_filename[len(dir_to_strip):]
-                    self.z.write(full_filename, arc_filename, zipfile.ZIP_DEFLATED)
+                    self.z.write(
+                        full_filename,
+                        arc_filename,
+                        zipfile.ZIP_DEFLATED)
                     self._size += os.path.getsize(full_filename)
                     self.processed_size_callback(self._size)
 
@@ -522,4 +563,3 @@ class ZipWriter(object):
         Close the zip archive.
         """
         self.z.close()
-

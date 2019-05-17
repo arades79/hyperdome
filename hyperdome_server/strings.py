@@ -57,4 +57,5 @@ def translated(k):
     """
     return strings[k]
 
+
 _ = translated

@@ -18,7 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore, QtWidgets, QtGui
-import sys, platform, datetime, re
+import sys
+import platform
+import datetime
+import re
 
 from hyperdome_server import strings, common
 from hyperdome_server.settings import Settings
@@ -28,24 +31,34 @@ from .widgets import Alert
 from .update_checker import *
 from .tor_connection_dialog import TorConnectionDialog
 
+
 class Server(object):
     """
     Holder class for server connection details
     """
-    def __init__(self, url='', nick='', uname='', passwd='', is_therapist=False):
+
+    def __init__(
+            self,
+            url='',
+            nick='',
+            uname='',
+            passwd='',
+            is_therapist=False):
         self.url = url
         self._check_url()
         self.nick = nick
         self.username = uname
         self.password = passwd
         self.is_therapist = is_therapist
-    
+
     def _check_url(self):
         """
         Ensure URL is properly formatted
         """
-        if not self.url.startswith('http://') and not self.url.startswith('https://'):
+        if not self.url.startswith(
+                'http://') and not self.url.startswith('https://'):
             self.url = 'http://' + self.url
+
 
 class AddServerDialog(QtWidgets.QDialog):
     """
@@ -58,10 +71,14 @@ class AddServerDialog(QtWidgets.QDialog):
         self.is_therapist = False
 
         self.setWindowTitle('Add Hyperdome Server')
-        self.setWindowIcon(QtGui.QIcon(common.get_resource_path('images/logo.png')))
+        self.setWindowIcon(
+            QtGui.QIcon(
+                common.get_resource_path('images/logo.png')))
 
         self.add_server_button = QtWidgets.QPushButton('Add Server')
-        self.add_server_button.clicked.connect(lambda:add_server_action(self._make_server_from_fields()))
+        self.add_server_button.clicked.connect(
+            lambda: add_server_action(
+                self._make_server_from_fields()))
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
@@ -73,12 +90,15 @@ class AddServerDialog(QtWidgets.QDialog):
 
         self.counselor_radio = QtWidgets.QRadioButton()
         self.counselor_radio.setText('Counselor')
-        self.counselor_radio.toggled.connect(lambda:self.radio_switch(self.counselor_radio))
+        self.counselor_radio.toggled.connect(
+            lambda: self.radio_switch(self.counselor_radio))
 
         self.guest_radio = QtWidgets.QRadioButton()
         self.guest_radio.setText('Guest')
         self.guest_radio.setChecked(True)
-        self.guest_radio.toggled.connect(lambda:self.radio_switch(self.guest_radio))
+        self.guest_radio.toggled.connect(
+            lambda: self.radio_switch(
+                self.guest_radio))
 
         self.radio_buttons = QtWidgets.QHBoxLayout()
         self.radio_buttons.addWidget(self.counselor_radio)
@@ -88,7 +108,7 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_username_input.setPlaceholderText('Username:')
         self.counselor_username_input.setFixedWidth(200)
         self.counselor_username_input.hide()
-        
+
         self.counselor_password_input = QtWidgets.QLineEdit()
         self.counselor_password_input.setPlaceholderText('Password:')
         self.counselor_password_input.setFixedWidth(200)
@@ -97,7 +117,7 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_credentials = QtWidgets.QHBoxLayout()
         self.counselor_credentials.addWidget(self.counselor_username_input)
         self.counselor_credentials.addWidget(self.counselor_password_input)
-        
+
         self.server_dialog_layout = QtWidgets.QVBoxLayout()
         self.server_dialog_layout.addWidget(self.server_add_text)
         self.server_dialog_layout.addWidget(self.server_nick_text)
@@ -113,11 +133,16 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         url = self.server_add_text.text()
         nick = self.server_nick_text.text()
-        uname = self.counselor_username_input.text() 
+        uname = self.counselor_username_input.text()
         passwd = self.counselor_password_input.text()
         is_therapist = self.is_therapist
 
-        return Server(url=url, nick=nick, uname=uname, passwd=passwd, is_therapist=is_therapist)
+        return Server(
+            url=url,
+            nick=nick,
+            uname=uname,
+            passwd=passwd,
+            is_therapist=is_therapist)
 
     def radio_switch(self, radio_switch):
         """

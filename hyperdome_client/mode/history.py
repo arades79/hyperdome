@@ -46,24 +46,32 @@ class HistoryItem(QtWidgets.QWidget):
 
     def get_finished_label_text(self, started):
         """
-        When an item finishes, returns a string displaying the start/end datetime range.
+        When an item finishes, returns a string displaying the start/end \
+        datetime range.
         started is a datetime object.
         """
-        return self._get_label_text('gui_all_modes_transfer_finished', 'gui_all_modes_transfer_finished_range', started)
+        return self._get_label_text('gui_all_modes_transfer_finished',
+                                    'gui_all_modes_transfer_finished_range',
+                                    started)
 
     def get_canceled_label_text(self, started):
         """
-        When an item is canceled, returns a string displaying the start/end datetime range.
+        When an item is canceled, returns a string displaying the start/end \
+        datetime range.
         started is a datetime object.
         """
-        return self._get_label_text('gui_all_modes_transfer_canceled', 'gui_all_modes_transfer_canceled_range', started)
+        return self._get_label_text('gui_all_modes_transfer_canceled',
+                                    'gui_all_modes_transfer_canceled_range',
+                                    started)
 
     def _get_label_text(self, string_name, string_range_name, started):
         """
         Return a string that contains a date, or date range.
         """
         ended = datetime.now()
-        if started.year == ended.year and started.month == ended.month and started.day == ended.day:
+        if (started.year == ended.year
+                and started.month == ended.month
+                and started.day == ended.day):
             if started.hour == ended.hour and started.minute == ended.minute:
                 text = strings._(string_name).format(
                     started.strftime("%b %d, %I:%M%p")
@@ -85,6 +93,7 @@ class ShareHistoryItem(HistoryItem):
     """
     Download history item, for share mode
     """
+
     def __init__(self, common, id, total_bytes):
         super(ShareHistoryItem, self).__init__()
         self.common = common
@@ -97,7 +106,9 @@ class ShareHistoryItem(HistoryItem):
         self.status = HistoryItem.STATUS_STARTED
 
         # Label
-        self.label = QtWidgets.QLabel(strings._('gui_all_modes_transfer_started').format(self.started_dt.strftime("%b %d, %I:%M%p")))
+        self.label = QtWidgets.QLabel(
+            strings._('gui_all_modes_transfer_started').format(
+                self.started_dt.strftime("%b %d, %I:%M%p")))
 
         # Progress bar
         self.progress_bar = QtWidgets.QProgressBar()
@@ -107,7 +118,8 @@ class ShareHistoryItem(HistoryItem):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(total_bytes)
         self.progress_bar.setValue(0)
-        self.progress_bar.setStyleSheet(self.common.css['downloads_uploads_progress_bar'])
+        self.progress_bar.setStyleSheet(
+            self.common.css['downloads_uploads_progress_bar'])
         self.progress_bar.total_bytes = total_bytes
 
         # Layout
@@ -153,8 +165,8 @@ class ShareHistoryItem(HistoryItem):
     @property
     def estimated_time_remaining(self):
         return self.common.estimated_time_remaining(self.downloaded_bytes,
-                                                self.total_bytes,
-                                                self.started)
+                                                    self.total_bytes,
+                                                    self.started)
 
 
 class ReceiveHistoryItemFile(QtWidgets.QWidget):
@@ -162,7 +174,10 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
         super(ReceiveHistoryItemFile, self).__init__()
         self.common = common
 
-        self.common.log('ReceiveHistoryItemFile', '__init__', 'filename: {}'.format(filename))
+        self.common.log(
+            'ReceiveHistoryItemFile',
+            '__init__',
+            'filename: {}'.format(filename))
 
         self.filename = filename
         self.dir = None
@@ -174,11 +189,13 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
 
         # File size label
         self.filesize_label = QtWidgets.QLabel()
-        self.filesize_label.setStyleSheet(self.common.css['receive_file_size'])
+        self.filesize_label.setStyleSheet(
+            self.common.css['receive_file_size'])
         self.filesize_label.hide()
 
         # Folder button
-        folder_pixmap = QtGui.QPixmap.fromImage(QtGui.QImage(self.common.get_resource_path('images/open_folder.png')))
+        folder_pixmap = QtGui.QPixmap.fromImage(QtGui.QImage(
+            self.common.get_resource_path('images/open_folder.png')))
         folder_icon = QtGui.QIcon(folder_pixmap)
         self.folder_button = QtWidgets.QPushButton()
         self.folder_button.clicked.connect(self.open_folder)
@@ -196,7 +213,8 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def update(self, uploaded_bytes, complete):
-        self.filesize_label.setText(self.common.human_readable_filesize(uploaded_bytes))
+        self.filesize_label.setText(
+            self.common.human_readable_filesize(uploaded_bytes))
         self.filesize_label.show()
 
         if complete:
@@ -211,12 +229,16 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
 
     def open_folder(self):
         """
-        Open the downloads folder, with the file selected, in a cross-platform manner
+        Open the downloads folder, with the file selected, \
+        in a cross-platform manner
         """
         self.common.log('ReceiveHistoryItemFile', 'open_folder')
 
         if not self.dir:
-            self.common.log('ReceiveHistoryItemFile', 'open_folder', "dir has not been set yet, can't open folder")
+            self.common.log(
+                'ReceiveHistoryItemFile',
+                'open_folder',
+                "dir has not been set yet, can't open folder")
             return
 
         abs_filename = os.path.join(self.dir, self.filename)
@@ -226,8 +248,9 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
             try:
                 # If nautilus is available, open it
                 subprocess.Popen(['nautilus', abs_filename])
-            except:
-                Alert(self.common, strings._('gui_open_folder_error_nautilus').format(abs_filename))
+            except BaseException:
+                Alert(self.common, strings._(
+                    'gui_open_folder_error_nautilus').format(abs_filename))
 
         # macOS
         elif self.common.platform == 'Darwin':
@@ -236,6 +259,7 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
         # Windows
         elif self.common.platform == 'Windows':
             subprocess.Popen(['explorer', '/select,{}'.format(abs_filename)])
+
 
 class ReceiveHistoryItem(HistoryItem):
     def __init__(self, common, id, content_length):
@@ -247,7 +271,9 @@ class ReceiveHistoryItem(HistoryItem):
         self.status = HistoryItem.STATUS_STARTED
 
         # Label
-        self.label = QtWidgets.QLabel(strings._('gui_all_modes_transfer_started').format(self.started.strftime("%b %d, %I:%M%p")))
+        self.label = QtWidgets.QLabel(
+            strings._('gui_all_modes_transfer_started').format(
+                self.started.strftime("%b %d, %I:%M%p")))
 
         # Progress bar
         self.progress_bar = QtWidgets.QProgressBar()
@@ -256,7 +282,8 @@ class ReceiveHistoryItem(HistoryItem):
         self.progress_bar.setAlignment(QtCore.Qt.AlignHCenter)
         self.progress_bar.setMinimum(0)
         self.progress_bar.setValue(0)
-        self.progress_bar.setStyleSheet(self.common.css['downloads_uploads_progress_bar'])
+        self.progress_bar.setStyleSheet(
+            self.common.css['downloads_uploads_progress_bar'])
 
         # This layout contains file widgets
         self.files_layout = QtWidgets.QVBoxLayout()
@@ -273,18 +300,20 @@ class ReceiveHistoryItem(HistoryItem):
         layout.addStretch()
         self.setLayout(layout)
 
-        # We're also making a dictionary of file widgets, to make them easier to access
+        # We're also making a dictionary of file widgets, to make them easier
+        # to access
         self.files = {}
 
     def update(self, data):
         """
-        Using the progress from Web, update the progress bar and file size labels
-        for each file
+        Using the progress from Web, update the progress bar \
+        and file size labels for each file
         """
         if data['action'] == 'progress':
             total_uploaded_bytes = 0
             for filename in data['progress']:
-                total_uploaded_bytes += data['progress'][filename]['uploaded_bytes']
+                total_uploaded_bytes += (data['progress']
+                                         [filename]['uploaded_bytes'])
 
             # Update the progress bar
             self.progress_bar.setMaximum(self.content_length)
@@ -295,27 +324,33 @@ class ReceiveHistoryItem(HistoryItem):
                 pb_fmt = strings._('gui_all_modes_progress_starting').format(
                     self.common.human_readable_filesize(total_uploaded_bytes))
             else:
-                estimated_time_remaining = self.common.estimated_time_remaining(
-                    total_uploaded_bytes,
-                    self.content_length,
-                    self.started.timestamp())
+                estimated_time_remaining = \
+                    self.common.estimated_time_remaining(
+                        total_uploaded_bytes,
+                        self.content_length,
+                        self.started.timestamp())
                 pb_fmt = strings._('gui_all_modes_progress_eta').format(
                     self.common.human_readable_filesize(total_uploaded_bytes),
                     estimated_time_remaining)
 
-            # Using list(progress) to avoid "RuntimeError: dictionary changed size during iteration"
+            # Using list(progress) to avoid "RuntimeError: dictionary changed
+            # size during iteration"
             for filename in list(data['progress']):
                 # Add a new file if needed
                 if filename not in self.files:
-                    self.files[filename] = ReceiveHistoryItemFile(self.common, filename)
+                    self.files[filename] = ReceiveHistoryItemFile(
+                        self.common, filename)
                     self.files_layout.addWidget(self.files[filename])
 
                 # Update the file
-                self.files[filename].update(data['progress'][filename]['uploaded_bytes'], data['progress'][filename]['complete'])
+                self.files[filename].update(
+                    data['progress'][filename]['uploaded_bytes'],
+                    data['progress'][filename]['complete'])
 
         elif data['action'] == 'rename':
             self.files[data['old_filename']].rename(data['new_filename'])
-            self.files[data['new_filename']] = self.files.pop(data['old_filename'])
+            self.files[data['new_filename']] = self.files.pop(
+                data['old_filename'])
 
         elif data['action'] == 'set_dir':
             self.files[data['filename']].set_dir(data['dir'])
@@ -345,6 +380,7 @@ class HistoryItemList(QtWidgets.QScrollArea):
     """
     List of items
     """
+
     def __init__(self, common):
         super(HistoryItemList, self).__init__()
         self.common = common
@@ -354,7 +390,8 @@ class HistoryItemList(QtWidgets.QScrollArea):
         # The layout that holds all of the items
         self.items_layout = QtWidgets.QVBoxLayout()
         self.items_layout.setContentsMargins(0, 0, 0, 0)
-        self.items_layout.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
+        self.items_layout.setSizeConstraint(
+            QtWidgets.QLayout.SetMinAndMaxSize)
 
         # Wrapper layout that also contains a stretch
         wrapper_layout = QtWidgets.QVBoxLayout()
@@ -409,11 +446,13 @@ class HistoryItemList(QtWidgets.QScrollArea):
                 item.close()
                 del self.items[key]
 
+
 class History(QtWidgets.QWidget):
     """
     A history of what's happened so far in this mode. This contains an internal
     object full of a scrollable list of items.
     """
+
     def __init__(self, common, empty_image, empty_text, header_text):
         super(History, self).__init__()
         self.common = common
@@ -426,14 +465,17 @@ class History(QtWidgets.QWidget):
 
         # In progress and completed labels
         self.in_progress_label = QtWidgets.QLabel()
-        self.in_progress_label.setStyleSheet(self.common.css['mode_info_label'])
+        self.in_progress_label.setStyleSheet(
+            self.common.css['mode_info_label'])
         self.completed_label = QtWidgets.QLabel()
         self.completed_label.setStyleSheet(self.common.css['mode_info_label'])
 
         # Header
         self.header_label = QtWidgets.QLabel(header_text)
-        self.header_label.setStyleSheet(self.common.css['downloads_uploads_label'])
-        clear_button = QtWidgets.QPushButton(strings._('gui_all_modes_clear_history'))
+        self.header_label.setStyleSheet(
+            self.common.css['downloads_uploads_label'])
+        clear_button = QtWidgets.QPushButton(
+            strings._('gui_all_modes_clear_history'))
         clear_button.setStyleSheet(self.common.css['downloads_uploads_clear'])
         clear_button.setFlat(True)
         clear_button.clicked.connect(self.reset)
@@ -450,7 +492,8 @@ class History(QtWidgets.QWidget):
         self.empty_image.setPixmap(empty_image)
         self.empty_text = QtWidgets.QLabel(empty_text)
         self.empty_text.setAlignment(QtCore.Qt.AlignCenter)
-        self.empty_text.setStyleSheet(self.common.css['downloads_uploads_empty_text'])
+        self.empty_text.setStyleSheet(
+            self.common.css['downloads_uploads_empty_text'])
         empty_layout = QtWidgets.QVBoxLayout()
         empty_layout.addStretch()
         empty_layout.addWidget(self.empty_image)
@@ -525,30 +568,46 @@ class History(QtWidgets.QWidget):
         Update the 'completed' widget.
         """
         if self.completed_count == 0:
-            image = self.common.get_resource_path('images/share_completed_none.png')
+            image = self.common.get_resource_path(
+                'images/share_completed_none.png')
         else:
             image = self.common.get_resource_path('images/share_completed.png')
-        self.completed_label.setText('<img src="{0:s}" /> {1:d}'.format(image, self.completed_count))
-        self.completed_label.setToolTip(strings._('history_completed_tooltip').format(self.completed_count))
+        self.completed_label.setText(
+            '<img src="{0:s}" /> {1:d}'.format(image, self.completed_count))
+        self.completed_label.setToolTip(
+            strings._('history_completed_tooltip').format(
+                self.completed_count))
 
     def update_in_progress(self):
         """
         Update the 'in progress' widget.
         """
         if self.in_progress_count == 0:
-            image = self.common.get_resource_path('images/share_in_progress_none.png')
+            image = self.common.get_resource_path(
+                'images/share_in_progress_none.png')
         else:
-            image = self.common.get_resource_path('images/share_in_progress.png')
-        self.in_progress_label.setText('<img src="{0:s}" /> {1:d}'.format(image, self.in_progress_count))
-        self.in_progress_label.setToolTip(strings._('history_in_progress_tooltip').format(self.in_progress_count))
+            image = self.common.get_resource_path(
+                'images/share_in_progress.png')
+        self.in_progress_label.setText(
+            '<img src="{0:s}" /> {1:d}'.format(image, self.in_progress_count))
+        self.in_progress_label.setToolTip(
+            strings._('history_in_progress_tooltip').format(
+                self.in_progress_count))
 
 
 class ToggleHistory(QtWidgets.QPushButton):
     """
-    Widget for toggling showing or hiding the history, as well as keeping track
-    of the indicator counter if it's hidden
+    Widget for toggling showing or hiding the history, \
+    as well as keeping track of the indicator counter if it's hidden
     """
-    def __init__(self, common, current_mode, history_widget, icon, selected_icon):
+
+    def __init__(
+            self,
+            common,
+            current_mode,
+            history_widget,
+            icon,
+            selected_icon):
         super(ToggleHistory, self).__init__()
         self.common = common
         self.current_mode = current_mode
@@ -567,7 +626,8 @@ class ToggleHistory(QtWidgets.QPushButton):
         # Keep track of indicator
         self.indicator_count = 0
         self.indicator_label = QtWidgets.QLabel(parent=self)
-        self.indicator_label.setStyleSheet(self.common.css['download_uploads_indicator'])
+        self.indicator_label.setStyleSheet(
+            self.common.css['download_uploads_indicator'])
         self.update_indicator()
 
     def update_indicator(self, increment=False):
@@ -584,7 +644,8 @@ class ToggleHistory(QtWidgets.QPushButton):
             self.indicator_label.hide()
         else:
             size = self.indicator_label.sizeHint()
-            self.indicator_label.setGeometry(35-size.width(), 0, size.width(), size.height())
+            self.indicator_label.setGeometry(
+                35 - size.width(), 0, size.width(), size.height())
             self.indicator_label.show()
 
     def toggle_clicked(self):

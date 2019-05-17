@@ -26,6 +26,7 @@ from ..server_status import ServerStatus
 from ..threads import OnionThread
 from ..widgets import Alert
 
+
 class Mode(QtWidgets.QWidget):
     """
     The class that ShareMode and ReceiveMode inherit from.
@@ -37,7 +38,15 @@ class Mode(QtWidgets.QWidget):
     starting_server_error = QtCore.pyqtSignal(str)
     set_server_active = QtCore.pyqtSignal(bool)
 
-    def __init__(self, common, qtapp, app, status_bar, server_status_label, system_tray, filenames=None, local_only=False):
+    def __init__(self,
+                 common,
+                 qtapp,
+                 app,
+                 status_bar,
+                 server_status_label,
+                 system_tray,
+                 filenames=None,
+                 local_only=False):
         super(Mode, self).__init__()
         self.common = common
         self.qtapp = qtapp
@@ -60,12 +69,15 @@ class Mode(QtWidgets.QWidget):
         self.web_thread = None
 
         # Server status
-        self.server_status = ServerStatus(self.common, self.qtapp, self.app, None, self.local_only)
+        self.server_status = ServerStatus(
+            self.common, self.qtapp, self.app, None, self.local_only)
         self.server_status.server_started.connect(self.start_server)
         self.server_status.server_stopped.connect(self.stop_server)
         self.server_status.server_canceled.connect(self.cancel_server)
-        self.start_server_finished.connect(self.server_status.start_server_finished)
-        self.stop_server_finished.connect(self.server_status.stop_server_finished)
+        self.start_server_finished.connect(
+            self.server_status.start_server_finished)
+        self.stop_server_finished.connect(
+            self.server_status.stop_server_finished)
         self.starting_server_step2.connect(self.start_server_step2)
         self.starting_server_step3.connect(self.start_server_step3)
         self.starting_server_error.connect(self.start_server_error)
@@ -94,14 +106,17 @@ class Mode(QtWidgets.QWidget):
         """
         # If the auto-shutdown timer has stopped, stop the server
         if self.server_status.status == ServerStatus.STATUS_STARTED:
-            if self.app.shutdown_timer and self.common.settings.get('shutdown_timeout'):
+            if self.app.shutdown_timer and self.common.settings.get(
+                    'shutdown_timeout'):
                 if self.timeout > 0:
                     now = QtCore.QDateTime.currentDateTime()
                     seconds_remaining = now.secsTo(self.server_status.timeout)
 
                     # Update the server button
-                    server_button_text = self.get_stop_server_shutdown_timeout_text()
-                    self.server_status.server_button.setText(server_button_text.format(seconds_remaining))
+                    server_button_text = \
+                        self.get_stop_server_shutdown_timeout_text()
+                    self.server_status.server_button.setText(
+                        server_button_text.format(seconds_remaining))
 
                     self.status_bar.clearMessage()
                     if not self.app.shutdown_timer.is_alive():
@@ -116,7 +131,8 @@ class Mode(QtWidgets.QWidget):
 
     def get_stop_server_shutdown_timeout_text(self):
         """
-        Return the string to put on the stop server button, if there's a shutdown timeout
+        Return the string to put on the stop server button,
+        if there's a shutdown timeout
         """
         pass
 
@@ -128,8 +144,8 @@ class Mode(QtWidgets.QWidget):
 
     def start_server(self):
         """
-        Start the onionshare server. This uses multiple threads to start the Tor onion
-        server and the web app.
+        Start the onionshare server. This uses multiple threads to start \
+        the Tor onion server and the web app.
         """
         self.common.log('Mode', 'start_server')
 
@@ -188,12 +204,15 @@ class Mode(QtWidgets.QWidget):
             self.timeout = now.secsTo(self.server_status.timeout)
             # Set the shutdown timeout value
             if self.timeout > 0:
-                self.app.shutdown_timer = ShutdownTimer(self.common, self.timeout)
+                self.app.shutdown_timer = ShutdownTimer(
+                    self.common, self.timeout)
                 self.app.shutdown_timer.start()
-            # The timeout has actually already passed since the user clicked Start. Probably the Onion service took too long to start.
+            # The timeout has actually already passed since the user clicked
+            # Start. Probably the Onion service took too long to start.
             else:
                 self.stop_server()
-                self.start_server_error(strings._('gui_server_started_after_timeout'))
+                self.start_server_error(
+                    strings._('gui_server_started_after_timeout'))
 
     def start_server_step3_custom(self):
         """
@@ -249,8 +268,9 @@ class Mode(QtWidgets.QWidget):
         if self.server_status.status != ServerStatus.STATUS_STOPPED:
             try:
                 self.web.stop(self.app.port)
-            except:
-                # Probably we had no port to begin with (Onion service didn't start)
+            except BaseException:
+                # Probably we had no port to begin with (Onion service didn't
+                # start)
                 pass
         self.app.cleanup()
 
@@ -298,7 +318,10 @@ class Mode(QtWidgets.QWidget):
         Handle REQUEST_RATE_LIMIT event.
         """
         self.stop_server()
-        Alert(self.common, strings._('error_rate_limit'), QtWidgets.QMessageBox.Critical)
+        Alert(
+            self.common,
+            strings._('error_rate_limit'),
+            QtWidgets.QMessageBox.Critical)
 
     def handle_request_progress(self, event):
         """

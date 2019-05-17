@@ -21,6 +21,7 @@ from .share_mode import ShareModeWeb
 def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
     pass
 
+
 flask.cli.show_server_banner = stubbed_show_server_banner
 
 
@@ -45,9 +46,8 @@ class Web(object):
         self.common.log('Web', '__init__', 'is_gui={}'.format(is_gui))
 
         # The flask app
-        self.app = Flask(__name__,
-                         static_folder=self.common.get_resource_path('static'),
-                         template_folder=self.common.get_resource_path('templates'))
+        self.app = Flask(__name__, static_folder=self.common.get_resource_path(
+            'static'), template_folder=self.common.get_resource_path('templates'))
         self.app.secret_key = self.common.random_string(8)
 
         # Debug mode?
@@ -69,17 +69,23 @@ class Web(object):
         # earlier versions of Flask, we force autoescaping in the Jinja2 template
         # engine if we detect a Flask version with insecure default behavior.
         if Version(flask_version) < Version('0.11'):
-            # Monkey-patch in the fix from https://github.com/pallets/flask/commit/99c99c4c16b1327288fd76c44bc8635a1de452bc
+            # Monkey-patch in the fix from
+            # https://github.com/pallets/flask/commit/99c99c4c16b1327288fd76c44bc8635a1de452bc
             Flask.select_jinja_autoescape = self._safe_select_jinja_autoescape
 
         self.security_headers = [
-            ('Content-Security-Policy', 'default-src \'self\'; style-src \'self\'; script-src \'self\'; img-src \'self\' data:;'),
-            ('X-Frame-Options', 'DENY'),
-            ('X-Xss-Protection', '1; mode=block'),
-            ('X-Content-Type-Options', 'nosniff'),
-            ('Referrer-Policy', 'no-referrer'),
-            ('Server', 'OnionShare')
-        ]
+            ('Content-Security-Policy',
+             'default-src \'self\'; style-src \'self\'; script-src \'self\'; img-src \'self\' data:;'),
+            ('X-Frame-Options',
+             'DENY'),
+            ('X-Xss-Protection',
+             '1; mode=block'),
+            ('X-Content-Type-Options',
+             'nosniff'),
+            ('Referrer-Policy',
+             'no-referrer'),
+            ('Server',
+             'OnionShare')]
 
         self.q = queue.Queue()
         self.slug = None
@@ -87,7 +93,8 @@ class Web(object):
 
         self.done = False
 
-        # shutting down the server only works within the context of flask, so the easiest way to do it is over http
+        # shutting down the server only works within the context of flask, so
+        # the easiest way to do it is over http
         self.shutdown_slug = self.common.random_string(16)
 
         # Keep track if the server is running
@@ -98,7 +105,6 @@ class Web(object):
 
         # Create the mode web object, which defines its own routes
         self.share_mode = ShareModeWeb(self.common, self)
-
 
     def define_common_routes(self):
         """
@@ -133,7 +139,8 @@ class Web(object):
         if request.path != '/favicon.ico':
             self.error404_count += 1
 
-            # In receive mode, with public mode enabled, skip rate limiting 404s
+            # In receive mode, with public mode enabled, skip rate limiting
+            # 404s
             if not self.common.settings.get('public_mode'):
                 if self.error404_count == 20:
                     self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
@@ -173,32 +180,48 @@ class Web(object):
         })
 
     def generate_slug(self, persistent_slug=None):
-        self.common.log('Web', 'generate_slug', 'persistent_slug={}'.format(persistent_slug))
-        if persistent_slug != None and persistent_slug != '':
+        self.common.log(
+            'Web',
+            'generate_slug',
+            'persistent_slug={}'.format(persistent_slug))
+        if persistent_slug is not None and persistent_slug != '':
             self.slug = persistent_slug
-            self.common.log('Web', 'generate_slug', 'persistent_slug sent, so slug is: "{}"'.format(self.slug))
+            self.common.log(
+                'Web',
+                'generate_slug',
+                'persistent_slug sent, so slug is: "{}"'.format(
+                    self.slug))
         else:
             self.slug = self.common.build_slug()
-            self.common.log('Web', 'generate_slug', 'built random slug: "{}"'.format(self.slug))
+            self.common.log(
+                'Web',
+                'generate_slug',
+                'built random slug: "{}"'.format(
+                    self.slug))
 
     def debug_mode(self):
         """
         Turn on debugging mode, which will log flask errors to a debug file.
         """
-        flask_debug_filename = os.path.join(self.common.build_data_dir(), 'flask_debug.log')
+        flask_debug_filename = os.path.join(
+            self.common.build_data_dir(), 'flask_debug.log')
         log_handler = logging.FileHandler(flask_debug_filename)
         log_handler.setLevel(logging.WARNING)
         self.app.logger.addHandler(log_handler)
 
     def check_slug_candidate(self, slug_candidate):
-        self.common.log('Web', 'check_slug_candidate: slug_candidate={}'.format(slug_candidate))
+        self.common.log(
+            'Web',
+            'check_slug_candidate: slug_candidate={}'.format(slug_candidate))
         if self.common.settings.get('public_mode'):
             abort(404)
         if not hmac.compare_digest(self.slug, slug_candidate):
             abort(404)
 
     def check_shutdown_slug_candidate(self, slug_candidate):
-        self.common.log('Web', 'check_shutdown_slug_candidate: slug_candidate={}'.format(slug_candidate))
+        self.common.log(
+            'Web',
+            'check_shutdown_slug_candidate: slug_candidate={}'.format(slug_candidate))
         if not hmac.compare_digest(self.shutdown_slug, slug_candidate):
             abort(404)
 
@@ -212,15 +235,27 @@ class Web(object):
             if func is None:
                 raise RuntimeError('Not running with the Werkzeug Server')
             func()
-        except:
+        except BaseException:
             pass
         self.running = False
 
-    def start(self, port, stay_open=False, public_mode=False, persistent_slug=None):
+    def start(
+            self,
+            port,
+            stay_open=False,
+            public_mode=False,
+            persistent_slug=None):
         """
         Start the flask web server.
         """
-        self.common.log('Web', 'start', 'port={}, stay_open={}, public_mode={}, persistent_slug={}'.format(port, stay_open, public_mode, persistent_slug))
+        self.common.log(
+            'Web',
+            'start',
+            'port={}, stay_open={}, public_mode={}, persistent_slug={}'.format(
+                port,
+                stay_open,
+                public_mode,
+                persistent_slug))
         if not public_mode:
             self.generate_slug(persistent_slug)
 
@@ -259,9 +294,11 @@ class Web(object):
             try:
                 s = socket.socket()
                 s.connect(('127.0.0.1', port))
-                s.sendall('GET /{0:s}/shutdown HTTP/1.1\r\n\r\n'.format(self.shutdown_slug))
-            except:
+                s.sendall(
+                    'GET /{0:s}/shutdown HTTP/1.1\r\n\r\n'.format(self.shutdown_slug))
+            except BaseException:
                 try:
-                    urlopen('http://127.0.0.1:{0:d}/{1:s}/shutdown'.format(port, self.shutdown_slug)).read()
-                except:
+                    urlopen(
+                        'http://127.0.0.1:{0:d}/{1:s}/shutdown'.format(port, self.shutdown_slug)).read()
+                except BaseException:
                     pass

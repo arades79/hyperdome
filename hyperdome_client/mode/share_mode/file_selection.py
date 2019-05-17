@@ -24,11 +24,13 @@ from hyperdome_server import strings
 
 from ...widgets import Alert, AddFileDialog
 
+
 class DropHereLabel(QtWidgets.QLabel):
     """
     When there are no files or folders in the FileList yet, display the
     'drop files here' message and graphic.
     """
+
     def __init__(self, common, parent, image=False):
         self.parent = parent
         super(DropHereLabel, self).__init__(parent=parent)
@@ -39,10 +41,16 @@ class DropHereLabel(QtWidgets.QLabel):
         self.setAlignment(QtCore.Qt.AlignCenter)
 
         if image:
-            self.setPixmap(QtGui.QPixmap.fromImage(QtGui.QImage(self.common.get_resource_path('images/logo_transparent.png'))))
+            self.setPixmap(
+                QtGui.QPixmap.fromImage(
+                    QtGui.QImage(
+                        self.common.get_resource_path('images/'
+                                                      'logo_transparent'
+                                                      '.png'))))
         else:
             self.setText(strings._('gui_drag_and_drop'))
-            self.setStyleSheet(self.common.css['share_file_selection_drop_here_label'])
+            self.setStyleSheet(
+                self.common.css['share_file_selection_drop_here_label'])
 
         self.hide()
 
@@ -57,6 +65,7 @@ class DropCountLabel(QtWidgets.QLabel):
     While dragging files over the FileList, this counter displays the
     number of files you're dragging.
     """
+
     def __init__(self, common, parent):
         self.parent = parent
         super(DropCountLabel, self).__init__(parent=parent)
@@ -66,7 +75,8 @@ class DropCountLabel(QtWidgets.QLabel):
         self.setAcceptDrops(True)
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setText(strings._('gui_drag_and_drop'))
-        self.setStyleSheet(self.common.css['share_file_selection_drop_count_label'])
+        self.setStyleSheet(
+            self.common.css['share_file_selection_drop_count_label'])
         self.hide()
 
     def dragEnterEvent(self, event):
@@ -133,8 +143,10 @@ class FileList(QtWidgets.QListWidget):
         When the widget is resized, resize the drop files image and text.
         """
         offset = 70
-        self.drop_here_image.setGeometry(0, 0, self.width(), self.height() - offset)
-        self.drop_here_text.setGeometry(0, offset, self.width(), self.height() - offset)
+        self.drop_here_image.setGeometry(
+            0, 0, self.width(), self.height() - offset)
+        self.drop_here_text.setGeometry(
+            0, offset, self.width(), self.height() - offset)
 
         if self.count() > 0:
             # Add and delete an empty item, to force all items to get redrawn
@@ -145,13 +157,16 @@ class FileList(QtWidgets.QListWidget):
             self.update()
 
             # Extend any filenames that were truncated to fit the window
-            # We use 200 as a rough guess at how wide the 'file size + delete button' widget is
+            # We use 200 as a rough guess at how wide the
+            # 'file size + delete button' widget is
             # and extend based on the overall width minus that amount.
             for index in range(self.count()):
                 metrics = QtGui.QFontMetrics(self.item(index).font())
-                elided = metrics.elidedText(self.item(index).basename, QtCore.Qt.ElideRight, self.width() - 200)
+                elided = metrics.elidedText(
+                    self.item(index).basename,
+                    QtCore.Qt.ElideRight,
+                    self.width() - 200)
                 self.item(index).setText(elided)
-
 
     def dragEnterEvent(self, event):
         """
@@ -163,7 +178,11 @@ class FileList(QtWidgets.QListWidget):
             self.drop_count.setText('+{}'.format(count))
 
             size_hint = self.drop_count.sizeHint()
-            self.drop_count.setGeometry(self.width() - size_hint.width() - 10, self.height() - size_hint.height() - 10, size_hint.width(), size_hint.height())
+            self.drop_count.setGeometry(
+                self.width() - size_hint.width() - 10,
+                self.height() - size_hint.height() - 10,
+                size_hint.width(),
+                size_hint.height())
             self.drop_count.show()
             event.accept()
         else:
@@ -216,7 +235,8 @@ class FileList(QtWidgets.QListWidget):
 
         if filename not in filenames:
             if not os.access(filename, os.R_OK):
-                Alert(self.common, strings._("not_a_readable_file").format(filename))
+                Alert(self.common, strings._(
+                    "not_a_readable_file").format(filename))
                 return
 
             fileinfo = QtCore.QFileInfo(filename)
@@ -225,10 +245,12 @@ class FileList(QtWidgets.QListWidget):
 
             if os.path.isfile(filename):
                 size_bytes = fileinfo.size()
-                size_readable = self.common.human_readable_filesize(size_bytes)
+                size_readable = \
+                    self.common.human_readable_filesize(size_bytes)
             else:
                 size_bytes = self.common.dir_size(filename)
-                size_readable = self.common.human_readable_filesize(size_bytes)
+                size_readable = \
+                    self.common.human_readable_filesize(size_bytes)
 
             # Create a new item
             item = QtWidgets.QListWidgetItem()
@@ -238,12 +260,16 @@ class FileList(QtWidgets.QListWidget):
             # Item's filename attribute and size labels
             item.filename = filename
             item_size = QtWidgets.QLabel(size_readable)
-            item_size.setStyleSheet(self.common.css['share_file_list_item_size'])
+            item_size.setStyleSheet(
+                self.common.css['share_file_list_item_size'])
 
             item.basename = os.path.basename(filename.rstrip('/'))
             # Use the basename as the method with which to sort the list
             metrics = QtGui.QFontMetrics(item.font())
-            elided = metrics.elidedText(item.basename, QtCore.Qt.ElideRight, self.sizeHint().width())
+            elided = metrics.elidedText(
+                item.basename,
+                QtCore.Qt.ElideRight,
+                self.sizeHint().width())
             item.setData(QtCore.Qt.DisplayRole, elided)
 
             # Item's delete button
@@ -255,9 +281,13 @@ class FileList(QtWidgets.QListWidget):
             item.item_button = QtWidgets.QPushButton()
             item.item_button.setDefault(False)
             item.item_button.setFlat(True)
-            item.item_button.setIcon( QtGui.QIcon(self.common.get_resource_path('images/file_delete.png')) )
+            item.item_button.setIcon(
+                QtGui.QIcon(
+                    self.common.get_resource_path('images/file_delete.png')))
             item.item_button.clicked.connect(delete_item)
-            item.item_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+            item.item_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed,
+                QtWidgets.QSizePolicy.Fixed)
 
             # Item info widget, with a white background
             item_info_layout = QtWidgets.QHBoxLayout()
@@ -288,6 +318,7 @@ class FileSelection(QtWidgets.QVBoxLayout):
     The list of files and folders in the GUI, as well as buttons to add and
     delete the files and folders.
     """
+
     def __init__(self, common, parent):
         super(FileSelection, self).__init__()
 
@@ -304,11 +335,14 @@ class FileSelection(QtWidgets.QVBoxLayout):
 
         # Buttons
         if self.common.platform == 'Darwin':
-            # The macOS sandbox makes it so the Mac version needs separate add files
-            # and folders buttons, in order to use native file selection dialogs
-            self.add_files_button = QtWidgets.QPushButton(strings._('gui_add_files'))
+            # The macOS sandbox makes it so the Mac version
+            # needs separate add files and folders buttons, in order to
+            # use native file selection dialogs
+            self.add_files_button = QtWidgets.QPushButton(
+                strings._('gui_add_files'))
             self.add_files_button.clicked.connect(self.add_files)
-            self.add_folder_button = QtWidgets.QPushButton(strings._('gui_add_folder'))
+            self.add_folder_button = QtWidgets.QPushButton(
+                strings._('gui_add_folder'))
             self.add_folder_button.clicked.connect(self.add_folder)
         else:
             self.add_button = QtWidgets.QPushButton(strings._('gui_add'))
@@ -362,7 +396,8 @@ class FileSelection(QtWidgets.QVBoxLayout):
         """
         Add button clicked.
         """
-        file_dialog = AddFileDialog(self.common, caption=strings._('gui_choose_items'))
+        file_dialog = AddFileDialog(
+            self.common, caption=strings._('gui_choose_items'))
         if file_dialog.exec_() == QtWidgets.QDialog.Accepted:
             for filename in file_dialog.selectedFiles():
                 self.file_list.add_file(filename)
@@ -374,7 +409,8 @@ class FileSelection(QtWidgets.QVBoxLayout):
         """
         Add files button clicked.
         """
-        files = QtWidgets.QFileDialog.getOpenFileNames(self.parent, caption=strings._('gui_choose_items'))
+        files = QtWidgets.QFileDialog.getOpenFileNames(
+            self.parent, caption=strings._('gui_choose_items'))
         filenames = files[0]
         for filename in filenames:
             self.file_list.add_file(filename)
@@ -383,9 +419,10 @@ class FileSelection(QtWidgets.QVBoxLayout):
         """
         Add folder button clicked.
         """
-        filename = QtWidgets.QFileDialog.getExistingDirectory(self.parent,
-                                                         caption=strings._('gui_choose_items'),
-                                                         options=QtWidgets.QFileDialog.ShowDirsOnly)
+        filename = QtWidgets.QFileDialog.getExistingDirectory(
+            self.parent,
+            caption=strings._('gui_choose_items'),
+            options=QtWidgets.QFileDialog.ShowDirsOnly)
         self.file_list.add_file(filename)
 
     def delete(self):

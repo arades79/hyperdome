@@ -18,17 +18,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, shutil
+import os
+import shutil
 
 from . import common, strings
 from .onion import TorTooOld, TorErrorProtocolError
 from .common import ShutdownTimer
+
 
 class HyperdomeServer(object):
     """
     OnionShare is the main application class. Pass in options and run
     start_onion_service and it will do the magic.
     """
+
     def __init__(self, common, onion, local_only=False, shutdown_timeout=0):
         self.common = common
 
@@ -56,7 +59,10 @@ class HyperdomeServer(object):
         self.shutdown_timer = None
 
     def set_stealth(self, stealth):
-        self.common.log('OnionShare', 'set_stealth', 'stealth={}'.format(stealth))
+        self.common.log(
+            'OnionShare',
+            'set_stealth',
+            'stealth={}'.format(stealth))
 
         self.stealth = stealth
         self.onion.stealth = stealth
@@ -67,7 +73,7 @@ class HyperdomeServer(object):
         """
         try:
             self.port = self.common.get_available_port(17600, 17650)
-        except:
+        except BaseException:
             raise OSError(strings._('no_available_port'))
 
     def start_onion_service(self):
@@ -80,7 +86,8 @@ class HyperdomeServer(object):
             self.choose_port()
 
         if self.shutdown_timeout > 0:
-            self.shutdown_timer = ShutdownTimer(self.common, self.shutdown_timeout)
+            self.shutdown_timer = ShutdownTimer(
+                self.common, self.shutdown_timeout)
 
         if self.local_only:
             self.onion_host = '127.0.0.1:{0:d}'.format(self.port)
@@ -104,7 +111,7 @@ class HyperdomeServer(object):
                     os.remove(filename)
                 elif os.path.isdir(filename):
                     shutil.rmtree(filename)
-        except:
+        except BaseException:
             # Don't crash if file is still in use
             pass
         self.cleanup_filenames = []

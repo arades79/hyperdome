@@ -18,7 +18,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, sys, time, argparse, threading
+import os
+import sys
+import time
+import argparse
+import threading
 
 from . import strings
 from .common import Common
@@ -26,6 +30,7 @@ from .web import Web
 from .web.share_mode import ShareModeWeb
 from .onion import *
 from .hyperdome_server import HyperdomeServer
+
 
 def main(cwd=None):
     """
@@ -50,13 +55,41 @@ def main(cwd=None):
         os.chdir(cwd)
 
     # Parse arguments
-    parser = argparse.ArgumentParser(formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=28))
-    parser.add_argument('--local-only', action='store_true', dest='local_only', help=strings._("help_local_only"))
-    parser.add_argument('--shutdown-timeout', metavar='<int>', dest='shutdown_timeout', default=0, help=strings._("help_shutdown_timeout"))
-    parser.add_argument('--connect-timeout', metavar='<int>', dest='connect_timeout', default=120, help=strings._("help_connect_timeout"))
-    parser.add_argument('--stealth', action='store_true', dest='stealth', help=strings._("help_stealth"))
-    parser.add_argument('--config', metavar='config', default=False, help=strings._('help_config'))
-    parser.add_argument('--debug', action='store_true', dest='debug', help=strings._("help_debug"))
+    parser = argparse.ArgumentParser(
+        formatter_class=lambda prog: argparse.HelpFormatter(
+            prog, max_help_position=28))
+    parser.add_argument(
+        '--local-only',
+        action='store_true',
+        dest='local_only',
+        help=strings._("help_local_only"))
+    parser.add_argument(
+        '--shutdown-timeout',
+        metavar='<int>',
+        dest='shutdown_timeout',
+        default=0,
+        help=strings._("help_shutdown_timeout"))
+    parser.add_argument(
+        '--connect-timeout',
+        metavar='<int>',
+        dest='connect_timeout',
+        default=120,
+        help=strings._("help_connect_timeout"))
+    parser.add_argument(
+        '--stealth',
+        action='store_true',
+        dest='stealth',
+        help=strings._("help_stealth"))
+    parser.add_argument(
+        '--config',
+        metavar='config',
+        default=False,
+        help=strings._('help_config'))
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        dest='debug',
+        help=strings._("help_debug"))
     args = parser.parse_args()
 
     local_only = bool(args.local_only)
@@ -65,7 +98,6 @@ def main(cwd=None):
     connect_timeout = int(args.connect_timeout)
     stealth = bool(args.stealth)
     config = args.config
-
 
     # Re-load settings, if a custom config was passed in
     if config:
@@ -82,7 +114,10 @@ def main(cwd=None):
     # Start the Onion object
     onion = Onion(common)
     try:
-        onion.connect(custom_settings=False, config=config, connect_timeout=connect_timeout)
+        onion.connect(
+            custom_settings=False,
+            config=config,
+            connect_timeout=connect_timeout)
     except KeyboardInterrupt:
         print("")
         sys.exit()
@@ -103,14 +138,19 @@ def main(cwd=None):
         print(e.args[0])
         sys.exit()
 
-
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True, common.settings.get('public_mode'), common.settings.get('slug')))
+    t = threading.Thread(
+        target=web.start,
+        args=(
+            app.port,
+            True,
+            common.settings.get('public_mode'),
+            common.settings.get('slug')))
     t.daemon = True
     t.start()
 
     try:  # Trap Ctrl-C
-        #TODO this looks dangerously like a race condition
+        # TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
 
@@ -136,7 +176,8 @@ def main(cwd=None):
         # Wait for app to close
         while t.is_alive():
             if app.shutdown_timeout > 0:
-                # if the shutdown timer was set and has run out, stop the server
+                # if the shutdown timer was set and has run out, stop the
+                # server
                 if not app.shutdown_timer.is_alive():
                     pass
                     # TODO if hyperdome session is over, break. Or just add
@@ -150,6 +191,7 @@ def main(cwd=None):
         # Shutdown
         app.cleanup()
         onion.cleanup()
+
 
 if __name__ == '__main__':
     main()

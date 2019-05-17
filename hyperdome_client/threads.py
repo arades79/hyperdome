@@ -41,13 +41,15 @@ class OnionThread(QtCore.QThread):
     def run(self):
         self.mode.common.log('OnionThread', 'run')
 
-        self.mode.app.stay_open = not self.mode.common.settings.get('close_after_first_download')
+        self.mode.app.stay_open = not self.mode.common.settings.get(
+            'close_after_first_download')
 
         # start onionshare http service in new thread
         self.mode.web_thread = WebThread(self.mode)
         self.mode.web_thread.start()
 
-        # wait for modules in thread to load, preventing a thread-related cx_Freeze crash
+        # wait for modules in thread to load, preventing a thread-related
+        # cx_Freeze crash
         time.sleep(0.2)
 
         try:
@@ -74,4 +76,8 @@ class WebThread(QtCore.QThread):
     def run(self):
         self.mode.common.log('WebThread', 'run')
         self.mode.app.choose_port()
-        self.mode.web.start(self.mode.app.port, self.mode.app.stay_open, self.mode.common.settings.get('public_mode'), self.mode.common.settings.get('slug'))
+        self.mode.web.start(
+            self.mode.app.port,
+            self.mode.app.stay_open,
+            self.mode.common.settings.get('public_mode'),
+            self.mode.common.settings.get('slug'))

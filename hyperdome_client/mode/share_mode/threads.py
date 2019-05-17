@@ -34,27 +34,31 @@ class CompressThread(QtCore.QThread):
 
     # prepare files to share
     def set_processed_size(self, x):
-        if self.mode._zip_progress_bar != None:
+        if self.mode._zip_progress_bar is not None:
             self.mode._zip_progress_bar.update_processed_size_signal.emit(x)
 
     def run(self):
         self.mode.common.log('CompressThread', 'run')
 
         try:
-            if self.mode.web.share_mode.set_file_info(self.mode.filenames, processed_size_callback=self.set_processed_size):
+            if self.mode.web.share_mode.set_file_info(
+                    self.mode.filenames,
+                    processed_size_callback=self.set_processed_size):
                 self.success.emit()
             else:
                 # Cancelled
                 pass
 
-            self.mode.app.cleanup_filenames += self.mode.web.share_mode.cleanup_filenames
+            self.mode.app.cleanup_filenames += \
+                self.mode.web.share_mode.cleanup_filenames
         except OSError as e:
             self.error.emit(e.strerror)
 
     def cancel(self):
         self.mode.common.log('CompressThread', 'cancel')
 
-        # Let the Web and ZipWriter objects know that we're canceling compression early
+        # Let the Web and ZipWriter objects know that we're canceling
+        # compression early
         self.mode.web.cancel_compression = True
         try:
             self.mode.web.zip_writer.cancel_compression = True
