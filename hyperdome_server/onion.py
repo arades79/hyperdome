@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,16 +28,12 @@ import base64
 import os
 import sys
 import tempfile
-import shutil
-import urllib
-import platform
 import subprocess
 import time
 import shlex
 
 from distutils.version import LooseVersion as Version
-from . import common, strings
-from .settings import Settings
+from . import strings
 
 
 class TorErrorAutomatic(Exception):
@@ -126,8 +123,8 @@ class BundledTorTimeout(Exception):
 
 class BundledTorCanceled(Exception):
     """
-    This exception is raised if onionshare is set to use the bundled Tor binary,
-    and the user cancels connecting to Tor
+    This exception is raised if onionshare is set to use the bundled Tor
+    binary, and the user cancels connecting to Tor
     """
 
 
@@ -351,8 +348,9 @@ class Onion(object):
                 # If using bridges, it might take a bit longer to connect to
                 # Tor
                 if (self.settings.get('tor_bridges_use_custom_bridges')
-                    or self.settings.get('tor_bridges_use_obfs4')
-                    or self.settings.get('tor_bridges_use_meek_lite_azure')):
+                        or self.settings.get('tor_bridges_use_obfs4')
+                        or self.settings.get(
+                            'tor_bridges_use_meek_lite_azure')):
                     # Only override timeout if a custom timeout has not been
                     # passed in
                     if connect_timeout == 120:
@@ -646,7 +644,8 @@ class Onion(object):
                     self.c.remove_ephemeral_hidden_service(onion)
                 except BaseException:
                     self.common.log('Onion', 'cleanup',
-                        'could not remove onion {}, continuing.'.format(onion))
+                                    'could not remove onion '
+                                    '{}, continuing.'.format(onion))
         except BaseException:
             pass
         self.service_id = None

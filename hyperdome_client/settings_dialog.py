@@ -26,7 +26,8 @@ import re
 import os
 from hyperdome_server import strings
 from hyperdome_server.settings import Settings
-from hyperdome_server.onion import (UpdateThread, BundledTorTimeout,
+from .update_checker import UpdateThread
+from hyperdome_server.onion import (BundledTorTimeout,
                                     BundledTorNotSupported,
                                     TorErrorProtocolError, TorErrorAuthError,
                                     TorErrorUnreadableCookieFile,
@@ -36,7 +37,6 @@ from hyperdome_server.onion import (UpdateThread, BundledTorTimeout,
                                     Onion)
 
 from .widgets import Alert
-# from .update_checker import *
 from .tor_connection_dialog import TorConnectionDialog
 
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,22 +28,22 @@ import threading
 from . import strings
 from .common import Common
 from .web import Web
-from .web.share_mode import ShareModeWeb
-from .onion import *
+from .onion import TorErrorProtocolError, TorTooOld, Onion
 from .hyperdome_server import HyperdomeServer
 
 
 def main(cwd=None):
     """
-    The main() function implements all of the logic that the command-line version of
-    onionshare uses.
+    The main() function implements all of the logic that the command-line
+    version of onionshare uses.
     """
     common = Common()
 
-    # Load the default settings and strings early, for the sake of being able to parse options.
-    # These won't be in the user's chosen locale necessarily, but we need to parse them
-    # early in order to even display the option to pass alternate settings (which might
-    # contain a preferred locale).
+    # Load the default settings and strings early, for the sake of being able
+    # to parse options.
+    # These won't be in the user's chosen locale necessarily, but we need to
+    # parse them early in order to even display the option to pass alternate
+    # settings (which might contain a preferred locale).
     # If an alternate --config is passed, we'll reload strings later.
     common.load_settings()
     strings.load_strings(common)
@@ -60,7 +61,7 @@ def main(cwd=None):
             prog, max_help_position=28))
     parser.add_argument('--local-only', action='store_true', dest='local_only',
                         help=strings._("help_local_only"))
-    parser.add_argument('--shutdown-timeout',metavar='<int>',
+    parser.add_argument('--shutdown-timeout', metavar='<int>',
                         dest='shutdown_timeout', default=0,
                         help=strings._("help_shutdown_timeout"))
     parser.add_argument('--connect-timeout', metavar='<int>',
@@ -119,10 +120,10 @@ def main(cwd=None):
         sys.exit()
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start,args=(app.port, True,
-                                                common.settings.get(
-                                                    'public_mode'),
-                                                common.settings.get('slug')))
+    t = threading.Thread(target=web.start, args=(app.port, True,
+                                                 common.settings.get(
+                                                     'public_mode'),
+                                                 common.settings.get('slug')))
     t.daemon = True
     t.start()
 

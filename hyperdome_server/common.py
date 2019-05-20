@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,11 +26,12 @@ import platform
 import random
 import socket
 import sys
-import tempfile
+# import tempfile
 import threading
 import time
 
 from .settings import Settings
+
 
 # TODO there's a lot of platform-specific pathing here, we can probably
 # just use pathlib to get rid of a lot of code
@@ -71,8 +73,8 @@ class Common(object):
 
     def get_resource_path(self, filename):
         """
-        Returns the absolute path of a resource, regardless of whether OnionShare is installed
-        systemwide, and whether regardless of platform
+        Returns the absolute path of a resource, regardless of whether
+        OnionShare is installed systemwide, and whether regardless of platform
         """
         # On Windows, and in Windows dev mode, switch slashes in incoming
         # filename to backslackes
@@ -153,7 +155,7 @@ class Common(object):
                 appdata = os.environ['APPDATA']
                 onionshare_data_dir = '{}\\OnionShare'.format(appdata)
             except BaseException:
-                #TODO catch the specific exception, not base
+                # TODO catch the specific exception, not base
                 # If for some reason we don't have the 'APPDATA' environment
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
@@ -493,7 +495,7 @@ class Common(object):
                     tmpsock.bind(("127.0.0.1", random.randint(min_port,
                                                               max_port)))
                     break
-                except OSError as e:
+                except OSError:
                     pass
             _, port = tmpsock.getsockname()
         return port

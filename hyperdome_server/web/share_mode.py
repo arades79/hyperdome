@@ -1,19 +1,37 @@
+# -*- coding: utf-8 -*-
+"""
+Hyperdome
+
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 import os
 import sys
 import tempfile
 import zipfile
 import mimetypes
 import gzip
-from flask import Response, request, render_template, make_response
-from flask import (Flask, Request, request, render_template,
-                   make_response, flash, redirect, url_for, abort)
+from flask import (render_template, Response, request,
+                   make_response, abort)
 from flask_login import (login_user, logout_user, LoginManager,
                          UserMixin, login_required, current_user)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from flask_bcrypt import Bcrypt
 import random
-import os
 import binascii
 
 from .. import strings
@@ -482,7 +500,6 @@ class ZipWriter(object):
                              or '{0:s}/onionshare_{1:s}.zip'.format(
                                  tempfile.mkdtemp(),
                                  self.common.random_string(4, 6)))
-
 
         self.z = zipfile.ZipFile(self.zip_filename, 'w', allowZip64=True)
         self.processed_size_callback = processed_size_callback
