@@ -500,7 +500,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', 'closeEvent')
         try:
             if self.server.is_therapist:
-                session.post(
+                self.session.post(
                     f"{self.server.url}/therapist_signout",
                     data={"username": self.server.username,
                           "password": self.server.password})
