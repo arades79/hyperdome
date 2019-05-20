@@ -142,11 +142,6 @@ def main(cwd=None):
                 common.settings.set('slug', web.slug)
                 common.settings.save()
 
-        # Build the URL
-        url = ('http://{0:s}'.format(app.onion_host)
-               if common.settings.get('public_mode')
-               else 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug))
-
         print('')
         print(strings._("ctrlc_to_stop"))
 
