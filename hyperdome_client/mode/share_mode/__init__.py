@@ -21,14 +21,14 @@ import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-from hyperdome_server.onion import *
+# from hyperdome_server.onion import *
 from hyperdome_server.common import Common
 from hyperdome_server.web import Web
 
 from .threads import CompressThread
 from .. import Mode
 from ..history import History, ToggleHistory, ShareHistoryItem
-from ...widgets import Alert
+# from ...widgets import Alert
 
 
 class ShareMode(Mode):
@@ -125,7 +125,7 @@ class ShareMode(Mode):
         The shutdown timer expired, should we stop the server? Returns a bool
         """
         # If there were no attempts to download the share, or
-        #all downloads are done, we can stop
+        # all downloads are done, we can stop
         if self.web.share_mode.download_count == 0 or self.web.done:
             self.server_status.stop_server()
             self.server_status_label.setText(strings._('close_on_timeout'))

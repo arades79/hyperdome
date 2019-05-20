@@ -319,20 +319,6 @@ class ReceiveHistoryItem(HistoryItem):
             self.progress_bar.setMaximum(self.content_length)
             self.progress_bar.setValue(total_uploaded_bytes)
 
-            elapsed = datetime.now() - self.started
-            if elapsed.seconds < 10:
-                pb_fmt = strings._('gui_all_modes_progress_starting').format(
-                    self.common.human_readable_filesize(total_uploaded_bytes))
-            else:
-                estimated_time_remaining = \
-                    self.common.estimated_time_remaining(
-                        total_uploaded_bytes,
-                        self.content_length,
-                        self.started.timestamp())
-                pb_fmt = strings._('gui_all_modes_progress_eta').format(
-                    self.common.human_readable_filesize(total_uploaded_bytes),
-                    estimated_time_remaining)
-
             # Using list(progress) to avoid "RuntimeError: dictionary changed
             # size during iteration"
             for filename in list(data['progress']):

@@ -22,13 +22,20 @@ import sys
 import platform
 import datetime
 import re
-
-from hyperdome_server import strings, common
+import os
+from hyperdome_server import strings
 from hyperdome_server.settings import Settings
-from hyperdome_server.onion import *
+from hyperdome_server.onion import (UpdateThread, BundledTorTimeout,
+                                    BundledTorNotSupported,
+                                    TorErrorProtocolError, TorErrorAuthError,
+                                    TorErrorUnreadableCookieFile,
+                                    TorErrorMissingPassword,
+                                    TorErrorSocketFile, TorErrorSocketPort,
+                                    TorErrorAutomatic, TorErrorInvalidSetting,
+                                    Onion)
 
 from .widgets import Alert
-from .update_checker import *
+# from .update_checker import *
 from .tor_connection_dialog import TorConnectionDialog
 
 
@@ -1042,8 +1049,8 @@ class SettingsDialog(QtWidgets.QDialog):
                     if changed(settings, self.old_settings,
                                ['connection_type', 'control_port_address',
                                 'control_port_port', 'socks_address',
-                                'socks_port','socket_file_path', 'auth_type',
-                                'auth_password','no_bridges',
+                                'socks_port', 'socket_file_path', 'auth_type',
+                                'auth_password', 'no_bridges',
                                 'tor_bridges_use_obfs4',
                                 'tor_bridges_use_meek_lite_azure',
                                 'tor_bridges_use_custom_bridges']):
@@ -1112,7 +1119,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def settings_from_fields(self):
         """
-        Return a Settings object that's full of values from the settings dialog.
+        Return a Settings object that's populated from the settings dialog.
         """
         self.common.log('SettingsDialog', 'settings_from_fields')
         settings = Settings(self.common, self.config)
@@ -1218,7 +1225,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 if bridge != '':
                     # Check the syntax of the custom bridge to make sure it
                     # looks legitimate
-                    #TODO simplify these regexes
+                    # TODO simplify these regexes
                     ipv4_pattern = re.compile(
                         r"(obfs4\s+)?(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4]"
                         r"[0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}"

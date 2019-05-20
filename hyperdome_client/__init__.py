@@ -17,13 +17,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from __future__ import division
-import os
 import sys
-import platform
 import argparse
 import signal
-from .widgets import Alert
 from PyQt5 import QtCore, QtWidgets
 
 from hyperdome_server import strings
@@ -107,7 +103,7 @@ def main():
         strings.load_strings(common)
 
     local_only = bool(args.local_only)
-    common.debug = debug = bool(args.debug)
+    common.debug = bool(args.debug)
 
     # Start the Onion
     onion = Onion(common)
@@ -116,7 +112,7 @@ def main():
     app = HyperdomeServer(common, onion, local_only)
 
     # Launch the gui
-    gui = HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
+    HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
 
     # Clean up when app quits
     def shutdown():

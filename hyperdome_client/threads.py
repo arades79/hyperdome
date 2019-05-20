@@ -20,7 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import time
 from PyQt5 import QtCore
 
-from hyperdome_server.onion import *
+from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
+                                    TorErrorAuthError,
+                                    TorErrorUnreadableCookieFile,
+                                    TorErrorMissingPassword,
+                                    TorErrorSocketFile, TorErrorSocketPort,
+                                    TorErrorAutomatic, TorErrorInvalidSetting,
+                                    TorTooOld)
 
 
 class OnionThread(QtCore.QThread):

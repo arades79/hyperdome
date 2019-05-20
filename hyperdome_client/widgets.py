@@ -17,7 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui
 
 
 class Alert(QtWidgets.QMessageBox):
@@ -49,9 +49,8 @@ class AddFileDialog(QtWidgets.QFileDialog):
     Overridden version of QFileDialog which allows us to select folders as well
     as, or instead of, files. For adding files/folders to share.
 
-    Note that this dialog can't be used in macOS, only in Windows, Linux, and BSD.
-    This is because the macOS sandbox requires native dialogs, and this is a Qt5
-    dialog.
+    Note that this dialog can't be used in macOS because the macOS sandbox
+    requires native dialogs, and this is a Qt5 dialog.
     """
 
     def __init__(self, common, *args, **kwargs):

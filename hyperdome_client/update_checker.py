@@ -19,17 +19,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore
 import datetime
-import time
-import socket
 import re
-import platform
 import socks
 from distutils.version import LooseVersion as Version
 
 from hyperdome_server.settings import Settings
-from hyperdome_server.onion import Onion
-
-from . import strings
 
 
 class UpdateCheckerCheckError(Exception):
@@ -52,9 +46,9 @@ class UpdateCheckerInvalidLatestVersion(Exception):
 
 class UpdateChecker(QtCore.QObject):
     """
-    Load http://elx57ue5uyfplgva.onion/latest-version.txt to see what the latest
-    version of OnionShare is. If the latest version is newer than the
-    installed version, alert the user.
+    Load http://elx57ue5uyfplgva.onion/latest-version.txt to see what the
+    latest version of OnionShare is. If the latest version is newer than
+    the installed version, alert the user.
 
     Only check at most once per day, unless force is True.
     """

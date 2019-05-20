@@ -20,9 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-from hyperdome_server.onion import *
+from hyperdome_server.onion import BundledTorCanceled
 
 from .widgets import Alert
+import time
 
 
 class TorConnectionDialog(QtWidgets.QProgressDialog):
@@ -104,7 +105,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         def alert_and_open_settings():
             # Display the exception in an alert box
-            Alert(self.common,"{}\n\n{}".format(
+            Alert(self.common, "{}\n\n{}".format(
                 msg, strings._('gui_tor_connection_error_settings')),
                 QtWidgets.QMessageBox.Warning)
 
@@ -146,7 +147,7 @@ class TorConnectionThread(QtCore.QThread):
             else:
                 self.canceled_connecting_to_tor.emit()
 
-        except BundledTorCanceled as e:
+        except BundledTorCanceled:
             self.common.log('TorConnectionThread', 'run',
                             'caught exception: BundledTorCanceled')
             self.canceled_connecting_to_tor.emit()
