@@ -27,6 +27,7 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .add_server_dialog import AddServerDialog, Server
+from . import server_status
 
 import requests
 import traceback
@@ -506,7 +507,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 dialog.setWindowTitle(strings._('gui_quit_title'))
                 dialog.setText(strings._(
                     'gui_share_quit_warning'
-                    if self.mode == OnionShareGui.MODE_SHARE else
+                    if self.mode == server_status.MODE_SHARE else
                     'gui_receive_quit_warning'))
                 dialog.setIcon(QtWidgets.QMessageBox.Critical)
                 quit_button = dialog.addButton( # noQA
