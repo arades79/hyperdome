@@ -79,11 +79,8 @@ class UpdateChecker(QtCore.QObject):
         settings.load()
 
         # If force=True, then definitely check
-        if force:
-            check_for_updates = True
-        else:
-            check_for_updates = False
-
+        check_for_updates = force
+        if not check_for_updates:
             # See if it's been 1 day since the last check
             autoupdate_timestamp = settings.get('autoupdate_timestamp')
             if autoupdate_timestamp:
@@ -103,8 +100,8 @@ class UpdateChecker(QtCore.QObject):
             # Download the latest-version file over Tor
             try:
                 # User agent string includes OnionShare version and platform
-                user_agent = 'OnionShare {}, {}'.format(
-                    self.common.version, self.common.platform)
+                user_agent = 'OnionShare {}, {}'.format(self.common.version,
+                                                        self.common.platform)
 
                 # If the update is forced, add '?force=1' to the URL, to more
                 # accurately measure daily users
@@ -113,16 +110,18 @@ class UpdateChecker(QtCore.QObject):
                     path += '?force=1'
 
                 if Version(self.onion.tor_version) >= Version('0.3.2.9'):
-                    onion_domain = 'lldan5gahapx5k7iafb3s4ikijc4ni7gx5iywdflkba5y2ezyg6sjgyd.onion'
+                    onion_domain = ('lldan5gahapx5k7iafb3s4ikijc4ni7gx'
+                                    '5iywdflkba5y2ezyg6sjgyd.onion')
                 else:
                     onion_domain = 'elx57ue5uyfplgva.onion'
 
                 self.common.log('UpdateChecker', 'check',
-                                'loading http://{}{}'.format(onion_domain, path))
+                                'loading http://{}{}'.format(onion_domain,
+                                                             path))
 
-                (socks_address, socks_port) = self.onion.get_tor_socks_port()
-                socks.set_default_proxy(
-                    socks.SOCKS5, socks_address, socks_port)
+                socks_address, socks_port = self.onion.get_tor_socks_port()
+                socks.set_default_proxy(socks.SOCKS5, socks_address,
+                                        socks_port)
 
                 s = socks.socksocket()
                 s.settimeout(15)  # 15 second timeout
@@ -138,10 +137,9 @@ class UpdateChecker(QtCore.QObject):
                 latest_version = http_response[http_response.find(
                     b'\r\n\r\n'):].strip().decode('utf-8')
 
-                self.common.log(
-                    'UpdateChecker',
-                    'check',
-                    'latest OnionShare version: {}'.format(latest_version))
+                self.common.log('UpdateChecker', 'check',
+                                'latest OnionShare version: '
+                                '{}'.format(latest_version))
 
             except Exception as e:
                 self.common.log('UpdateChecker', 'check', '{}'.format(e))
@@ -166,12 +164,12 @@ class UpdateChecker(QtCore.QObject):
             settings.save()
 
             # Do we need to update?
-            update_url = 'https://github.com/micahflee/onionshare/releases/tag/v{}'.format(
-                latest_version)
+            update_url = ('https://github.com/micahflee/onionshare/releases/'
+                          'tag/v{}'.format(latest_version))
             installed_version = self.common.version
             if installed_version < latest_version:
-                self.update_available.emit(
-                    update_url, installed_version, latest_version)
+                self.update_available.emit(update_url, installed_version,
+                                           latest_version)
                 return
 
             # No updates are available
@@ -213,8 +211,8 @@ class UpdateThread(QtCore.QThread):
     def _update_available(self, update_url, installed_version, latest_version):
         self.common.log('UpdateThread', '_update_available')
         self.active = False
-        self.update_available.emit(
-            update_url, installed_version, latest_version)
+        self.update_available.emit(update_url, installed_version,
+                                   latest_version)
 
     def _update_not_available(self):
         self.common.log('UpdateThread', '_update_not_available')

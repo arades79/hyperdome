@@ -58,38 +58,20 @@ def main(cwd=None):
     parser = argparse.ArgumentParser(
         formatter_class=lambda prog: argparse.HelpFormatter(
             prog, max_help_position=28))
-    parser.add_argument(
-        '--local-only',
-        action='store_true',
-        dest='local_only',
-        help=strings._("help_local_only"))
-    parser.add_argument(
-        '--shutdown-timeout',
-        metavar='<int>',
-        dest='shutdown_timeout',
-        default=0,
-        help=strings._("help_shutdown_timeout"))
-    parser.add_argument(
-        '--connect-timeout',
-        metavar='<int>',
-        dest='connect_timeout',
-        default=120,
-        help=strings._("help_connect_timeout"))
-    parser.add_argument(
-        '--stealth',
-        action='store_true',
-        dest='stealth',
-        help=strings._("help_stealth"))
-    parser.add_argument(
-        '--config',
-        metavar='config',
-        default=False,
-        help=strings._('help_config'))
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        dest='debug',
-        help=strings._("help_debug"))
+    parser.add_argument('--local-only', action='store_true', dest='local_only',
+                        help=strings._("help_local_only"))
+    parser.add_argument('--shutdown-timeout',metavar='<int>',
+                        dest='shutdown_timeout', default=0,
+                        help=strings._("help_shutdown_timeout"))
+    parser.add_argument('--connect-timeout', metavar='<int>',
+                        dest='connect_timeout', default=120,
+                        help=strings._("help_connect_timeout"))
+    parser.add_argument('--stealth', action='store_true', dest='stealth',
+                        help=strings._("help_stealth"))
+    parser.add_argument('--config', metavar='config', default=False,
+                        help=strings._('help_config'))
+    parser.add_argument('--debug', action='store_true', dest='debug',
+                        help=strings._("help_debug"))
     args = parser.parse_args()
 
     local_only = bool(args.local_only)
@@ -114,10 +96,8 @@ def main(cwd=None):
     # Start the Onion object
     onion = Onion(common)
     try:
-        onion.connect(
-            custom_settings=False,
-            config=config,
-            connect_timeout=connect_timeout)
+        onion.connect(custom_settings=False, config=config,
+                      connect_timeout=connect_timeout)
     except KeyboardInterrupt:
         print("")
         sys.exit()
@@ -139,13 +119,10 @@ def main(cwd=None):
         sys.exit()
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(
-        target=web.start,
-        args=(
-            app.port,
-            True,
-            common.settings.get('public_mode'),
-            common.settings.get('slug')))
+    t = threading.Thread(target=web.start,args=(app.port, True,
+                                                common.settings.get(
+                                                    'public_mode'),
+                                                common.settings.get('slug')))
     t.daemon = True
     t.start()
 
@@ -165,10 +142,9 @@ def main(cwd=None):
                 common.settings.save()
 
         # Build the URL
-        if common.settings.get('public_mode'):
-            url = 'http://{0:s}'.format(app.onion_host)
-        else:
-            url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
+        url = ('http://{0:s}'.format(app.onion_host)
+               if common.settings.get('public_mode')
+               else 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug))
 
         print('')
         print(strings._("ctrlc_to_stop"))
@@ -183,7 +159,7 @@ def main(cwd=None):
                     # TODO if hyperdome session is over, break. Or just add
                     # to the conditions with app.shutdown_timer.is_alive().
             # Allow KeyboardInterrupt exception to be handled with threads
-            # https://stackoverflow.com/questions/3788208/python-threading-ignores-keyboardinterrupt-exception
+            # https://stackoverflow.com/questions/3788208
             time.sleep(0.2)
     except KeyboardInterrupt:
         web.stop(app.port)

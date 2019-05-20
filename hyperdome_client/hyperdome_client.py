@@ -125,7 +125,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.common.platform == 'Darwin':
             self.system_tray.setIcon(
                 QtGui.QIcon(
-                    self.common.get_resource_path('images/logo_grayscale.png')))
+                    self.common.get_resource_path('images/'
+                                                  'logo_grayscale.png')))
         else:
             self.system_tray.setIcon(
                 QtGui.QIcon(
@@ -409,27 +410,23 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 'settings have changed, reloading')
             self.common.settings.load()
 
-            # We might've stopped the main requests timer if a Tor connection failed.
-            # If we've reloaded settings, we probably succeeded in obtaining a new
-            # connection. If so, restart the timer.
-            if not self.local_only:
-                if self.onion.is_authenticated():
-                    if not self.timer.isActive():
-                        self.timer.start(500)
-                    self.share_mode.on_reload_settings()
-                    self.status_bar.clearMessage()
+            # We might've stopped the main requests timer if
+            # a Tor connection failed.
+            # If we've reloaded settings, we probably succeeded in obtaining
+            # a new connection. If so, restart the timer.
+            if not self.local_only and self.onion.is_authenticated():
+                if not self.timer.isActive():
+                    self.timer.start(500)
+                self.share_mode.on_reload_settings()
+                self.status_bar.clearMessage()
 
             # If we switched off the shutdown timeout setting, ensure the
             # widget is hidden.
             if not self.common.settings.get('shutdown_timeout'):
                 self.share_mode.server_status.shutdown_timeout_container.hide()
 
-        d = SettingsDialog(
-            self.common,
-            self.onion,
-            self.qtapp,
-            self.config,
-            self.local_only)
+        d = SettingsDialog(self.common, self.onion, self.qtapp, self.config,
+                           self.local_only)
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
@@ -437,21 +434,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Check for updates in a new thread, if enabled.
         """
-        if self.common.platform == 'Windows' or self.common.platform == 'Darwin':
+        if self.common.platform in ('Windows', 'Darwin'):
             if self.common.settings.get('use_autoupdate'):
-                def update_available(
-                        update_url,
-                        installed_version,
-                        latest_version):
-                    Alert(
-                        self.common,
-                        strings._("update_available").format(
-                            update_url,
-                            installed_version,
-                            latest_version))
+                def update_available(update_url, installed_version,
+                                     latest_version):
+                    Alert(self.common, strings._("update_available").format(
+                        update_url, installed_version, latest_version))
 
-                self.update_thread = UpdateThread(
-                    self.common, self.onion, self.config)
+                self.update_thread = UpdateThread(self.common,
+                                                  self.onion,
+                                                  self.config)
                 self.update_thread.update_available.connect(update_available)
                 self.update_thread.start()
 
@@ -466,44 +458,40 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server.is_therapist:
             new_messages = self.session.get(
                 f"{self.server.url}/collect_therapist_messages",
-                headers={
-                    "username": self.server.username,
-                    "password": self.server.password}).text
+                headers={"username": self.server.username,
+                         "password": self.server.password}).text
             if new_messages:
-                new_messages = new_messages.split('\n')
-                for message in new_messages:
-                    message = 'Guest: ' + message
+                new_messages = [f'Guest: {message}' for message
+                                in new_messages.split('\n')]
                 self.chat_window.addItems(new_messages)
         elif self.uid:
             new_messages = self.session.get(
                 f"{self.server.url}/collect_guest_messages",
-                data={
-                    "guest_id": self.uid}).text
+                data={"guest_id": self.uid}).text
             if new_messages:
-                new_messages = new_messages.split('\n')
-                for message in new_messages:
-                    message = self.therapist + ': ' + message
+                new_messages = [f'{self.therapist}: {message}' for message
+                                in new_messages.split('\n')]
                 self.chat_window.addItems(new_messages)
 
         self.timer.start(1000)
 
     def copy_url(self):
         """
-        When the URL gets copied to the clipboard, display this in the status bar.
+        When the URL gets copied to the clipboard, display this \
+        in the status bar.
         """
         self.common.log('OnionShareGui', 'copy_url')
-        self.system_tray.showMessage(
-            strings._('gui_copied_url_title'),
-            strings._('gui_copied_url'))
+        self.system_tray.showMessage(strings._('gui_copied_url_title'),
+                                     strings._('gui_copied_url'))
 
     def copy_hidservauth(self):
         """
-        When the stealth onion service HidServAuth gets copied to the clipboard, display this in the status bar.
+        When the stealth onion service HidServAuth gets copied to \
+        the clipboard, display this in the status bar.
         """
         self.common.log('OnionShareGui', 'copy_hidservauth')
-        self.system_tray.showMessage(
-            strings._('gui_copied_hidservauth_title'),
-            strings._('gui_copied_hidservauth'))
+        self.system_tray.showMessage(strings._('gui_copied_hidservauth_title'),
+                                     strings._('gui_copied_hidservauth'))
 
     def closeEvent(self, e):
         """
@@ -514,19 +502,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if self.server.is_therapist:
                 session.post(
                     f"{self.server.url}/therapist_signout",
-                    data={
-                        "username": self.server.username,
-                        "password": self.server.password})
+                    data={"username": self.server.username,
+                          "password": self.server.password})
             if server_status.status != server_status.STATUS_STOPPED:
-                self.common.log(
-                    'OnionShareGui',
-                    'closeEvent, opening warning dialog')
+                self.common.log('OnionShareGui',
+                                'closeEvent, opening warning dialog')
                 dialog = QtWidgets.QMessageBox()
                 dialog.setWindowTitle(strings._('gui_quit_title'))
-                if self.mode == OnionShareGui.MODE_SHARE:
-                    dialog.setText(strings._('gui_share_quit_warning'))
-                else:
-                    dialog.setText(strings._('gui_receive_quit_warning'))
+                dialog.setText(strings._(
+                    'gui_share_quit_warning'
+                    if self.mode == OnionShareGui.MODE_SHARE else
+                    'gui_receive_quit_warning'))
                 dialog.setIcon(QtWidgets.QMessageBox.Critical)
                 quit_button = dialog.addButton(
                     strings._('gui_quit_warning_quit'),

@@ -31,7 +31,8 @@ import time
 
 from .settings import Settings
 
-
+# TODO there's a lot of platform-specific pathing here, we can probably
+# just use pathlib to get rid of a lot of code
 class Common(object):
     """
     The Common object is shared amongst all parts of OnionShare.
@@ -81,20 +82,15 @@ class Common(object):
         if getattr(sys, 'onionshare_dev_mode', False):
             # Look for resources directory relative to python file
             prefix = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.abspath(
-                            inspect.getfile(
-                                inspect.currentframe())))),
+                os.path.dirname(os.path.dirname(os.path.abspath(
+                    inspect.getfile(inspect.currentframe())))),
                 'share')
             if not os.path.exists(prefix):
                 # While running tests during stdeb bdist_deb, look 3
                 # directories up for the share folder
                 prefix = os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(
-                                os.path.dirname(prefix)))),
+                    os.path.dirname(os.path.dirname(os.path.dirname(
+                        os.path.dirname(prefix)))),
                     'share')
 
         elif self.platform == 'BSD' or self.platform == 'Linux':
@@ -120,9 +116,7 @@ class Common(object):
             obfs4proxy_file_path = '/usr/bin/obfs4proxy'
         elif self.platform == 'Windows':
             base_path = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        self.get_resource_path(''))),
+                os.path.dirname(os.path.dirname(self.get_resource_path(''))),
                 'tor')
             tor_path = os.path.join(os.path.join(base_path, 'Tor'), 'tor.exe')
             obfs4proxy_file_path = os.path.join(
@@ -132,10 +126,8 @@ class Common(object):
             tor_geo_ipv6_file_path = os.path.join(os.path.join(
                 os.path.join(base_path, 'Data'), 'Tor'), 'geoip6')
         elif self.platform == 'Darwin':
-            base_path = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(
-                        self.get_resource_path(''))))
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(
+                self.get_resource_path(''))))
             tor_path = os.path.join(base_path, 'Resources', 'Tor', 'tor')
             tor_geo_ip_file_path = os.path.join(
                 base_path, 'Resources', 'Tor', 'geoip')
@@ -149,11 +141,8 @@ class Common(object):
             tor_geo_ipv6_file_path = '/usr/local/share/tor/geoip6'
             obfs4proxy_file_path = '/usr/local/bin/obfs4proxy'
 
-        return (
-            tor_path,
-            tor_geo_ip_file_path,
-            tor_geo_ipv6_file_path,
-            obfs4proxy_file_path)
+        return (tor_path, tor_geo_ip_file_path, tor_geo_ipv6_file_path,
+                obfs4proxy_file_path)
 
     def build_data_dir(self):
         """
@@ -164,8 +153,10 @@ class Common(object):
                 appdata = os.environ['APPDATA']
                 onionshare_data_dir = '{}\\OnionShare'.format(appdata)
             except BaseException:
-                # If for some reason we don't have the 'APPDATA' environment variable
-                # (like running tests in Linux while pretending to be in Windows)
+                #TODO catch the specific exception, not base
+                # If for some reason we don't have the 'APPDATA' environment
+                # variable (like running tests in Linux while pretending
+                # to be in Windows)
                 onionshare_data_dir = os.path.expanduser(
                     '~/.config/onionshare')
         elif self.platform == 'Darwin':
@@ -179,7 +170,8 @@ class Common(object):
 
     def build_slug(self):
         """
-        Returns a random string made from two words from the wordlist, such as "deter-trig".
+        Returns a random string made from two words from the wordlist,
+        such as "deter-trig".
         """
         with open(self.get_resource_path('wordlist.txt')) as f:
             wordlist = f.read().split()
@@ -189,7 +181,8 @@ class Common(object):
 
     def define_css(self):
         """
-        This defines all of the stylesheets used in GUI mode, to avoid repeating code.
+        This defines all of the stylesheets used in GUI mode, to avoid
+        repeating code.
         This method is only called in GUI mode.
         """
         self.css = {
@@ -444,9 +437,7 @@ class Common(object):
         b = os.urandom(num_bytes)
         h = hashlib.sha256(b).digest()[:16]
         s = base64.b32encode(h).lower().replace(b'=', b'').decode('utf-8')
-        if not output_len:
-            return s
-        return s[:output_len]
+        return s[:output_len] if output_len else s
 
     @staticmethod
     def human_readable_filesize(b):
@@ -499,9 +490,8 @@ class Common(object):
         with socket.socket() as tmpsock:
             while True:
                 try:
-                    tmpsock.bind(
-                        ("127.0.0.1", random.randint(
-                            min_port, max_port)))
+                    tmpsock.bind(("127.0.0.1", random.randint(min_port,
+                                                              max_port)))
                     break
                 except OSError as e:
                     pass
@@ -511,7 +501,8 @@ class Common(object):
     @staticmethod
     def dir_size(start_path):
         """
-        Calculates the total size, in bytes, of all of the files in a directory.
+        Calculates the total size, in bytes, of all of the files
+        in a directory.
         """
         total_size = 0
         for dirpath, dirnames, filenames in os.walk(start_path):
@@ -536,9 +527,8 @@ class ShutdownTimer(threading.Thread):
         self.time = time
 
     def run(self):
-        self.common.log(
-            'Shutdown Timer',
-            'Server will shut down after {} seconds'.format(
-                self.time))
+        self.common.log('Shutdown Timer',
+                        'Server will shut down after {} seconds'.format(
+                            self.time))
         time.sleep(self.time)
         return 1

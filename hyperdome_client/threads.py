@@ -56,7 +56,11 @@ class OnionThread(QtCore.QThread):
             self.mode.app.start_onion_service()
             self.success.emit()
 
-        except (TorTooOld, TorErrorInvalidSetting, TorErrorAutomatic, TorErrorSocketPort, TorErrorSocketFile, TorErrorMissingPassword, TorErrorUnreadableCookieFile, TorErrorAuthError, TorErrorProtocolError, BundledTorTimeout, OSError) as e:
+        except (TorTooOld, TorErrorInvalidSetting, TorErrorAutomatic,
+                TorErrorSocketPort, TorErrorSocketFile,
+                TorErrorMissingPassword, TorErrorUnreadableCookieFile,
+                TorErrorAuthError, TorErrorProtocolError, BundledTorTimeout,
+                OSError) as e:
             self.error.emit(e.args[0])
             return
 
@@ -76,8 +80,7 @@ class WebThread(QtCore.QThread):
     def run(self):
         self.mode.common.log('WebThread', 'run')
         self.mode.app.choose_port()
-        self.mode.web.start(
-            self.mode.app.port,
-            self.mode.app.stay_open,
-            self.mode.common.settings.get('public_mode'),
-            self.mode.common.settings.get('slug'))
+        self.mode.web.start(self.mode.app.port,
+                            self.mode.app.stay_open,
+                            self.mode.common.settings.get('public_mode'),
+                            self.mode.common.settings.get('slug'))

@@ -25,7 +25,6 @@ from hyperdome_server.onion import *
 from hyperdome_server.common import Common
 from hyperdome_server.web import Web
 
-from .file_selection import FileSelection
 from .threads import CompressThread
 from .. import Mode
 from ..history import History, ToggleHistory, ShareHistoryItem
@@ -46,24 +45,8 @@ class ShareMode(Mode):
 
         # Create the Web object
         self.web = Web(self.common, True, 'share')
-
-        # File selection
-        self.file_selection = FileSelection(self.common, self)
-
-        # Server status
-        self.server_status.set_mode('share', self.file_selection)
-        self.server_status.server_started.connect(
-            self.file_selection.server_started)
-        self.server_status.server_stopped.connect(
-            self.file_selection.server_stopped)
         self.server_status.server_stopped.connect(self.update_primary_action)
         self.server_status.server_canceled.connect(
-            self.file_selection.server_stopped)
-        self.server_status.server_canceled.connect(
-            self.update_primary_action)
-        self.file_selection.file_list.files_updated.connect(
-            self.server_status.update)
-        self.file_selection.file_list.files_updated.connect(
             self.update_primary_action)
         # Tell server_status about web, then update
         self.server_status.web = self.web
@@ -121,7 +104,6 @@ class ShareMode(Mode):
         # Main layout
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.addLayout(top_bar_layout)
-        self.main_layout.addLayout(self.file_selection)
         self.main_layout.addWidget(self.primary_action)
         self.main_layout.addWidget(self.min_width_widget)
 
@@ -130,9 +112,6 @@ class ShareMode(Mode):
         self.wrapper_layout.addLayout(self.main_layout)
         self.wrapper_layout.addWidget(self.history, stretch=1)
         self.setLayout(self.wrapper_layout)
-
-        # Always start with focus on file selection
-        self.file_selection.setFocus()
 
     def get_stop_server_shutdown_timeout_text(self):
         """
@@ -177,9 +156,6 @@ class ShareMode(Mode):
         # files.
         self._zip_progress_bar = ZipProgressBar(self.common, 0)
         self.filenames = []
-        for index in range(self.file_selection.file_list.count()):
-            self.filenames.append(
-                self.file_selection.file_list.item(index).filename)
 
         self._zip_progress_bar.total_files_size = \
             ShareMode._compute_total_size(self.filenames)
@@ -230,7 +206,6 @@ class ShareMode(Mode):
         self.history.in_progress_count = 0
         self.history.completed_count = 0
         self.history.update_in_progress()
-        self.file_selection.file_list.adjustSize()
 
     def cancel_server_custom(self):
         """
@@ -323,39 +298,12 @@ class ShareMode(Mode):
         If there were some files listed for sharing, we should be ok \
         to re-enable the 'Start Sharing' button now.
         """
-        if self.server_status.file_selection.get_num_files() > 0:
-            self.primary_action.show()
-            self.info_label.show()
+        pass
 
     def update_primary_action(self):
         self.common.log('ShareMode', 'update_primary_action')
-
-        # Show or hide primary action layout
-        file_count = self.file_selection.file_list.count()
-        if file_count > 0:
-            self.primary_action.show()
-            self.info_label.show()
-
-            # Update the file count in the info label
-            total_size_bytes = 0
-            for index in range(self.file_selection.file_list.count()):
-                item = self.file_selection.file_list.item(index)
-                total_size_bytes += item.size_bytes
-            total_size_readable = self.common.human_readable_filesize(
-                total_size_bytes)
-
-            if file_count > 1:
-                self.info_label.setText(
-                    strings._('gui_file_info').format(
-                        file_count, total_size_readable))
-            else:
-                self.info_label.setText(
-                    strings._('gui_file_info_single').format(
-                        file_count, total_size_readable))
-
-        else:
-            self.primary_action.hide()
-            self.info_label.hide()
+        self.primary_action.hide()
+        self.info_label.hide()
 
     def reset_info_counters(self):
         """

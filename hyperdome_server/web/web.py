@@ -9,15 +9,16 @@ from distutils.version import LooseVersion as Version
 from urllib.request import urlopen
 
 import flask
-from flask import Flask, request, render_template, abort, make_response, __version__ as flask_version
+from flask import (Flask, request, render_template, abort, make_response,
+                   __version__ as flask_version)
 
 from .. import strings
 
 from .share_mode import ShareModeWeb
 
 
-# Stub out flask's show_server_banner function, to avoiding showing warnings that
-# are not applicable to OnionShare
+# Stub out flask's show_server_banner function, to avoiding showing
+# warnings that are not applicable to OnionShare
 def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
     pass
 
@@ -46,8 +47,10 @@ class Web(object):
         self.common.log('Web', '__init__', 'is_gui={}'.format(is_gui))
 
         # The flask app
-        self.app = Flask(__name__, static_folder=self.common.get_resource_path(
-            'static'), template_folder=self.common.get_resource_path('templates'))
+        self.app = Flask(__name__,
+                         static_folder=self.common.get_resource_path('static'),
+                         template_folder=self.common.get_resource_path(
+                             'templates'))
         self.app.secret_key = self.common.random_string(8)
 
         # Debug mode?
@@ -57,35 +60,33 @@ class Web(object):
         # Are we running in GUI mode?
         self.is_gui = is_gui
 
-        # If the user stops the server while a transfer is in progress, it should
-        # immediately stop the transfer. In order to make it thread-safe, stop_q
-        # is a queue. If anything is in it, then the user stopped the server
+        # If the user stops the server while a transfer is in progress, it
+        # should immediately stop the transfer. In order to make it
+        # thread-safe, stop_q is a queue. If anything is in it,
+        # then the user stopped the server.
         self.stop_q = queue.Queue()
 
         self.mode = 'share'
 
-        # Starting in Flask 0.11, render_template_string autoescapes template variables
-        # by default. To prevent content injection through template variables in
-        # earlier versions of Flask, we force autoescaping in the Jinja2 template
-        # engine if we detect a Flask version with insecure default behavior.
+        # Starting in Flask 0.11, render_template_string autoescapes template
+        # variables by default. To prevent content injection through template
+        # variables in earlier versions of Flask, we force autoescaping in the
+        # Jinja2 template engine if we detect a Flask version with insecure
+        # default behavior.
         if Version(flask_version) < Version('0.11'):
             # Monkey-patch in the fix from
-            # https://github.com/pallets/flask/commit/99c99c4c16b1327288fd76c44bc8635a1de452bc
+            # https://github.com/pallets/flask/commit/99c99c4
             Flask.select_jinja_autoescape = self._safe_select_jinja_autoescape
 
         self.security_headers = [
             ('Content-Security-Policy',
-             'default-src \'self\'; style-src \'self\'; script-src \'self\'; img-src \'self\' data:;'),
-            ('X-Frame-Options',
-             'DENY'),
-            ('X-Xss-Protection',
-             '1; mode=block'),
-            ('X-Content-Type-Options',
-             'nosniff'),
-            ('Referrer-Policy',
-             'no-referrer'),
-            ('Server',
-             'OnionShare')]
+             'default-src \'self\'; style-src \'self\'; '
+             'script-src \'self\'; img-src \'self\' data:;'),
+            ('X-Frame-Options', 'DENY'),
+            ('X-Xss-Protection', '1; mode=block'),
+            ('X-Content-Type-Options', 'nosniff'),
+            ('Referrer-Policy', 'no-referrer'),
+            ('Server', 'OnionShare')]
 
         self.q = queue.Queue()
         self.slug = None
@@ -129,7 +130,8 @@ class Web(object):
         @self.app.route("/noscript-xss-instructions")
         def noscript_xss_instructions():
             """
-            Display instructions for disabling Tor Browser's NoScript XSS setting
+            Display instructions for disabling Tor Browser's
+            NoScript XSS setting
             """
             r = make_response(render_template('receive_noscript_xss.html'))
             return self.add_security_headers(r)
@@ -165,63 +167,54 @@ class Web(object):
         return r
 
     def _safe_select_jinja_autoescape(self, filename):
-        if filename is None:
-            return True
-        return filename.endswith(('.html', '.htm', '.xml', '.xhtml'))
+        return filename is None or filename.endswith(('.html', '.htm', '.xml',
+                                                      '.xhtml'))
 
     def add_request(self, request_type, path, data=None):
         """
         Add a request to the queue, to communicate with the GUI.
         """
-        self.q.put({
-            'type': request_type,
-            'path': path,
-            'data': data
-        })
+        self.q.put({'type': request_type,
+                    'path': path,
+                    'data': data})
 
     def generate_slug(self, persistent_slug=None):
-        self.common.log(
-            'Web',
-            'generate_slug',
-            'persistent_slug={}'.format(persistent_slug))
+        self.common.log('Web', 'generate_slug',
+                        'persistent_slug={}'.format(persistent_slug))
         if persistent_slug is not None and persistent_slug != '':
             self.slug = persistent_slug
-            self.common.log(
-                'Web',
-                'generate_slug',
-                'persistent_slug sent, so slug is: "{}"'.format(
-                    self.slug))
+            self.common.log('Web', 'generate_slug',
+                            'persistent_slug sent, so slug is: "{}"'.format(
+                                self.slug))
         else:
             self.slug = self.common.build_slug()
-            self.common.log(
-                'Web',
-                'generate_slug',
-                'built random slug: "{}"'.format(
-                    self.slug))
+            self.common.log('Web', 'generate_slug',
+                            'built random slug: "{}"'.format(
+                                self.slug))
 
     def debug_mode(self):
         """
         Turn on debugging mode, which will log flask errors to a debug file.
         """
-        flask_debug_filename = os.path.join(
-            self.common.build_data_dir(), 'flask_debug.log')
+        flask_debug_filename = os.path.join(self.common.build_data_dir(),
+                                            'flask_debug.log')
         log_handler = logging.FileHandler(flask_debug_filename)
         log_handler.setLevel(logging.WARNING)
         self.app.logger.addHandler(log_handler)
 
     def check_slug_candidate(self, slug_candidate):
-        self.common.log(
-            'Web',
-            'check_slug_candidate: slug_candidate={}'.format(slug_candidate))
+        self.common.log('Web',
+                        'check_slug_candidate: slug_candidate={}'.format(
+                            slug_candidate))
         if self.common.settings.get('public_mode'):
             abort(404)
         if not hmac.compare_digest(self.slug, slug_candidate):
             abort(404)
 
     def check_shutdown_slug_candidate(self, slug_candidate):
-        self.common.log(
-            'Web',
-            'check_shutdown_slug_candidate: slug_candidate={}'.format(slug_candidate))
+        self.common.log('Web',
+                        'check_shutdown_slug_candidate: slug_candidate='
+                        '{}'.format(slug_candidate))
         if not hmac.compare_digest(self.shutdown_slug, slug_candidate):
             abort(404)
 
@@ -239,23 +232,15 @@ class Web(object):
             pass
         self.running = False
 
-    def start(
-            self,
-            port,
-            stay_open=False,
-            public_mode=False,
-            persistent_slug=None):
+    def start(self, port, stay_open=False, public_mode=False,
+              persistent_slug=None):
         """
         Start the flask web server.
         """
-        self.common.log(
-            'Web',
-            'start',
-            'port={}, stay_open={}, public_mode={}, persistent_slug={}'.format(
-                port,
-                stay_open,
-                public_mode,
-                persistent_slug))
+        self.common.log('Web', 'start',
+                        f'port={port}, stay_open={stay_open}, '
+                        f'public_mode={public_mode}, '
+                        f'persistent_slug={persistent_slug}')
         if not public_mode:
             self.generate_slug(persistent_slug)
 
@@ -269,10 +254,9 @@ class Web(object):
                 pass
 
         # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (#220)
-        if os.path.exists('/usr/share/anon-ws-base-files/workstation'):
-            host = '0.0.0.0'
-        else:
-            host = '127.0.0.1'
+        host = ('0.0.0.0'
+                if os.path.exists('/usr/share/anon-ws-base-files/workstation')
+                else '127.0.0.1')
 
         self.running = True
         self.app.run(host=host, port=port, threaded=True)
@@ -294,11 +278,11 @@ class Web(object):
             try:
                 s = socket.socket()
                 s.connect(('127.0.0.1', port))
-                s.sendall(
-                    'GET /{0:s}/shutdown HTTP/1.1\r\n\r\n'.format(self.shutdown_slug))
+                s.sendall('GET /{0:s}/shutdown HTTP/1.1\r\n\r\n'.format(
+                    self.shutdown_slug))
             except BaseException:
                 try:
-                    urlopen(
-                        'http://127.0.0.1:{0:d}/{1:s}/shutdown'.format(port, self.shutdown_slug)).read()
+                    urlopen('http://127.0.0.1:{0:d}/{1:s}/shutdown'.format(
+                        port, self.shutdown_slug)).read()
                 except BaseException:
                     pass
