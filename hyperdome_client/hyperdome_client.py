@@ -2,7 +2,8 @@
 """
 Hyperdome
 
-Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com> and Steven Pitts <makusu2@gmail.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,23 +18,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import queue
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-from hyperdome_server.web.web import Web
-
-from .mode.share_mode import ShareMode
 
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
-from .server_status import ServerStatus
 from .add_server_dialog import AddServerDialog, Server
 
-import socks
-import socket
 import requests
 import traceback
 
@@ -284,7 +278,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def server_switcher(self, server):
         """
-        handle a switch to a different saved server by establishing a new connection and retrieving new UID.
+        Handle a switch to a different saved server by establishing a new
+        connection and retrieving new UID.
         """
         self.server = self.servers[server]
         self.chat_window.clear()

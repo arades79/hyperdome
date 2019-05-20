@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,14 +22,12 @@ import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-# from hyperdome_server.onion import *
 from hyperdome_server.common import Common
 from hyperdome_server.web import Web
 
 from .threads import CompressThread
 from .. import Mode
 from ..history import History, ToggleHistory, ShareHistoryItem
-# from ...widgets import Alert
 
 
 class ShareMode(Mode):
