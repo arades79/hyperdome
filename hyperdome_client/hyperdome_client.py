@@ -510,7 +510,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     if self.mode == server_status.MODE_SHARE else
                     'gui_receive_quit_warning'))
                 dialog.setIcon(QtWidgets.QMessageBox.Critical)
-                quit_button = dialog.addButton( # noQA
+                dialog.addButton(
                     strings._('gui_quit_warning_quit'),
                     QtWidgets.QMessageBox.YesRole)
                 dont_quit_button = dialog.addButton(
