@@ -318,6 +318,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Reciever for the add server dialog to handle the new server details.
         """
+        self.server = server
         self.servers[server.nick] = self.server
         try:
             if self.server.is_therapist:
