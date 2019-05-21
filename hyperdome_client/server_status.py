@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,13 +18,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import platform
 import textwrap
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
 
 from .widgets import Alert
+
 
 class ServerStatus(QtWidgets.QWidget):
     """
@@ -44,13 +45,19 @@ class ServerStatus(QtWidgets.QWidget):
     STATUS_WORKING = 1
     STATUS_STARTED = 2
 
-    def __init__(self, common, qtapp, app, file_selection=None, local_only=False):
+    def __init__(
+            self,
+            common,
+            qtapp,
+            app,
+            file_selection=None,
+            local_only=False):
         super(ServerStatus, self).__init__()
 
         self.common = common
 
         self.status = self.STATUS_STOPPED
-        self.mode = None # Gets set in self.set_mode
+        self.mode = None  # Gets set in self.set_mode
 
         self.qtapp = qtapp
         self.app = app
@@ -61,28 +68,38 @@ class ServerStatus(QtWidgets.QWidget):
         self.resizeEvent(None)
 
         # Shutdown timeout layout
-        self.shutdown_timeout_label = QtWidgets.QLabel(strings._('gui_settings_shutdown_timeout'))
+        self.shutdown_timeout_label = QtWidgets.QLabel(
+            strings._('gui_settings_shutdown_timeout'))
         self.shutdown_timeout = QtWidgets.QDateTimeEdit()
         self.shutdown_timeout.setDisplayFormat("hh:mm A MMM d, yy")
         if self.local_only:
             # For testing
-            self.shutdown_timeout.setDateTime(QtCore.QDateTime.currentDateTime().addSecs(15))
-            self.shutdown_timeout.setMinimumDateTime(QtCore.QDateTime.currentDateTime())
+            self.shutdown_timeout.setDateTime(
+                QtCore.QDateTime.currentDateTime().addSecs(15))
+            self.shutdown_timeout.setMinimumDateTime(
+                QtCore.QDateTime.currentDateTime())
         else:
             # Set proposed timeout to be 5 minutes into the future
-            self.shutdown_timeout.setDateTime(QtCore.QDateTime.currentDateTime().addSecs(300))
-            # Onion services can take a little while to start, so reduce the risk of it expiring too soon by setting the minimum to 60s from now
-            self.shutdown_timeout.setMinimumDateTime(QtCore.QDateTime.currentDateTime().addSecs(60))
-        self.shutdown_timeout.setCurrentSection(QtWidgets.QDateTimeEdit.MinuteSection)
+            self.shutdown_timeout.setDateTime(
+                QtCore.QDateTime.currentDateTime().addSecs(300))
+            # Onion services can take a little while to start, so reduce the
+            # risk of it expiring too soon by setting the minimum to 60s from
+            # now
+            self.shutdown_timeout.setMinimumDateTime(
+                QtCore.QDateTime.currentDateTime().addSecs(60))
+        self.shutdown_timeout.setCurrentSection(
+            QtWidgets.QDateTimeEdit.MinuteSection)
         shutdown_timeout_layout = QtWidgets.QHBoxLayout()
         shutdown_timeout_layout.addWidget(self.shutdown_timeout_label)
         shutdown_timeout_layout.addWidget(self.shutdown_timeout)
 
-        # Shutdown timeout container, so it can all be hidden and shown as a group
+        # Shutdown timeout container, so it can all be hidden and shown as a
+        # group
         shutdown_timeout_container_layout = QtWidgets.QVBoxLayout()
         shutdown_timeout_container_layout.addLayout(shutdown_timeout_layout)
         self.shutdown_timeout_container = QtWidgets.QWidget()
-        self.shutdown_timeout_container.setLayout(shutdown_timeout_container_layout)
+        self.shutdown_timeout_container.setLayout(
+            shutdown_timeout_container_layout)
         self.shutdown_timeout_container.hide()
 
         # Server layout
@@ -90,7 +107,8 @@ class ServerStatus(QtWidgets.QWidget):
         self.server_button.clicked.connect(self.server_button_clicked)
 
         # URL layout
-        url_font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
+        url_font = QtGui.QFontDatabase.systemFont(
+            QtGui.QFontDatabase.FixedFont)
         self.url_description = QtWidgets.QLabel()
         self.url_description.setWordWrap(True)
         self.url_description.setMinimumHeight(50)
@@ -102,12 +120,15 @@ class ServerStatus(QtWidgets.QWidget):
 
         self.copy_url_button = QtWidgets.QPushButton(strings._('gui_copy_url'))
         self.copy_url_button.setFlat(True)
-        self.copy_url_button.setStyleSheet(self.common.css['server_status_url_buttons'])
+        self.copy_url_button.setStyleSheet(
+            self.common.css['server_status_url_buttons'])
         self.copy_url_button.setMinimumHeight(65)
         self.copy_url_button.clicked.connect(self.copy_url)
-        self.copy_hidservauth_button = QtWidgets.QPushButton(strings._('gui_copy_hidservauth'))
+        self.copy_hidservauth_button = QtWidgets.QPushButton(
+            strings._('gui_copy_hidservauth'))
         self.copy_hidservauth_button.setFlat(True)
-        self.copy_hidservauth_button.setStyleSheet(self.common.css['server_status_url_buttons'])
+        self.copy_hidservauth_button.setStyleSheet(
+            self.common.css['server_status_url_buttons'])
         self.copy_hidservauth_button.clicked.connect(self.copy_hidservauth)
         url_buttons_layout = QtWidgets.QHBoxLayout()
         url_buttons_layout.addWidget(self.copy_url_button)
@@ -139,11 +160,12 @@ class ServerStatus(QtWidgets.QWidget):
 
     def resizeEvent(self, event):
         """
-        When the widget is resized, try and adjust the display of a v3 onion URL.
+        When the widget is resized, try and adjust the display of a \
+        v3 onion URL.
         """
         try:
             # Wrap the URL label
-            url_length=len(self.get_url())
+            url_length = len(self.get_url())
             if url_length > 60:
                 width = self.frameGeometry().width()
                 if width < 530:
@@ -151,17 +173,18 @@ class ServerStatus(QtWidgets.QWidget):
                     self.url.setText(wrapped_onion_url)
                 else:
                     self.url.setText(self.get_url())
-        except:
+        except BaseException:
             pass
-
 
     def shutdown_timeout_reset(self):
         """
         Reset the timeout in the UI after stopping a share
         """
-        self.shutdown_timeout.setDateTime(QtCore.QDateTime.currentDateTime().addSecs(300))
+        self.shutdown_timeout.setDateTime(
+            QtCore.QDateTime.currentDateTime().addSecs(300))
         if not self.local_only:
-            self.shutdown_timeout.setMinimumDateTime(QtCore.QDateTime.currentDateTime().addSecs(60))
+            self.shutdown_timeout.setMinimumDateTime(
+                QtCore.QDateTime.currentDateTime().addSecs(60))
 
     def update(self):
         """
@@ -174,21 +197,32 @@ class ServerStatus(QtWidgets.QWidget):
             info_image = self.common.get_resource_path('images/info.png')
 
             if self.mode == ServerStatus.MODE_SHARE:
-                self.url_description.setText(strings._('gui_share_url_description').format(info_image))
+                self.url_description.setText(
+                    strings._('gui_share_url_description').format(info_image))
             else:
-                self.url_description.setText(strings._('gui_receive_url_description').format(info_image))
+                self.url_description.setText(
+                    strings._('gui_receive_url_description').format(
+                        info_image))
 
             # Show a Tool Tip explaining the lifecycle of this URL
             if self.common.settings.get('save_private_key'):
-                if self.mode == ServerStatus.MODE_SHARE and self.common.settings.get('close_after_first_download'):
-                    self.url_description.setToolTip(strings._('gui_url_label_onetime_and_persistent'))
+                if (self.mode == ServerStatus.MODE_SHARE
+                        and self.common.settings.get(
+                            'close_after_first_download')):
+                    self.url_description.setToolTip(
+                        strings._('gui_url_label_onetime_and_persistent'))
                 else:
-                    self.url_description.setToolTip(strings._('gui_url_label_persistent'))
+                    self.url_description.setToolTip(
+                        strings._('gui_url_label_persistent'))
             else:
-                if self.mode == ServerStatus.MODE_SHARE and self.common.settings.get('close_after_first_download'):
-                    self.url_description.setToolTip(strings._('gui_url_label_onetime'))
+                if (self.mode == ServerStatus.MODE_SHARE
+                        and self.common.settings.get(
+                            'close_after_first_download')):
+                    self.url_description.setToolTip(
+                        strings._('gui_url_label_onetime'))
                 else:
-                    self.url_description.setToolTip(strings._('gui_url_label_stay_open'))
+                    self.url_description.setToolTip(
+                        strings._('gui_url_label_stay_open'))
 
             self.url.setText(self.get_url())
             self.url.show()
@@ -214,43 +248,56 @@ class ServerStatus(QtWidgets.QWidget):
             self.copy_hidservauth_button.hide()
 
         # Button
-        if self.mode == ServerStatus.MODE_SHARE and self.file_selection.get_num_files() == 0:
+        if (self.mode == ServerStatus.MODE_SHARE
+                and self.file_selection.get_num_files() == 0):
             self.server_button.hide()
         else:
             self.server_button.show()
 
             if self.status == self.STATUS_STOPPED:
-                self.server_button.setStyleSheet(self.common.css['server_status_button_stopped'])
+                self.server_button.setStyleSheet(
+                    self.common.css['server_status_button_stopped'])
                 self.server_button.setEnabled(True)
                 if self.mode == ServerStatus.MODE_SHARE:
-                    self.server_button.setText(strings._('gui_share_start_server'))
+                    self.server_button.setText(
+                        strings._('gui_share_start_server'))
                 else:
-                    self.server_button.setText(strings._('gui_receive_start_server'))
+                    self.server_button.setText(
+                        strings._('gui_receive_start_server'))
                 self.server_button.setToolTip('')
                 if self.common.settings.get('shutdown_timeout'):
                     self.shutdown_timeout_container.show()
             elif self.status == self.STATUS_STARTED:
-                self.server_button.setStyleSheet(self.common.css['server_status_button_started'])
+                self.server_button.setStyleSheet(
+                    self.common.css['server_status_button_started'])
                 self.server_button.setEnabled(True)
                 if self.mode == ServerStatus.MODE_SHARE:
-                    self.server_button.setText(strings._('gui_share_stop_server'))
+                    self.server_button.setText(
+                        strings._('gui_share_stop_server'))
                 else:
-                    self.server_button.setText(strings._('gui_receive_stop_server'))
+                    self.server_button.setText(
+                        strings._('gui_receive_stop_server'))
                 if self.common.settings.get('shutdown_timeout'):
                     self.shutdown_timeout_container.hide()
                     if self.mode == ServerStatus.MODE_SHARE:
-                        self.server_button.setToolTip(strings._('gui_share_stop_server_shutdown_timeout_tooltip').format(self.timeout))
+                        self.server_button.setToolTip(strings._(
+                            'gui_share_stop_server_shutdown_timeout_tooltip'
+                            ).format(self.timeout))
                     else:
-                        self.server_button.setToolTip(strings._('gui_receive_stop_server_shutdown_timeout_tooltip').format(self.timeout))
+                        self.server_button.setToolTip(strings._(
+                            'gui_receive_stop_server_shutdown_timeout_tooltip'
+                            ).format(self.timeout))
 
             elif self.status == self.STATUS_WORKING:
-                self.server_button.setStyleSheet(self.common.css['server_status_button_working'])
+                self.server_button.setStyleSheet(
+                    self.common.css['server_status_button_working'])
                 self.server_button.setEnabled(True)
                 self.server_button.setText(strings._('gui_please_wait'))
                 if self.common.settings.get('shutdown_timeout'):
                     self.shutdown_timeout_container.hide()
             else:
-                self.server_button.setStyleSheet(self.common.css['server_status_button_working'])
+                self.server_button.setStyleSheet(
+                    self.common.css['server_status_button_working'])
                 self.server_button.setEnabled(False)
                 self.server_button.setText(strings._('gui_please_wait'))
                 if self.common.settings.get('shutdown_timeout'):
@@ -263,13 +310,21 @@ class ServerStatus(QtWidgets.QWidget):
         if self.status == self.STATUS_STOPPED:
             if self.common.settings.get('shutdown_timeout'):
                 if self.local_only:
-                    self.timeout = self.shutdown_timeout.dateTime().toPyDateTime()
+                    self.timeout = self.shutdown_timeout.dateTime(
+                        ).toPyDateTime()
                 else:
-                    # Get the timeout chosen, stripped of its seconds. This prevents confusion if the share stops at (say) 37 seconds past the minute chosen
-                    self.timeout = self.shutdown_timeout.dateTime().toPyDateTime().replace(second=0, microsecond=0)
-                # If the timeout has actually passed already before the user hit Start, refuse to start the server.
-                if QtCore.QDateTime.currentDateTime().toPyDateTime() > self.timeout:
-                    Alert(self.common, strings._('gui_server_timeout_expired'), QtWidgets.QMessageBox.Warning)
+                    # Get the timeout chosen, stripped of its seconds. This
+                    # prevents confusion if the share stops at (say) 37 seconds
+                    # past the minute chosen
+                    self.timeout = self.shutdown_timeout.dateTime(
+                        ).toPyDateTime().replace(second=0, microsecond=0)
+                # If the timeout has actually passed already before the user
+                # hit Start, refuse to start the server.
+                if (QtCore.QDateTime.currentDateTime().toPyDateTime()
+                        > self.timeout):
+                    Alert(self.common,
+                          strings._('gui_server_timeout_expired'),
+                          QtWidgets.QMessageBox.Warning)
                 else:
                     self.start_server()
             else:
@@ -310,7 +365,8 @@ class ServerStatus(QtWidgets.QWidget):
         """
         Cancel the server.
         """
-        self.common.log('ServerStatus', 'cancel_server', 'Canceling the server mid-startup')
+        self.common.log('ServerStatus', 'cancel_server',
+                        'Canceling the server mid-startup')
         self.status = self.STATUS_WORKING
         self.shutdown_timeout_reset()
         self.update()
@@ -345,8 +401,12 @@ class ServerStatus(QtWidgets.QWidget):
         """
         Returns the OnionShare URL.
         """
-        if self.common.settings.get('public_mode'):
-            url = 'http://{0:s}'.format(self.app.onion_host)
-        else:
-            url = 'http://{0:s}/{1:s}'.format(self.app.onion_host, self.web.slug)
-        return url
+        return 'http://{0:s}{}'.format(
+            self.app.onion_host, '/{1:s}'.format(self.web.slug)
+            if self.common.settings.get('public_mode') else '')
+        # if self.common.settings.get('public_mode'):
+        #     url = 'http://{0:s}'.format(self.app.onion_host)
+        # else:
+        #     url = 'http://{0:s}/{1:s}'.format(
+        #         self.app.onion_host, self.web.slug)
+        # return url

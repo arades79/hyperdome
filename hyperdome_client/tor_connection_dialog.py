@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,9 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-from hyperdome_server.onion import *
+from hyperdome_server.onion import BundledTorCanceled
 
 from .widgets import Alert
+import time
+
 
 class TorConnectionDialog(QtWidgets.QProgressDialog):
     """
@@ -35,10 +38,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         self.common = common
 
-        if custom_settings:
-            self.settings = custom_settings
-        else:
-            self.settings = self.common.settings
+        self.settings = custom_settings or self.common.settings
 
         self.common.log('TorConnectionDialog', '__init__')
 
@@ -46,7 +46,8 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         self.onion = onion
 
         self.setWindowTitle("OnionShare")
-        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path('images/logo.png')))
+        self.setWindowIcon(QtGui.QIcon(
+            self.common.get_resource_path('images/logo.png')))
         self.setModal(True)
         self.setFixedSize(400, 150)
 
@@ -81,7 +82,8 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
     def _tor_status_update(self, progress, summary):
         self.setValue(int(progress))
-        self.setLabelText("<strong>{}</strong><br>{}".format(strings._('connecting_to_tor'), summary))
+        self.setLabelText("<strong>{}</strong><br>{}"
+                          .format(strings._('connecting_to_tor'), summary))
 
     def _connected_to_tor(self):
         self.common.log('TorConnectionDialog', '_connected_to_tor')
@@ -104,7 +106,9 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         def alert_and_open_settings():
             # Display the exception in an alert box
-            Alert(self.common, "{}\n\n{}".format(msg, strings._('gui_tor_connection_error_settings')), QtWidgets.QMessageBox.Warning)
+            Alert(self.common, "{}\n\n{}".format(
+                msg, strings._('gui_tor_connection_error_settings')),
+                QtWidgets.QMessageBox.Warning)
 
             # Open settings
             self.open_settings.emit()
@@ -113,6 +117,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         # Cancel connecting to Tor
         QtCore.QTimer.singleShot(1, self.cancel)
+
 
 class TorConnectionThread(QtCore.QThread):
     tor_status_update = QtCore.pyqtSignal(str, str)
@@ -143,12 +148,14 @@ class TorConnectionThread(QtCore.QThread):
             else:
                 self.canceled_connecting_to_tor.emit()
 
-        except BundledTorCanceled as e:
-            self.common.log('TorConnectionThread', 'run', 'caught exception: BundledTorCanceled')
+        except BundledTorCanceled:
+            self.common.log('TorConnectionThread', 'run',
+                            'caught exception: BundledTorCanceled')
             self.canceled_connecting_to_tor.emit()
 
         except Exception as e:
-            self.common.log('TorConnectionThread', 'run', 'caught exception: {}'.format(e.args[0]))
+            self.common.log('TorConnectionThread', 'run',
+                            'caught exception: {}'.format(e.args[0]))
             self.error_connecting_to_tor.emit(str(e.args[0]))
 
     def _tor_status_update(self, progress, summary):

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,7 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import time
 from PyQt5 import QtCore
 
-from hyperdome_server.onion import *
+from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
+                                    TorErrorAuthError,
+                                    TorErrorUnreadableCookieFile,
+                                    TorErrorMissingPassword,
+                                    TorErrorSocketFile, TorErrorSocketPort,
+                                    TorErrorAutomatic, TorErrorInvalidSetting,
+                                    TorTooOld)
 
 
 class OnionThread(QtCore.QThread):
@@ -41,20 +48,26 @@ class OnionThread(QtCore.QThread):
     def run(self):
         self.mode.common.log('OnionThread', 'run')
 
-        self.mode.app.stay_open = not self.mode.common.settings.get('close_after_first_download')
+        self.mode.app.stay_open = not self.mode.common.settings.get(
+            'close_after_first_download')
 
         # start onionshare http service in new thread
         self.mode.web_thread = WebThread(self.mode)
         self.mode.web_thread.start()
 
-        # wait for modules in thread to load, preventing a thread-related cx_Freeze crash
+        # wait for modules in thread to load, preventing a thread-related
+        # cx_Freeze crash
         time.sleep(0.2)
 
         try:
             self.mode.app.start_onion_service()
             self.success.emit()
 
-        except (TorTooOld, TorErrorInvalidSetting, TorErrorAutomatic, TorErrorSocketPort, TorErrorSocketFile, TorErrorMissingPassword, TorErrorUnreadableCookieFile, TorErrorAuthError, TorErrorProtocolError, BundledTorTimeout, OSError) as e:
+        except (TorTooOld, TorErrorInvalidSetting, TorErrorAutomatic,
+                TorErrorSocketPort, TorErrorSocketFile,
+                TorErrorMissingPassword, TorErrorUnreadableCookieFile,
+                TorErrorAuthError, TorErrorProtocolError, BundledTorTimeout,
+                OSError) as e:
             self.error.emit(e.args[0])
             return
 
@@ -74,4 +87,7 @@ class WebThread(QtCore.QThread):
     def run(self):
         self.mode.common.log('WebThread', 'run')
         self.mode.app.choose_port()
-        self.mode.web.start(self.mode.app.port, self.mode.app.stay_open, self.mode.common.settings.get('public_mode'), self.mode.common.settings.get('slug'))
+        self.mode.web.start(self.mode.app.port,
+                            self.mode.app.stay_open,
+                            self.mode.common.settings.get('public_mode'),
+                            self.mode.common.settings.get('slug'))
