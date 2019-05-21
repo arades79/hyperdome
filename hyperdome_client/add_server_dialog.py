@@ -19,18 +19,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtWidgets, QtGui
-# import sys
-# import platform
-# import datetime
-# import re
-
-# from hyperdome_server import strings
-# from hyperdome_server.settings import Settings
-# from hyperdome_server.onion import *
-
-# from .widgets import Alert
-# from .update_checker import *
-# from .tor_connection_dialog import TorConnectionDialog
 
 
 class Server(object):

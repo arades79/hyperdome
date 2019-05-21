@@ -26,7 +26,6 @@ import platform
 import random
 import socket
 import sys
-# import tempfile
 import threading
 import time
 
