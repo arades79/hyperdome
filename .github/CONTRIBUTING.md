@@ -1,0 +1,43 @@
+## Contributing to hyperdome
+
+All issues are welcome! Pull requests are even better!
+
+## This is too much to read! I want to ask a question!
+
+At the moment if you have a question, please feel free to:
+
+1. Send a collaborator an email
+2. Join our [Discord server](https://discord.gg/M2JVQa7)
+3. Open an issue with the "question" tag
+Later on these may change.
+
+## Good Bug Reports
+
+Please be aware of the following things when filing bug reports.
+
+1. Don't open duplicate issues. Please search your issue to see if it has been asked already. Duplicate issues will be closed.
+2. When filing a bug about exceptions or tracebacks, please include the *complete* traceback. Without the complete traceback the issue might be **unsolvable** and you will be asked to provide more information.
+3. Make sure to provide enough information to make the issue workable. The issue template will generally walk you through the process but they are enumerated here as well:
+    - A **summary** of your bug report. This is generally a quick sentence or two to describe the issue in human terms.
+    - Guidance on **how to reproduce the issue**. Ideally, this should have a small code sample that allows us to run and see the issue for ourselves to debug. If you cannot provide a code snippet, then let us know what the steps were, how often it happens, etc.
+    - Tell us **what you expected to happen**. That way we can meet that expectation.
+    - Tell us **what actually happens**. What ends up happening in reality? It's not helpful to say "it fails" or "it doesn't work". Say *how* it failed, do you get an exception? Does it hang? How are the expectations different from reality?
+    - Tell us **information about your environment**. What version of hyperdome are you using? How was it installed? What operating system are you running on? These are valuable questions and information that we use.
+
+If the bug report is missing this information then it'll take us longer to fix the issue. We will probably ask for clarification, and barring that if no response was given then the issue will be closed.
+
+## Submitting a Pull Request
+
+Submitting a pull request is fairly simple, just make sure it focuses on a single aspect and it's probably good to go.
+Preferences in order of priority:
+
+1. Code works without any evident bugs
+2. Code follows [PEP-8](https://www.python.org/dev/peps/pep-0008/)
+3. Code matches general style of surrounding/related code
+4. Code passes [flake8](https://pypi.org/project/flake8/)
+
+If you do not meet any of these guidelines, don't fret. Chances are they will be fixed upon rebasing but please do try to meet them to remove some of the workload.
+
+
+## Misc
+Some parts of CONTRIBUTING.md are taken from discord.py
