@@ -27,4 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
 
 import hyperdome_client
-hyperdome_client.main()
+
+def main():
+    hyperdome_client.main()
+
+if __name__ == "__main__":
+    main()
