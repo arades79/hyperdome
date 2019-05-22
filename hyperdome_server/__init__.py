@@ -143,6 +143,15 @@ def main(cwd=None):
                 common.settings.save()
 
         print('')
+        url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
+        if stealth:
+            print(strings._("give_this_url_stealth"))
+            print(url)
+            print(app.auth_string)
+        else:
+            print(strings._("give_this_url"))
+            print(url)
+        print()
         print(strings._("ctrlc_to_stop"))
 
         # Wait for app to close
