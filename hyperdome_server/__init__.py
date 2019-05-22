@@ -146,10 +146,12 @@ def main(cwd=None):
         url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
         if stealth:
             print(strings._("give_this_url_stealth"))
+            print("Do not copy the slug (part after last /) for now")
             print(url)
             print(app.auth_string)
         else:
             print(strings._("give_this_url"))
+            print("Do not copy the slug (part after last /) for now")
             print(url)
         print()
         print(strings._("ctrlc_to_stop"))
