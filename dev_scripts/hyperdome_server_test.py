@@ -22,11 +22,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # Load onionshare module and resources from the source code tree
 import os
 import sys
-#TODO there must be a cleaner way to do this
+# TODO there must be a cleaner way to do this
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
 
+
 import hyperdome_server
+
 
 def main():
     hyperdome_server.main()

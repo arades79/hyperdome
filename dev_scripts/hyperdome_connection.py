@@ -125,7 +125,6 @@ class HyperdomeServerController:
         print(strings._("ctrlc_to_stop"))
         return True
 
-
     def run_server(self):
         successful_connection = self.prepare_connection()
         if not successful_connection:
@@ -318,10 +317,13 @@ def main():
                                                  e,
                                                  e.__traceback__)))
     finally:
-        htc.close()
-        huc.close()
-        hsc.close()
-        print("Finished hsc cleanup")
+        for to_close in ('htc', 'huc', 'hsc'):
+            if to_close in locals():
+                locals()[to_close].close()
+        # htc.close()
+        # huc.close()
+        # hsc.close()
+        # print("Finished hsc cleanup")
         hsc.exit_flag = True
         print("Added exit flag")
 

@@ -269,13 +269,11 @@ class Mode(QtWidgets.QWidget):
         if self.server_status.status != ServerStatus.STATUS_STOPPED:
             try:
                 self.web.stop(self.app.port)
-            except BaseException:
+            except NotImplementedError:
                 # Probably we had no port to begin with (Onion service didn't
                 # start)
                 pass
         self.app.cleanup()
-
-        self.stop_server_custom()
 
         self.set_server_active.emit(False)
         self.stop_server_finished.emit()
@@ -297,65 +295,5 @@ class Mode(QtWidgets.QWidget):
     def handle_tor_broke_custom(self):
         """
         Add custom initialization here.
-        """
-        pass
-
-    # Handle web server events
-
-    def handle_request_load(self, event):
-        """
-        Handle REQUEST_LOAD event.
-        """
-        pass
-
-    def handle_request_started(self, event):
-        """
-        Handle REQUEST_STARTED event.
-        """
-        pass
-
-    def handle_request_rate_limit(self, event):
-        """
-        Handle REQUEST_RATE_LIMIT event.
-        """
-        self.stop_server()
-        Alert(
-            self.common,
-            strings._('error_rate_limit'),
-            QtWidgets.QMessageBox.Critical)
-
-    def handle_request_progress(self, event):
-        """
-        Handle REQUEST_PROGRESS event.
-        """
-        pass
-
-    def handle_request_canceled(self, event):
-        """
-        Handle REQUEST_CANCELED event.
-        """
-        pass
-
-    def handle_request_upload_file_renamed(self, event):
-        """
-        Handle REQUEST_UPLOAD_FILE_RENAMED event.
-        """
-        pass
-
-    def handle_request_upload_set_dir(self, event):
-        """
-        Handle REQUEST_UPLOAD_SET_DIR event.
-        """
-        pass
-
-    def handle_request_upload_finished(self, event):
-        """
-        Handle REQUEST_UPLOAD_FINISHED event.
-        """
-        pass
-
-    def handle_request_upload_canceled(self, event):
-        """
-        Handle REQUEST_UPLOAD_CANCELED event.
         """
         pass

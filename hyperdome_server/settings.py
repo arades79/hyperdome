@@ -26,7 +26,7 @@ import locale
 try:
     # We only need pwd module in macOS, and it's not available in Windows
     import pwd
-except BaseException:
+except ModuleNotFoundError:
     pass
 
 
@@ -170,20 +170,12 @@ class Settings(object):
 
         # If the settings file exists, load it
         if os.path.exists(self.filename):
-            try:
-                self.common.log('Settings', 'load',
-                                'Trying to load {}'.format(self.filename))
-                with open(self.filename, 'r') as f:
-                    self._settings = json.load(f)
-                    self.fill_in_defaults()
-            except BaseException:
-                pass
-
-        # Make sure data_dir exists
-        try:
-            os.makedirs(self.get('data_dir'), exist_ok=True)
-        except BaseException:
-            pass
+            self.common.log('Settings', 'load',
+                            'Trying to load {}'.format(self.filename))
+            with open(self.filename, 'r') as f:
+                self._settings = json.load(f)
+                self.fill_in_defaults()
+        os.makedirs(self.get('data_dir'), exist_ok=True)
 
     def save(self):
         """
@@ -202,7 +194,7 @@ class Settings(object):
         if key in ('control_port_port', 'socks_port'):
             try:
                 val = int(val)
-            except BaseException:
+            except ValueError:
                 val = self.default_settings[key]
 
         self._settings[key] = val

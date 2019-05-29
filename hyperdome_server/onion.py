@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from stem.control import Controller
-from stem import ProtocolError, SocketClosed
+from stem import ProtocolError, SocketClosed, SocketError
 from stem.connection import (MissingPassword, UnreadableCookieFile,
                              AuthenticationFailure)
 from Crypto.PublicKey import RSA
@@ -31,6 +31,7 @@ import tempfile
 import subprocess
 import time
 import shlex
+import stem
 
 from distutils.version import LooseVersion as Version
 from . import strings
@@ -211,11 +212,8 @@ class Onion(object):
                 torrc_template = f.read()
             self.tor_cookie_auth_file = os.path.join(
                 self.tor_data_directory.name, 'cookie')
-            try:
-                self.tor_socks_port = self.common.get_available_port(1000,
-                                                                     65535)
-            except BaseException:
-                raise OSError(strings._('no_available_port'))
+            self.tor_socks_port = self.common.get_available_port(1000,
+                                                                 65535)
             self.tor_torrc = os.path.join(self.tor_data_directory.name,
                                           'torrc')
 
@@ -226,11 +224,8 @@ class Onion(object):
                 # are limited to 100 chars, and the macOS sandbox forces us
                 # to put the socket file in a place with a really long path.
                 torrc_template += 'ControlPort {{control_port}}\n'
-                try:
-                    self.tor_control_port = self.common.get_available_port(
-                        1000, 65535)
-                except BaseException:
-                    raise OSError(strings._('no_available_port'))
+                self.tor_control_port = self.common.get_available_port(1000,
+                                                                       65535)
                 self.tor_control_socket = None
             else:
                 # Linux and BSD can use unix sockets
@@ -381,11 +376,8 @@ class Onion(object):
             # If the TOR_CONTROL_PORT environment variable is set, use that
             env_port = os.environ.get('TOR_CONTROL_PORT')
             if env_port:
-                try:
-                    self.c = Controller.from_port(port=int(env_port))
-                    found_tor = True
-                except BaseException:
-                    pass
+                self.c = Controller.from_port(port=int(env_port))
+                found_tor = True
 
             else:
                 # Otherwise, try default ports for Tor Browser, Tor Messenger,
@@ -395,23 +387,22 @@ class Onion(object):
                     for port in ports:
                         self.c = Controller.from_port(port=port)
                         found_tor = True
-                except BaseException:
+                except SocketError:
                     pass
 
                 # If this still didn't work, try guessing the default socket
                 # file path
                 socket_file_path = ''
                 if not found_tor:
+                    if self.common.platform == 'Darwin':
+                        socket_file_path = os.path.expanduser(
+                            '~/Library/Application Support/'
+                            'TorBrowser-Data/Tor/control.socket')
                     try:
-                        if self.common.platform == 'Darwin':
-                            socket_file_path = os.path.expanduser(
-                                '~/Library/Application Support/'
-                                'TorBrowser-Data/Tor/control.socket')
-
                         self.c = Controller.from_socket_file(
                             path=socket_file_path)
                         found_tor = True
-                    except BaseException:
+                    except AttributeError:
                         pass
 
             # If connecting to default control ports failed, so let's try
@@ -431,14 +422,14 @@ class Onion(object):
 
                     self.c = Controller.from_socket_file(path=socket_file_path)
 
-                except BaseException:
+                except (TorErrorAutomatic, stem.SocketError):
                     raise TorErrorAutomatic(
                         strings._('settings_error_automatic'))
 
             # Try authenticating
             try:
                 self.c.authenticate()
-            except BaseException:
+            except stem.connection.AuthenticationFailure:
                 raise TorErrorAutomatic(strings._('settings_error_automatic'))
 
         else:
@@ -457,7 +448,7 @@ class Onion(object):
                     raise TorErrorInvalidSetting(
                         strings._("settings_error_unknown"))
 
-            except BaseException:
+            except (TorErrorInvalidSetting, stem.SocketError):
                 if self.settings.get('connection_type') == 'control_port':
                     raise TorErrorSocketPort(
                         strings._("settings_error_socket_port").format(
@@ -514,7 +505,7 @@ class Onion(object):
             tmp_service_id = res.service_id
             self.c.remove_ephemeral_hidden_service(tmp_service_id)
             self.supports_stealth = True
-        except BaseException:
+        except (stem.ControllerError, stem.Timeout):
             # ephemeral stealth onion services are not supported
             self.supports_stealth = False
 
@@ -587,14 +578,13 @@ class Onion(object):
                 res = self.c.create_ephemeral_hidden_service(
                     {80: port}, await_publication=await_publication,
                     basic_auth=basic_auth, key_type=key_type,
-                    key_content=key_content, timeout=5)
+                    key_content=key_content, timeout=10)
             else:
                 # if the stem interface is older than 1.5.0, basic_auth isn't a
                 # valid keyword arg
                 res = self.c.create_ephemeral_hidden_service(
                     {80: port}, await_publication=await_publication,
-                    key_type=key_type, key_content=key_content,
-                    timeout=5)
+                    key_type=key_type, key_content=key_content, timeout=10)
 
         except ProtocolError as e:
             raise TorErrorProtocolError(
@@ -643,19 +633,17 @@ class Onion(object):
         self.common.log('Onion', 'cleanup')
 
         # Cleanup the ephemeral onion services, if we have any
-        try:
+        if self.c:
             onions = self.c.list_ephemeral_hidden_services()
             for onion in onions:
                 try:
                     self.common.log('Onion', 'cleanup',
                                     'trying to remove onion {}'.format(onion))
                     self.c.remove_ephemeral_hidden_service(onion)
-                except BaseException:
+                except stem.ControllerError:
                     self.common.log('Onion', 'cleanup',
                                     'could not remove onion '
                                     '{}, continuing.'.format(onion))
-        except BaseException:
-            pass
         self.service_id = None
 
         if stop_tor:
@@ -664,10 +652,7 @@ class Onion(object):
                 self.tor_proc.terminate()
                 time.sleep(0.2)
                 if not self.tor_proc.poll():
-                    try:
-                        self.tor_proc.kill()
-                    except BaseException:
-                        pass
+                    self.tor_proc.kill()
                 self.tor_proc = None
 
             # Reset other Onion settings
@@ -709,5 +694,5 @@ class Onion(object):
             # Is this a v2 Onion key? (1024 bits) If so, we should keep using
             # it.
             return key.n.bit_length() == 1024
-        except BaseException:
+        except TypeError:
             return False

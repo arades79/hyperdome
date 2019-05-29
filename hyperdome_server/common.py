@@ -150,11 +150,10 @@ class Common(object):
         Returns the path of the OnionShare data directory.
         """
         if self.platform == 'Windows':
-            try:
+            if 'APPDATA' in os.environ:
                 appdata = os.environ['APPDATA']
                 onionshare_data_dir = '{}\\OnionShare'.format(appdata)
-            except BaseException:
-                # TODO catch the specific exception, not base
+            else:
                 # If for some reason we don't have the 'APPDATA' environment
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
