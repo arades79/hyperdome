@@ -177,6 +177,13 @@ class Onion(object):
         # Start out not connected to Tor
         self.connected_to_tor = False
 
+    def __repr__(self):
+        dict_props = {key: self.__dict__.get(key, 'NOT FOUND') for key in
+                      ('stealth', 'service_id', 'bundle_tor_supported',
+                       'tor_proc', 'c', 'connected_to_tor')
+                      }
+        return f'<Onion {dict_props}>'
+
     def connect(self, custom_settings=False, config=False,
                 tor_status_update_func=None, connect_timeout=120):
         self.common.log('Onion', 'connect')
@@ -580,13 +587,14 @@ class Onion(object):
                 res = self.c.create_ephemeral_hidden_service(
                     {80: port}, await_publication=await_publication,
                     basic_auth=basic_auth, key_type=key_type,
-                    key_content=key_content)
+                    key_content=key_content, timeout=5)
             else:
                 # if the stem interface is older than 1.5.0, basic_auth isn't a
                 # valid keyword arg
                 res = self.c.create_ephemeral_hidden_service(
                     {80: port}, await_publication=await_publication,
-                    key_type=key_type, key_content=key_content)
+                    key_type=key_type, key_content=key_content,
+                    timeout=5)
 
         except ProtocolError as e:
             raise TorErrorProtocolError(

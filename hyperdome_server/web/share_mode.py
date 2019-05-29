@@ -33,6 +33,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from flask_bcrypt import Bcrypt
 import random
 import binascii
+import traceback
 
 from .. import strings
 
@@ -124,6 +125,14 @@ class ShareModeWeb(object):
             dbfuck.create_all()
             return userfuck.query.filter(userfuck.username == username).first()
 
+        @self.web.app.errorhandler(Exception)
+        def unhandled_exception(e):
+            e_str = ''.join(traceback.format_exception(type(e),
+                                                       e,
+                                                       e.__traceback__))
+            print(e_str)
+            return e_str
+
         @self.web.app.route("/request_therapist", methods=['POST'])
         def request_therapist():
             guest_id = request.form['guest_id']
@@ -162,6 +171,13 @@ class ShareModeWeb(object):
                 return "Success"
             return abort(401)
 
+        @self.web.app.route("/therapist_signin", methods=["POST"])
+        def therapist_signin():
+            # TODO authenticate
+            user = load_user(request.form['username'])
+            self.therapists_available.append(user)
+            return "Success"
+
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
@@ -169,11 +185,15 @@ class ShareModeWeb(object):
         @self.web.app.route("/message_from_therapist", methods=['POST'])
         @login_required
         def message_from_therapist():
+            if current_user.username not in self.connected_guest:
+                return abort(401)
             message = request.form['message']
+
             guest_id = self.connected_guest[current_user.username]
             self.pending_messages[guest_id] = (
                 self.pending_messages.get(
                     guest_id, "") + message + "\n")
+            return "Success"
 
         @self.web.app.route("/message_from_user", methods=['POST'])
         def message_from_user():
@@ -183,6 +203,7 @@ class ShareModeWeb(object):
             self.pending_messages[therapist_username] = (
                 self.pending_messages.get(therapist_username, "")
                 + message + "\n")
+            return "Success"
 
         @self.web.app.route("/collect_guest_messages")
         def collect_guest_messages():

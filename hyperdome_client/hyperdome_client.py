@@ -39,15 +39,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     GUI elements.
     """
 
-    def __init__(
-            self,
-            common,
-            onion,
-            qtapp,
-            app,
-            filenames,
-            config=False,
-            local_only=False):
+    def __init__(self,
+                 common,
+                 onion,
+                 qtapp,
+                 app,
+                 filenames,
+                 config=False,
+                 local_only=False):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
@@ -62,9 +61,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
         self.setWindowTitle('hyperdome')
-        self.setWindowIcon(
-            QtGui.QIcon(
-                self.common.get_resource_path('images/logo.png')))
+        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
+            'images/logo.png')))
 
         # initialize session variables
         self.uid = ''
@@ -118,10 +116,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         # The convention is Mac systray icons are always grayscale
         if self.common.platform == 'Darwin':
-            self.system_tray.setIcon(
-                QtGui.QIcon(
-                    self.common.get_resource_path('images/'
-                                                  'logo_grayscale.png')))
+            self.system_tray.setIcon(QtGui.QIcon(self.common.get_resource_path(
+                'images/logo_grayscale.png')))
         else:
             self.system_tray.setIcon(
                 QtGui.QIcon(
@@ -297,8 +293,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.get_uid()
                 self.therapist = self.session.post(
                     f"{self.server.url}/request_therapist",
-                    data={
-                        "guest_id": self.uid}).text
+                    data={"guest_id": self.uid}).text
                 if self.therapist:
                     self.is_connected = True
         except Exception as e:
