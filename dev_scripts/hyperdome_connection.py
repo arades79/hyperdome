@@ -47,49 +47,56 @@ class HyperdomeServerController:
         self.web = None
         self.exit_flag = False
         self.url = None
+        self.t = None
+        self.onion_connected = False
 
-    def run_server(self):
-        common = Common()
-        common.load_settings()
-        strings.load_strings(common)
-        print(strings._('version_string').format(common.version))
+    def prepare_connection(self, num_tries=10):
+        for try_index in range(num_tries):
+            common = Common()
+            common.load_settings()
+            strings.load_strings(common)
+            print(strings._('version_string').format(common.version))
 
-        local_only = False
-        common.debug = True
-        shutdown_timeout = 0
-        stealth = False
+            local_only = False
+            common.debug = True
+            shutdown_timeout = 0
+            stealth = False
 
-        self.web = Web(common, False)
+            self.web = Web(common, False)
 
-        self.onion = Onion(common)
-        self.onion.connect(custom_settings=False,
-                           config=False,
-                           connect_timeout=120)
-        # Start the onionshare app
-        self.app = HyperdomeServer(common,
-                                   self.onion,
-                                   local_only,
-                                   shutdown_timeout)
-        self.app.set_stealth(stealth)
-        self.app.choose_port()
-        try:
-            self.app.start_onion_service()
-        except stem.Timeout:
-            return
-
+            self.onion = Onion(common)
+            self.onion.connect(custom_settings=False,
+                               config=False,
+                               connect_timeout=120)
+            # Start the onionshare app
+            self.app = HyperdomeServer(common,
+                                       self.onion,
+                                       local_only,
+                                       shutdown_timeout)
+            self.app.set_stealth(stealth)
+            self.app.choose_port()
+            try:
+                self.app.start_onion_service()
+            except stem.Timeout:
+                self.onion.cleanup()
+                self.app.cleanup()
+                self.web.stop(self.app.port)
+                continue
+            else:
+                self.onion_connected = True
+                break
+        if not self.onion_connected:
+            return False
         # Start OnionShare http service in new thread
-        t = threading.Thread(target=self.web.start,
-                             args=(self.app.port, True,
-                                   common.settings.get('public_mode'),
-                                   common.settings.get('slug')))
-        t.daemon = True
-        t.start()
+        self.t = threading.Thread(target=self.web.start,
+                                  args=(self.app.port, True,
+                                        common.settings.get('public_mode'),
+                                        common.settings.get('slug')),
+                                  daemon=True)
+        self.t.start()
 
         # TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
-        if self.exit_flag:
-            print("Detected exit flag")
-            return
         time.sleep(0.2)
 
         # start shutdown timer thread
@@ -116,9 +123,20 @@ class HyperdomeServerController:
             print(self.url)
         print()
         print(strings._("ctrlc_to_stop"))
+        return True
 
+
+    def run_server(self):
+        successful_connection = self.prepare_connection()
+        if not successful_connection:
+            print("Failed to get a successful connection")
+            return
         # Wait for app to close
-        while t.is_alive():
+        while self.t.is_alive():
+            if self.exit_flag:
+                print("Detected exit flag")
+                return
+
             if self.app.shutdown_timeout > 0:
                 # if the shutdown timer was set and has run out, stop the
                 # server
@@ -131,12 +149,12 @@ class HyperdomeServerController:
             time.sleep(0.2)
 
     def close(self):
+        if self.app and self.web:
+            self.web.stop(self.app.port)
         if self.onion:
             self.onion.cleanup()
         if self.app:
             self.app.cleanup()
-        if self.app and self.web:
-            self.web.stop(self.app.port)
 
 
 class HyperdomeClientController:
@@ -150,6 +168,7 @@ class HyperdomeClientController:
         self.uid = None
         self.therapist = None
         self.user = None
+        self.success = None
 
     def close(self):
         if self.onion:
@@ -177,8 +196,6 @@ class HyperdomeClientController:
             print(''.join(traceback.format_exception(type(e),
                                                      e,
                                                      e.__traceback__)))
-        finally:
-            self.close()
 
     @property
     def session(self):
@@ -225,10 +242,12 @@ class HyperdomeTherapistController(HyperdomeClientController):
             time.sleep(1)
         if new_message == "User message 12345":
             print("SUCCESS from therapist!")
+            self.success = True
         else:
             print("ERROR from therapist: was expecting 'User message 12345', "
                   f"got '{new_message}'")
-        time.sleep(5)
+            self.success = False
+        # time.sleep(5)
 
 
 class HyperdomeUserController(HyperdomeClientController):
@@ -255,41 +274,35 @@ class HyperdomeUserController(HyperdomeClientController):
             time.sleep(1)
         if new_message == "Therapist message 12345":
             print("SUCCESS from user!")
+            self.success = True
         else:
             print("ERROR from user: was expecting 'Therapist message 12345', "
                   f"got '{new_message}'")
-        time.sleep(5)
+            self.success = False
+        # time.sleep(5)
 
 
 def main():
     try:
-        url_no_slug = None
-        while not url_no_slug:
-            hsc = HyperdomeServerController()
-            server_thread = threading.Thread(target=hsc.run_server)
-            server_thread.daemon = True
-            server_thread.start()
-            while not hsc.onion:
-                time.sleep(0.1)
-            print("Onion created")
-            while not hsc.onion.connected_to_tor:
-                if not server_thread.is_alive():
-                    return "Server thread ended, returning"
-                time.sleep(0.1)
-            print("Connected to tor")
-            while server_thread.is_alive() and not hsc.url:
-                time.sleep(0.1)
-            if hsc.url:
-                url_no_slug = hsc.url.rsplit('/', 1)[0]
-            else:
-                print("onion likely timed out, retrying")
+        hsc = HyperdomeServerController()
+        hsc_thread = threading.Thread(target=hsc.run_server, daemon=True)
+        hsc_thread.start()
+        while not hsc.onion:
+            time.sleep(0.1)
+        print("Onion created")
+        while not hsc.onion.connected_to_tor:
+            if not hsc_thread.is_alive():
+                return "Server thread ended, returning"
+            time.sleep(0.1)
+        print("Connected to tor")
+        while hsc_thread.is_alive() and not hsc.url:
+            time.sleep(0.1)
+        url_no_slug = hsc.url.rsplit('/', 1)[0]
         print("\n\n\n\n\n\n\n\n\n\nGot HSC url")
         htc = HyperdomeTherapistController(url_no_slug)
         huc = HyperdomeUserController(url_no_slug)
-        htc_thread = threading.Thread(target=htc.run_client)
-        huc_thread = threading.Thread(target=huc.run_client)
-        htc_thread.daemon = True
-        huc_thread.daemon = True
+        htc_thread = threading.Thread(target=htc.run_client, daemon=True)
+        huc_thread = threading.Thread(target=huc.run_client, daemon=True)
         htc_thread.start()
         huc_thread.start()
         print("Started htc and huc threads")
@@ -305,12 +318,16 @@ def main():
                                                  e,
                                                  e.__traceback__)))
     finally:
+        htc.close()
+        huc.close()
         hsc.close()
         print("Finished hsc cleanup")
         hsc.exit_flag = True
         print("Added exit flag")
 
-    return "Success"
+    if htc.success and huc.success:
+        return "Success"
+    return f"htc.success: {htc.success}, huc.success: {huc.success}"
 
 
 if __name__ == "__main__":
