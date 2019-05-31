@@ -163,18 +163,15 @@ class ServerStatus(QtWidgets.QWidget):
         When the widget is resized, try and adjust the display of a \
         v3 onion URL.
         """
-        try:
-            # Wrap the URL label
-            url_length = len(self.get_url())
-            if url_length > 60:
-                width = self.frameGeometry().width()
-                if width < 530:
-                    wrapped_onion_url = textwrap.fill(self.get_url(), 46)
-                    self.url.setText(wrapped_onion_url)
-                else:
-                    self.url.setText(self.get_url())
-        except BaseException:
-            pass
+        # Wrap the URL label
+        url_length = len(self.get_url())
+        if url_length > 60:
+            width = self.frameGeometry().width()
+            if width < 530:
+                wrapped_onion_url = textwrap.fill(self.get_url(), 46)
+                self.url.setText(wrapped_onion_url)
+            else:
+                self.url.setText(self.get_url())
 
     def shutdown_timeout_reset(self):
         """

@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import shutil
 
-from . import strings
 from .common import ShutdownTimer
 
 
@@ -69,10 +68,7 @@ class HyperdomeServer(object):
         """
         Choose a random port.
         """
-        try:
-            self.port = self.common.get_available_port(17600, 17650)
-        except BaseException:
-            raise OSError(strings._('no_available_port'))
+        self.port = self.common.get_available_port(17600, 17650)
 
     def start_onion_service(self):
         """
@@ -109,7 +105,7 @@ class HyperdomeServer(object):
                     os.remove(filename)
                 elif os.path.isdir(filename):
                     shutil.rmtree(filename)
-        except BaseException:
+        except OSError:
             # Don't crash if file is still in use
             pass
         self.cleanup_filenames = []

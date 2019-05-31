@@ -19,13 +19,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import time
-import subprocess
-import os
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from hyperdome_server import strings
-from ..widgets import Alert
 
 
 class HistoryItem(QtWidgets.QWidget):
@@ -227,39 +224,6 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
 
     def set_dir(self, dir):
         self.dir = dir
-
-    def open_folder(self):
-        """
-        Open the downloads folder, with the file selected, \
-        in a cross-platform manner
-        """
-        self.common.log('ReceiveHistoryItemFile', 'open_folder')
-
-        if not self.dir:
-            self.common.log(
-                'ReceiveHistoryItemFile',
-                'open_folder',
-                "dir has not been set yet, can't open folder")
-            return
-
-        abs_filename = os.path.join(self.dir, self.filename)
-
-        # Linux
-        if self.common.platform == 'Linux' or self.common.platform == 'BSD':
-            try:
-                # If nautilus is available, open it
-                subprocess.Popen(['nautilus', abs_filename])
-            except BaseException:
-                Alert(self.common, strings._(
-                    'gui_open_folder_error_nautilus').format(abs_filename))
-
-        # macOS
-        elif self.common.platform == 'Darwin':
-            subprocess.call(['open', '-R', abs_filename])
-
-        # Windows
-        elif self.common.platform == 'Windows':
-            subprocess.Popen(['explorer', '/select,{}'.format(abs_filename)])
 
 
 class ReceiveHistoryItem(HistoryItem):

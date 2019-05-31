@@ -39,15 +39,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     GUI elements.
     """
 
-    def __init__(
-            self,
-            common,
-            onion,
-            qtapp,
-            app,
-            filenames,
-            config=False,
-            local_only=False):
+    def __init__(self,
+                 common,
+                 onion,
+                 qtapp,
+                 app,
+                 filenames,
+                 config=False,
+                 local_only=False):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
@@ -62,9 +61,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
         self.setWindowTitle('hyperdome')
-        self.setWindowIcon(
-            QtGui.QIcon(
-                self.common.get_resource_path('images/logo.png')))
+        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
+            'images/logo.png')))
 
         # initialize session variables
         self.uid = ''
@@ -118,10 +116,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         # The convention is Mac systray icons are always grayscale
         if self.common.platform == 'Darwin':
-            self.system_tray.setIcon(
-                QtGui.QIcon(
-                    self.common.get_resource_path('images/'
-                                                  'logo_grayscale.png')))
+            self.system_tray.setIcon(QtGui.QIcon(self.common.get_resource_path(
+                'images/logo_grayscale.png')))
         else:
             self.system_tray.setIcon(
                 QtGui.QIcon(
@@ -208,6 +204,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Send the contents of the message box to the server to be forwarded to
         either counsel or guest.
         """
+        if self.uid and not self.therapist:
+            self.therapist = self.session.post(
+                f"{self.server.url}/request_therapist",
+                data={"guest_id": self.uid}).text
+            if self.therapist:
+                self.is_connected = True
+
         if self.is_connected:
             message = self.message_text_field.toPlainText()
             self.message_text_field.clear()
@@ -287,18 +290,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
         try:
             if self.server.is_therapist:
-                self.session.post(
-                    f"{self.server.url}/therapist_signup",
-                    data={
-                        "masterkey": "megumin",
-                        "username": self.server.username,
-                        "password": self.server.password})
+                self.session.post(f"{self.server.url}/therapist_signup",
+                                  data={"masterkey": "megumin",
+                                        "username": self.server.username,
+                                        "password": self.server.password})
+                self.session.post(f"{self.server.url}/therapist_signin",
+                                  data={"username": self.server.username,
+                                        "password": self.server.password})
+
             else:
                 self.get_uid()
                 self.therapist = self.session.post(
                     f"{self.server.url}/request_therapist",
-                    data={
-                        "guest_id": self.uid}).text
+                    data={"guest_id": self.uid}).text
                 if self.therapist:
                     self.is_connected = True
         except Exception as e:
@@ -495,38 +499,28 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         When the main window is closed, do some cleanup
         """
         self.common.log('OnionShareGui', 'closeEvent')
-        try:
-            if self.server.is_therapist:
-                self.session.post(
-                    f"{self.server.url}/therapist_signout",
-                    data={"username": self.server.username,
-                          "password": self.server.password})
-            if server_status.status != server_status.STATUS_STOPPED:
-                self.common.log('OnionShareGui',
-                                'closeEvent, opening warning dialog')
-                dialog = QtWidgets.QMessageBox()
-                dialog.setWindowTitle(strings._('gui_quit_title'))
-                dialog.setText(strings._(
-                    'gui_share_quit_warning'
-                    if self.mode == server_status.MODE_SHARE else
-                    'gui_receive_quit_warning'))
-                dialog.setIcon(QtWidgets.QMessageBox.Critical)
-                dialog.addButton(
-                    strings._('gui_quit_warning_quit'),
-                    QtWidgets.QMessageBox.YesRole)
-                dont_quit_button = dialog.addButton(
-                    strings._('gui_quit_warning_dont_quit'),
-                    QtWidgets.QMessageBox.NoRole)
-                dialog.setDefaultButton(dont_quit_button)
-                reply = dialog.exec_()
+        if self.server.is_therapist:
+            self.session.post(f"{self.server.url}/therapist_signout",
+                              data={"username": self.server.username,
+                                    "password": self.server.password})
+        self.common.log('OnionShareGui',
+                        'closeEvent, opening warning dialog')
+        dialog = QtWidgets.QMessageBox()
+        dialog.setWindowTitle(strings._('gui_quit_title'))
+        dialog.setText(strings._('gui_share_quit_warning'
+                                 if self.mode == server_status.MODE_SHARE
+                                 else 'gui_receive_quit_warning'))
+        dialog.setIcon(QtWidgets.QMessageBox.Critical)
+        dialog.addButton(strings._('gui_quit_warning_quit'),
+                         QtWidgets.QMessageBox.YesRole)
+        dont_quit_button = dialog.addButton(
+            strings._('gui_quit_warning_dont_quit'),
+            QtWidgets.QMessageBox.NoRole)
+        dialog.setDefaultButton(dont_quit_button)
+        reply = dialog.exec_()
 
-                # Quit
-                if reply == 0:
-                    self.stop_server()
-                    e.accept()
-                # Don't Quit
-                else:
-                    e.ignore()
-
-        except BaseException:
+        if reply == 0:
+            self.stop_server()
             e.accept()
+        else:
+            e.ignore()
