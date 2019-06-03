@@ -15,6 +15,7 @@ pytest-faulthandler = "==1.5.0"
 pytest-qt = "==3.2.1"
 six = "==1.11.0"
 urllib3 = "==1.24.2"
+flake8 = "*"
 
 [packages]
 altgraph = "==0.16.1"
@@ -45,6 +46,11 @@ Werkzeug = "==0.14.1"
 Flask-Login = "==0.4.1"
 Flask-SQLAlchemy = "==2.4.0"
 Flask-Bcrypt = "==0.7.1"
+flake8 = "*"
 
 [requires]
 python_version = "3.7"
+
+[scripts]
+test_connection = "python dev_scripts/hyperdome_connection.py"
+lint = "python -m flake8 ."
