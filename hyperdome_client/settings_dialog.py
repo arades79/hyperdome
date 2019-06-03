@@ -67,54 +67,8 @@ class SettingsDialog(QtWidgets.QDialog):
 
         # General settings
 
-        # Use a slug or not ('public mode')
-        self.public_mode_checkbox = QtWidgets.QCheckBox()
-        self.public_mode_checkbox.setCheckState(QtCore.Qt.Unchecked)
-        self.public_mode_checkbox.setText(
-            strings._("gui_settings_public_mode_checkbox"))
-        public_mode_label = QtWidgets.QLabel(strings._(
-            "gui_settings_whats_this").format(
-            "https://github.com/micahflee/onionshare/wiki/Public-Mode"))
-        public_mode_label.setStyleSheet(self.common.css['settings_whats_this'])
-        public_mode_label.setTextInteractionFlags(
-            QtCore.Qt.TextBrowserInteraction)
-        public_mode_label.setOpenExternalLinks(True)
-        public_mode_label.setMinimumSize(public_mode_label.sizeHint())
-        public_mode_layout = QtWidgets.QHBoxLayout()
-        public_mode_layout.addWidget(self.public_mode_checkbox)
-        public_mode_layout.addWidget(public_mode_label)
-        public_mode_layout.addStretch()
-        public_mode_layout.setContentsMargins(0, 0, 0, 0)
-        self.public_mode_widget = QtWidgets.QWidget()
-        self.public_mode_widget.setLayout(public_mode_layout)
-
-        # Whether or not to use a shutdown ('auto-stop') timer
-        self.shutdown_timeout_checkbox = QtWidgets.QCheckBox()
-        self.shutdown_timeout_checkbox.setCheckState(QtCore.Qt.Checked)
-        self.shutdown_timeout_checkbox.setText(
-            strings._("gui_settings_shutdown_timeout_checkbox"))
-        shutdown_timeout_label = QtWidgets.QLabel(strings._(
-            "gui_settings_whats_this").format(
-            "https://github.com/micahflee/onionshare/wiki/"
-            "Using-the-Auto-Stop-Timer"))
-        shutdown_timeout_label.setStyleSheet(
-            self.common.css['settings_whats_this'])
-        shutdown_timeout_label.setTextInteractionFlags(
-            QtCore.Qt.TextBrowserInteraction)
-        shutdown_timeout_label.setOpenExternalLinks(True)
-        shutdown_timeout_label.setMinimumSize(public_mode_label.sizeHint())
-        shutdown_timeout_layout = QtWidgets.QHBoxLayout()
-        shutdown_timeout_layout.addWidget(self.shutdown_timeout_checkbox)
-        shutdown_timeout_layout.addWidget(shutdown_timeout_label)
-        shutdown_timeout_layout.addStretch()
-        shutdown_timeout_layout.setContentsMargins(0, 0, 0, 0)
-        self.shutdown_timeout_widget = QtWidgets.QWidget()
-        self.shutdown_timeout_widget.setLayout(shutdown_timeout_layout)
-
         # General settings layout
         general_group_layout = QtWidgets.QVBoxLayout()
-        general_group_layout.addWidget(self.public_mode_widget)
-        general_group_layout.addWidget(self.shutdown_timeout_widget)
         general_group = QtWidgets.QGroupBox(
             strings._("gui_settings_general_label"))
         general_group.setLayout(general_group_layout)
@@ -150,52 +104,6 @@ class SettingsDialog(QtWidgets.QDialog):
         self.save_private_key_widget = QtWidgets.QWidget()
         self.save_private_key_widget.setLayout(save_private_key_layout)
 
-        # Whether or not to use legacy v2 onions
-        self.use_legacy_v2_onions_checkbox = QtWidgets.QCheckBox()
-        self.use_legacy_v2_onions_checkbox.setCheckState(QtCore.Qt.Unchecked)
-        self.use_legacy_v2_onions_checkbox.setText(
-            strings._("gui_use_legacy_v2_onions_checkbox"))
-        self.use_legacy_v2_onions_checkbox.clicked.connect(
-            self.use_legacy_v2_onions_checkbox_clicked)
-        use_legacy_v2_onions_label = QtWidgets.QLabel(strings._(
-            "gui_settings_whats_this").format(
-            "https://github.com/micahflee/onionshare/wiki/Legacy-Addresses"))
-        use_legacy_v2_onions_label.setStyleSheet(
-            self.common.css['settings_whats_this'])
-        use_legacy_v2_onions_label.setTextInteractionFlags(
-            QtCore.Qt.TextBrowserInteraction)
-        use_legacy_v2_onions_label.setOpenExternalLinks(True)
-        use_legacy_v2_onions_layout = QtWidgets.QHBoxLayout()
-        use_legacy_v2_onions_layout.addWidget(
-            self.use_legacy_v2_onions_checkbox)
-        use_legacy_v2_onions_layout.addWidget(use_legacy_v2_onions_label)
-        use_legacy_v2_onions_layout.addStretch()
-        use_legacy_v2_onions_layout.setContentsMargins(0, 0, 0, 0)
-        self.use_legacy_v2_onions_widget = QtWidgets.QWidget()
-        self.use_legacy_v2_onions_widget.setLayout(use_legacy_v2_onions_layout)
-
-        # Stealth
-        self.stealth_checkbox = QtWidgets.QCheckBox()
-        self.stealth_checkbox.setCheckState(QtCore.Qt.Unchecked)
-        self.stealth_checkbox.setText(strings._("gui_settings_stealth_option"))
-        self.stealth_checkbox.clicked.connect(
-            self.stealth_checkbox_clicked_connect)
-        use_stealth_label = QtWidgets.QLabel(strings._(
-            "gui_settings_whats_this").format(
-            "https://github.com/micahflee/onionshare/wiki/"
-            "Stealth-Onion-Services"))
-        use_stealth_label.setStyleSheet(self.common.css['settings_whats_this'])
-        use_stealth_label.setTextInteractionFlags(
-            QtCore.Qt.TextBrowserInteraction)
-        use_stealth_label.setOpenExternalLinks(True)
-        use_stealth_label.setMinimumSize(use_stealth_label.sizeHint())
-        use_stealth_layout = QtWidgets.QHBoxLayout()
-        use_stealth_layout.addWidget(self.stealth_checkbox)
-        use_stealth_layout.addWidget(use_stealth_label)
-        use_stealth_layout.addStretch()
-        use_stealth_layout.setContentsMargins(0, 0, 0, 0)
-        self.use_stealth_widget = QtWidgets.QWidget()
-        self.use_stealth_widget.setLayout(use_stealth_layout)
 
         self.hidservauth_details = QtWidgets.QLabel(
             strings._('gui_settings_stealth_hidservauth_string'))
@@ -213,9 +121,6 @@ class SettingsDialog(QtWidgets.QDialog):
         # Onion settings widget
         onion_settings_layout = QtWidgets.QVBoxLayout()
         onion_settings_layout.setContentsMargins(0, 0, 0, 0)
-        onion_settings_layout.addWidget(self.save_private_key_widget)
-        onion_settings_layout.addWidget(self.use_legacy_v2_onions_widget)
-        onion_settings_layout.addWidget(self.use_stealth_widget)
         onion_settings_layout.addWidget(self.hidservauth_details)
         onion_settings_layout.addWidget(self.hidservauth_copy_button)
         self.onion_settings_widget = QtWidgets.QWidget()
@@ -229,22 +134,6 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_settings_onion_label"))
         onion_group.setLayout(onion_group_layout)
 
-        # Sharing options
-
-        # Close after first download
-        self.close_after_first_download_checkbox = QtWidgets.QCheckBox()
-        self.close_after_first_download_checkbox.setCheckState(
-            QtCore.Qt.Checked)
-        self.close_after_first_download_checkbox.setText(
-            strings._("gui_settings_close_after_first_download_option"))
-
-        # Sharing options layout
-        sharing_group_layout = QtWidgets.QVBoxLayout()
-        sharing_group_layout.addWidget(
-            self.close_after_first_download_checkbox)
-        sharing_group = QtWidgets.QGroupBox(
-            strings._("gui_settings_sharing_label"))
-        sharing_group.setLayout(sharing_group_layout)
 
         # OnionShare data dir
         data_dir_label = QtWidgets.QLabel(
@@ -259,62 +148,6 @@ class SettingsDialog(QtWidgets.QDialog):
         data_dir_layout.addWidget(self.data_dir_lineedit)
         data_dir_layout.addWidget(data_dir_button)
 
-        # Receiving options layout
-        receiving_group_layout = QtWidgets.QVBoxLayout()
-        receiving_group_layout.addLayout(data_dir_layout)
-        receiving_group = QtWidgets.QGroupBox(
-            strings._("gui_settings_receiving_label"))
-        receiving_group.setLayout(receiving_group_layout)
-
-        # Automatic updates options
-
-        # Autoupdate
-        self.autoupdate_checkbox = QtWidgets.QCheckBox()
-        self.autoupdate_checkbox.setCheckState(QtCore.Qt.Unchecked)
-        self.autoupdate_checkbox.setText(
-            strings._("gui_settings_autoupdate_option"))
-
-        # Last update time
-        self.autoupdate_timestamp = QtWidgets.QLabel()
-
-        # Check for updates button
-        self.check_for_updates_button = QtWidgets.QPushButton(
-            strings._('gui_settings_autoupdate_check_button'))
-        self.check_for_updates_button.clicked.connect(self.check_for_updates)
-        # We can't check for updates if not connected to Tor
-        if not self.onion.connected_to_tor:
-            self.check_for_updates_button.setEnabled(False)
-
-        # Autoupdate options layout
-        autoupdate_group_layout = QtWidgets.QVBoxLayout()
-        autoupdate_group_layout.addWidget(self.autoupdate_checkbox)
-        autoupdate_group_layout.addWidget(self.autoupdate_timestamp)
-        autoupdate_group_layout.addWidget(self.check_for_updates_button)
-        autoupdate_group = QtWidgets.QGroupBox(
-            strings._("gui_settings_autoupdate_label"))
-        autoupdate_group.setLayout(autoupdate_group_layout)
-
-        # Autoupdate is only available for Windows and Mac (Linux updates using
-        # package manager)
-        if self.system != 'Windows' and self.system != 'Darwin':
-            autoupdate_group.hide()
-
-        # Language settings
-        language_label = QtWidgets.QLabel(
-            strings._("gui_settings_language_label"))
-        self.language_combobox = QtWidgets.QComboBox()
-        # Populate the dropdown with all of OnionShare's available languages
-        language_names_to_locales = {
-            v: k for k, v in self.common.settings.available_locales.items()}
-        language_names = sorted(language_names_to_locales)
-        for language_name in language_names:
-            locale = language_names_to_locales[language_name]
-            self.language_combobox.addItem(
-                language_name, QtCore.QVariant(locale))
-        language_layout = QtWidgets.QHBoxLayout()
-        language_layout.addWidget(language_label)
-        language_layout.addWidget(self.language_combobox)
-        language_layout.addStretch()
 
         # Connection type: either automatic, control port, or socket file
 
@@ -584,10 +417,6 @@ class SettingsDialog(QtWidgets.QDialog):
         left_col_layout = QtWidgets.QVBoxLayout()
         left_col_layout.addWidget(general_group)
         left_col_layout.addWidget(onion_group)
-        left_col_layout.addWidget(sharing_group)
-        left_col_layout.addWidget(receiving_group)
-        left_col_layout.addWidget(autoupdate_group)
-        left_col_layout.addLayout(language_layout)
         left_col_layout.addStretch()
 
         right_col_layout = QtWidgets.QVBoxLayout()
@@ -614,68 +443,9 @@ class SettingsDialog(QtWidgets.QDialog):
         self.old_settings = Settings(self.common, self.config)
         self.old_settings.load()
 
-        close_after_first_download = self.old_settings.get(
-            'close_after_first_download')
-        if close_after_first_download:
-            self.close_after_first_download_checkbox.setCheckState(
-                QtCore.Qt.Checked)
-        else:
-            self.close_after_first_download_checkbox.setCheckState(
-                QtCore.Qt.Unchecked)
-
-        shutdown_timeout = self.old_settings.get('shutdown_timeout')
-        if shutdown_timeout:
-            self.shutdown_timeout_checkbox.setCheckState(QtCore.Qt.Checked)
-        else:
-            self.shutdown_timeout_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        save_private_key = self.old_settings.get('save_private_key')
-        if save_private_key:
-            self.save_private_key_checkbox.setCheckState(QtCore.Qt.Checked)
-        else:
-            self.save_private_key_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        use_legacy_v2_onions = self.old_settings.get('use_legacy_v2_onions')
-
-        if use_legacy_v2_onions:
-            self.use_legacy_v2_onions_checkbox.setCheckState(QtCore.Qt.Checked)
-            self.use_stealth_widget.show()
-        else:
-            self.use_stealth_widget.hide()
-
         data_dir = self.old_settings.get('data_dir')
         self.data_dir_lineedit.setText(data_dir)
 
-        public_mode = self.old_settings.get('public_mode')
-        if public_mode:
-            self.public_mode_checkbox.setCheckState(QtCore.Qt.Checked)
-        else:
-            self.public_mode_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        use_stealth = self.old_settings.get('use_stealth')
-        if use_stealth:
-            self.stealth_checkbox.setCheckState(QtCore.Qt.Checked)
-            # Legacy v2 mode is forced on if Stealth is enabled
-            self.use_legacy_v2_onions_checkbox.setEnabled(False)
-            if save_private_key and self.old_settings.get(
-                    'hidservauth_string') != "":
-                self.hidservauth_details.show()
-                self.hidservauth_copy_button.show()
-        else:
-            self.stealth_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        use_autoupdate = self.old_settings.get('use_autoupdate')
-        if use_autoupdate:
-            self.autoupdate_checkbox.setCheckState(QtCore.Qt.Checked)
-        else:
-            self.autoupdate_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        autoupdate_timestamp = self.old_settings.get('autoupdate_timestamp')
-        self._update_autoupdate_timestamp(autoupdate_timestamp)
-
-        locale = self.old_settings.get('locale')
-        locale_index = self.language_combobox.findData(QtCore.QVariant(locale))
-        self.language_combobox.setCurrentIndex(locale_index)
 
         connection_type = self.old_settings.get('connection_type')
         if connection_type == 'bundled':
@@ -876,25 +646,6 @@ class SettingsDialog(QtWidgets.QDialog):
         clipboard = self.qtapp.clipboard()
         clipboard.setText(self.old_settings.get('hidservauth_string'))
 
-    def use_legacy_v2_onions_checkbox_clicked(self, checked):
-        """
-        Show the legacy settings if the legacy mode is enabled.
-        """
-        if checked:
-            self.use_stealth_widget.show()
-        else:
-            self.use_stealth_widget.hide()
-
-    def stealth_checkbox_clicked_connect(self, checked):
-        """
-        Prevent the v2 legacy mode being switched off if stealth is enabled
-        """
-        if checked:
-            self.use_legacy_v2_onions_checkbox.setCheckState(QtCore.Qt.Checked)
-            self.use_legacy_v2_onions_checkbox.setEnabled(False)
-        else:
-            self.use_legacy_v2_onions_checkbox.setEnabled(True)
-
     def data_dir_button_clicked(self):
         """
         Browse for a new OnionShare data directory
@@ -953,59 +704,6 @@ class SettingsDialog(QtWidgets.QDialog):
                 self.tor_status.hide()
                 self._enable_buttons()
 
-    def check_for_updates(self):
-        """
-        Check for Updates button clicked. Manually force an update check.
-        """
-        self.common.log('SettingsDialog', 'check_for_updates')
-        # Disable buttons
-        self._disable_buttons()
-        self.qtapp.processEvents()
-
-        def update_timestamp():
-            # Update the last checked label
-            settings = Settings(self.common, self.config)
-            settings.load()
-            autoupdate_timestamp = settings.get('autoupdate_timestamp')
-            self._update_autoupdate_timestamp(autoupdate_timestamp)
-
-        def close_forced_update_thread():
-            forced_update_thread.quit()
-            self._enable_buttons()
-            update_timestamp()
-
-        # Check for updates
-        def update_available(update_url, installed_version, latest_version):
-            Alert(self.common,
-                  strings._("update_available").format(update_url,
-                                                       installed_version,
-                                                       latest_version))
-            close_forced_update_thread()
-
-        def update_not_available():
-            Alert(self.common, strings._('update_not_available'))
-            close_forced_update_thread()
-
-        def update_error():
-            Alert(self.common,
-                  strings._('update_error_check_error'),
-                  QtWidgets.QMessageBox.Warning)
-            close_forced_update_thread()
-
-        def update_invalid_version(latest_version):
-            Alert(self.common,
-                  strings._('update_error_invalid_latest_version').format(
-                      latest_version), QtWidgets.QMessageBox.Warning)
-            close_forced_update_thread()
-
-        forced_update_thread = UpdateThread(self.common, self.onion,
-                                            self.config, force=True)
-        forced_update_thread.update_available.connect(update_available)
-        forced_update_thread.update_not_available.connect(update_not_available)
-        forced_update_thread.update_error.connect(update_error)
-        forced_update_thread.update_invalid_version.connect(
-            update_invalid_version)
-        forced_update_thread.start()
 
     def save_clicked(self):
         """
@@ -1126,38 +824,6 @@ class SettingsDialog(QtWidgets.QDialog):
         settings = Settings(self.common, self.config)
         settings.load()  # To get the last update timestamp
 
-        settings.set('close_after_first_download',
-                     self.close_after_first_download_checkbox.isChecked())
-        settings.set('shutdown_timeout',
-                     self.shutdown_timeout_checkbox.isChecked())
-
-        # Complicated logic here to force v2 onion mode on or off depending on
-        # other settings
-        use_legacy_v2_onions = self.use_legacy_v2_onions_checkbox.isChecked()
-
-        if self.save_private_key_checkbox.isChecked():
-            settings.set('save_private_key', True)
-            settings.set('private_key', self.old_settings.get('private_key'))
-            settings.set('slug', self.old_settings.get('slug'))
-            settings.set('hidservauth_string',
-                         self.old_settings.get('hidservauth_string'))
-        else:
-            settings.set('save_private_key', False)
-            settings.set('private_key', '')
-            settings.set('slug', '')
-            # Also unset the HidServAuth if we are removing our reusable
-            # private key
-            settings.set('hidservauth_string', '')
-
-        settings.set('use_legacy_v2_onions', use_legacy_v2_onions)
-
-        settings.set('data_dir', self.data_dir_lineedit.text())
-        settings.set('public_mode', self.public_mode_checkbox.isChecked())
-        settings.set('use_stealth', self.stealth_checkbox.isChecked())
-        # Always unset the HidServAuth if Stealth mode is unset
-        if not self.stealth_checkbox.isChecked():
-            settings.set('hidservauth_string', '')
-
         # Language
         locale_index = self.language_combobox.currentIndex()
         locale = self.language_combobox.itemData(locale_index)
@@ -1173,7 +839,6 @@ class SettingsDialog(QtWidgets.QDialog):
         if self.connection_type_socket_file_radio.isChecked():
             settings.set('connection_type', 'socket_file')
 
-        settings.set('use_autoupdate', self.autoupdate_checkbox.isChecked())
 
         settings.set('control_port_address',
                      self.connection_control_extras_address.text())
@@ -1281,17 +946,6 @@ class SettingsDialog(QtWidgets.QDialog):
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
 
-    def _update_autoupdate_timestamp(self, autoupdate_timestamp):
-        self.common.log('SettingsDialog', '_update_autoupdate_timestamp')
-
-        if autoupdate_timestamp:
-            dt = datetime.datetime.fromtimestamp(autoupdate_timestamp)
-            last_checked = dt.strftime('%B %d, %Y %H:%M')
-        else:
-            last_checked = strings._('gui_settings_autoupdate_timestamp_never')
-        self.autoupdate_timestamp.setText(
-            strings._('gui_settings_autoupdate_timestamp')
-            .format(last_checked))
 
     def _tor_status_update(self, progress, summary):
         self.tor_status.setText(
