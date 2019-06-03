@@ -33,7 +33,6 @@ login_manager = LoginManager()
 
 userfuck = None
 bcryptfuck = None
-# dbfuck = None
 
 
 class ShareModeWeb(object):
@@ -52,7 +51,6 @@ class ShareModeWeb(object):
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
         self.db = SQLAlchemy(web.app)
-        # global dbfuck
         dbfuck = self.db
         self.define_routes(dbfuck)
 
@@ -99,7 +97,7 @@ class ShareModeWeb(object):
 
         @login_manager.user_loader
         def load_user(username):
-            dbfuck.create_all()
+            self.db.create_all()
             return userfuck.query.filter(userfuck.username == username).first()
 
         @self.web.app.errorhandler(Exception)
