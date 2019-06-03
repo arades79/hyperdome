@@ -27,7 +27,6 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .add_server_dialog import AddServerDialog, Server
-from . import server_status
 
 import requests
 import traceback

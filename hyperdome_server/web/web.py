@@ -23,12 +23,10 @@ import logging
 import os
 import queue
 import socket
-from distutils.version import LooseVersion as Version
 from urllib.request import urlopen
 
 import flask
-from flask import (Flask, request, render_template, abort, make_response,
-                   __version__ as flask_version)
+from flask import Flask, request, render_template, abort, make_response
 
 from .. import strings
 
@@ -85,7 +83,6 @@ class Web(object):
         self.stop_q = queue.Queue()
 
         self.mode = 'share'
-
 
         self.security_headers = [
             ('Content-Security-Policy',
