@@ -43,13 +43,8 @@ def load_strings(common):
     # Build strings
     default_locale = 'en'
     current_locale = common.settings.get('locale')
-    strings = {}
-    for s in translations[default_locale]:
-        if (s in translations[current_locale]
-                and translations[current_locale][s]):
-            strings[s] = translations[current_locale][s]
-        else:
-            strings[s] = translations[default_locale][s]
+    strings = {s: (translations[current_locale][s] if s in translations[current_locale] else translations[default_locale][s]) for s in translations[default_locale]}
+
 
 
 def translated(k):
