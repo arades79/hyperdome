@@ -21,12 +21,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from PyQt5 import QtCore, QtWidgets, QtGui
 import sys
 import platform
-import datetime
 import re
 import os
 from hyperdome_server import strings
 from hyperdome_server.settings import Settings
-from .update_checker import UpdateThread
 from hyperdome_server.onion import (BundledTorTimeout,
                                     BundledTorNotSupported,
                                     TorErrorProtocolError, TorErrorAuthError,
@@ -104,7 +102,6 @@ class SettingsDialog(QtWidgets.QDialog):
         self.save_private_key_widget = QtWidgets.QWidget()
         self.save_private_key_widget.setLayout(save_private_key_layout)
 
-
         self.hidservauth_details = QtWidgets.QLabel(
             strings._('gui_settings_stealth_hidservauth_string'))
         self.hidservauth_details.setWordWrap(True)
@@ -134,7 +131,6 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_settings_onion_label"))
         onion_group.setLayout(onion_group_layout)
 
-
         # OnionShare data dir
         data_dir_label = QtWidgets.QLabel(
             strings._('gui_settings_data_dir_label'))
@@ -147,7 +143,6 @@ class SettingsDialog(QtWidgets.QDialog):
         data_dir_layout.addWidget(data_dir_label)
         data_dir_layout.addWidget(self.data_dir_lineedit)
         data_dir_layout.addWidget(data_dir_button)
-
 
         # Connection type: either automatic, control port, or socket file
 
@@ -446,7 +441,6 @@ class SettingsDialog(QtWidgets.QDialog):
         data_dir = self.old_settings.get('data_dir')
         self.data_dir_lineedit.setText(data_dir)
 
-
         connection_type = self.old_settings.get('connection_type')
         if connection_type == 'bundled':
             if self.connection_type_bundled_radio.isEnabled():
@@ -704,7 +698,6 @@ class SettingsDialog(QtWidgets.QDialog):
                 self.tor_status.hide()
                 self._enable_buttons()
 
-
     def save_clicked(self):
         """
         Save button clicked. Save current settings to disk.
@@ -839,7 +832,6 @@ class SettingsDialog(QtWidgets.QDialog):
         if self.connection_type_socket_file_radio.isChecked():
             settings.set('connection_type', 'socket_file')
 
-
         settings.set('control_port_address',
                      self.connection_control_extras_address.text())
         settings.set('control_port_port',
@@ -945,7 +937,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
-
 
     def _tor_status_update(self, progress, summary):
         self.tor_status.setText(
