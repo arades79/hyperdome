@@ -61,7 +61,7 @@ class OnionShareExtension(GObject.GObject, Nautilus.MenuProvider):
         cmd = [path, "--filenames"] + filenames
         subprocess.Popen(cmd)
 
-    def get_file_items(self, window, files):
+    def get_file_items(self, _, files):
         menuitem = Nautilus.MenuItem(name='OnionShare::Nautilus',
                                      label=self.label,
                                      tip='',
@@ -76,5 +76,5 @@ class OnionShareExtension(GObject.GObject, Nautilus.MenuProvider):
         self.exec_onionshare(file_list)
 
     # Workaround https://bugzilla.gnome.org/show_bug.cgi?id=784278
-    def get_background_items(self, window, file):
+    def get_background_items(self, _, file):
         return None
