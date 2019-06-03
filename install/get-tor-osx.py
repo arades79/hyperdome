@@ -16,33 +16,33 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
-"""
 This script downloads a pre-built tor binary to bundle with OnionShare.
 In order to avoid a Mac gnupg dependency, I manually verify the signature
 and hard-code the sha256 hash.
 """
-
 import inspect
 import os
 import sys
 import hashlib
-import zipfile
-import io
 import shutil
 import subprocess
 import requests
 
+
 def main():
-    dmg_url = 'https://archive.torproject.org/tor-package-archive/torbrowser/8.0.5/TorBrowser-8.0.5-osx64_en-US.dmg'
+    dmg_url = ('https://archive.torproject.org/tor-package-archive'
+               '/torbrowser/8.0.5/TorBrowser-8.0.5-osx64_en-US.dmg')
     dmg_filename = 'TorBrowser-8.0.5-osx64_en-US.dmg'
-    expected_dmg_sha256 = '08f0f79181319b74f8ad3a3f8c72a46356ec47f1ca3e22eb42d92e51451d9411'
+    expected_dmg_sha256 = ('08f0f79181319b74f8ad3a3f8c72a463'
+                           '56ec47f1ca3e22eb42d92e51451d9411')
 
     # Build paths
-    root_path = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+    root_path = os.path.dirname(os.path.dirname(os.path.abspath(
+        inspect.getfile(inspect.currentframe()))))
     working_path = os.path.join(root_path, 'build', 'tor')
-    dmg_tor_path = os.path.join('/Volumes', 'Tor Browser', 'Tor Browser.app', 'Contents')
+    dmg_tor_path = os.path.join('/Volumes', 'Tor Browser',
+                                'Tor Browser.app', 'Contents')
     dmg_path = os.path.join(working_path, dmg_filename)
     dist_path = os.path.join(root_path, 'dist', 'OnionShare.app', 'Contents')
 
@@ -79,23 +79,36 @@ def main():
     os.makedirs(os.path.join(dist_path, 'MacOS', 'Tor'))
 
     # Modify the tor script to adjust the path
-    tor_script = open(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser', 'Tor', 'tor'), 'r').read()
+    tor_script = open(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser',
+                                   'Tor', 'tor'), 'r').read()
     tor_script = tor_script.replace('../../../MacOS/Tor', '../../MacOS/Tor')
-    open(os.path.join(dist_path, 'Resources', 'Tor', 'tor'), 'w').write(tor_script)
+    open(os.path.join(dist_path, 'Resources', 'Tor', 'tor'),
+         'w').write(tor_script)
 
     # Copy into dist
-    shutil.copyfile(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser', 'Tor', 'geoip'), os.path.join(dist_path, 'Resources', 'Tor', 'geoip'))
-    shutil.copyfile(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser', 'Tor', 'geoip6'), os.path.join(dist_path, 'Resources', 'Tor', 'geoip6'))
+    shutil.copyfile(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser',
+                                 'Tor', 'geoip'),
+                    os.path.join(dist_path, 'Resources', 'Tor', 'geoip'))
+    shutil.copyfile(os.path.join(dmg_tor_path, 'Resources', 'TorBrowser',
+                                 'Tor', 'geoip6'),
+                    os.path.join(dist_path, 'Resources', 'Tor', 'geoip6'))
     os.chmod(os.path.join(dist_path, 'Resources', 'Tor', 'tor'), 0o755)
-    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor', 'tor.real'), os.path.join(dist_path, 'MacOS', 'Tor', 'tor.real'))
-    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor', 'libevent-2.1.6.dylib'), os.path.join(dist_path, 'MacOS', 'Tor', 'libevent-2.1.6.dylib'))
+    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor', 'tor.real'),
+                    os.path.join(dist_path, 'MacOS', 'Tor', 'tor.real'))
+    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor',
+                                 'libevent-2.1.6.dylib'),
+                    os.path.join(dist_path, 'MacOS', 'Tor',
+                                 'libevent-2.1.6.dylib'))
     os.chmod(os.path.join(dist_path, 'MacOS', 'Tor', 'tor.real'), 0o755)
     # obfs4proxy binary
-    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor', 'PluggableTransports', 'obfs4proxy'), os.path.join(dist_path, 'Resources', 'Tor', 'obfs4proxy'))
+    shutil.copyfile(os.path.join(dmg_tor_path, 'MacOS', 'Tor',
+                                 'PluggableTransports', 'obfs4proxy'),
+                    os.path.join(dist_path, 'Resources', 'Tor', 'obfs4proxy'))
     os.chmod(os.path.join(dist_path, 'Resources', 'Tor', 'obfs4proxy'), 0o755)
 
     # Eject dmg
     subprocess.call(['diskutil', 'eject', '/Volumes/Tor Browser'])
+
 
 if __name__ == '__main__':
     main()

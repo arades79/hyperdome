@@ -16,14 +16,11 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
-"""
 This script downloads a pre-built tor binary to bundle with OnionShare.
 In order to avoid a Windows gnupg dependency, I manually verify the signature
 and hard-code the sha256 hash.
 """
-
 import inspect
 import os
 import sys
@@ -32,15 +29,21 @@ import shutil
 import subprocess
 import requests
 
+
 def main():
-    exe_url = 'https://archive.torproject.org/tor-package-archive/torbrowser/8.0.5/torbrowser-install-8.0.5_en-US.exe'
+    exe_url = ('https://archive.torproject.org/tor-package-archive'
+               '/torbrowser/8.0.5/torbrowser-install-8.0.5_en-US.exe')
     exe_filename = 'torbrowser-install-8.0.5_en-US.exe'
-    expected_exe_sha256 = '860fdd06e4ea8dd4c46f221676251f5cc528676d4e256559ee3831a5f97492f1'
+    expected_exe_sha256 = ('860fdd06e4ea8dd4c46f221676251f5c'
+                           'c528676d4e256559ee3831a5f97492f1')
     # Build paths
-    root_path = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+    root_path = os.path.dirname(os.path.dirname(os.path.abspath(
+        inspect.getfile(inspect.currentframe()))))
     working_path = os.path.join(os.path.join(root_path, 'build'), 'tor')
     exe_path = os.path.join(working_path, exe_filename)
-    dist_path = os.path.join(os.path.join(os.path.join(root_path, 'dist'), 'onionshare'), 'tor')
+    dist_path = os.path.join(os.path.join(os.path.join(root_path, 'dist'),
+                                          'onionshare'),
+                             'tor')
 
     # Make sure the working folder exists
     if not os.path.exists(working_path):
@@ -64,8 +67,10 @@ def main():
         sys.exit(-1)
 
     # Extract the bits we need from the exe
-    cmd = ['7z', 'e', '-y', exe_path, 'Browser\TorBrowser\Tor', '-o%s' % os.path.join(working_path, 'Tor')]
-    cmd2 = ['7z', 'e', '-y', exe_path, 'Browser\TorBrowser\Data\Tor\geoip*', '-o%s' % os.path.join(working_path, 'Data')]
+    cmd = ['7z', 'e', '-y', exe_path, r'Browser\TorBrowser\Tor', '-o%s'
+           % os.path.join(working_path, 'Tor')]
+    cmd2 = ['7z', 'e', '-y', exe_path, r'Browser\TorBrowser\Data\Tor\geoip*',
+            '-o%s' % os.path.join(working_path, 'Data')]
     subprocess.Popen(cmd).wait()
     subprocess.Popen(cmd2).wait()
 
@@ -73,8 +78,11 @@ def main():
     if os.path.exists(dist_path):
         shutil.rmtree(dist_path)
     os.makedirs(dist_path)
-    shutil.copytree( os.path.join(working_path, 'Tor'), os.path.join(dist_path, 'Tor') )
-    shutil.copytree( os.path.join(working_path, 'Data'), os.path.join(dist_path, 'Data', 'Tor') )
+    shutil.copytree(os.path.join(working_path, 'Tor'),
+                    os.path.join(dist_path, 'Tor'))
+    shutil.copytree(os.path.join(working_path, 'Data'),
+                    os.path.join(dist_path, 'Data', 'Tor'))
+
 
 if __name__ == '__main__':
     main()
