@@ -49,12 +49,11 @@ def get_user_class_from_db_and_bcrypt(db, bcrypt):
             self._password = bcrypt.generate_password_hash(plaintext)
 
         def is_correct_password(self, plaintext):
-            return bcrypt.check_password_hash(self._password,
-                                                  plaintext)
+            return bcrypt.check_password_hash(self._password, plaintext)
     return User
 
-class ShareModeWeb(object):
 
+class ShareModeWeb(object):
     """
     All of the web logic for share mode
     """
@@ -64,7 +63,6 @@ class ShareModeWeb(object):
         self.common.log('ShareModeWeb', '__init__')
 
         self.web = web
-
 
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
@@ -79,7 +77,8 @@ class ShareModeWeb(object):
         self.connected_therapist = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
-        self.user_class = get_user_class_from_db_and_bcrypt(self.db, self.bcrypt)
+        self.user_class = get_user_class_from_db_and_bcrypt(self.db,
+                                                            self.bcrypt)
 
     def define_routes(self):
 
@@ -93,7 +92,8 @@ class ShareModeWeb(object):
         @login_manager.user_loader
         def load_user(username):
             self.db.create_all()
-            return self.user_class.query.filter(self.user_class.username == username).first()
+            return self.user_class.query.filter(self.user_class.username
+                                                == username).first()
 
         @self.web.app.errorhandler(Exception)
         def unhandled_exception(e):
