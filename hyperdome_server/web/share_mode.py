@@ -33,7 +33,7 @@ login_manager = LoginManager()
 
 userfuck = None
 bcryptfuck = None
-dbfuck = None
+# dbfuck = None
 
 
 class ShareModeWeb(object):
@@ -48,13 +48,13 @@ class ShareModeWeb(object):
 
         self.web = web
 
-        self.define_routes()
 
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
         self.db = SQLAlchemy(web.app)
-        global dbfuck
+        # global dbfuck
         dbfuck = self.db
+        self.define_routes(dbfuck)
 
         self.bcrypt = Bcrypt(web.app)
         global bcryptfuck
@@ -88,7 +88,7 @@ class ShareModeWeb(object):
         global userfuck
         userfuck = User
 
-    def define_routes(self):
+    def define_routes(self, dbfuck):
 
         @self.web.app.before_request
         def before_request():
