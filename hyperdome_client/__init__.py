@@ -76,7 +76,6 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # Start the Qt app
-    global qtapp
     qtapp = Application(common)
 
     # Parse arguments
