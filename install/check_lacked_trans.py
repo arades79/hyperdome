@@ -27,7 +27,13 @@ es disused gui_starting_server
 """
 
 
-import fileinput, argparse, re, os, codecs, json, sys
+import fileinput
+import argparse
+import re
+import os
+import codecs
+import json
+import sys
 
 
 def arg_parser():
@@ -54,36 +60,35 @@ def main():
 
     dir = args.onionshare_dir
 
-    src = files_in(dir, 'onionshare') + \
-          files_in(dir, 'onionshare_gui') + \
-          files_in(dir, 'onionshare_gui/share_mode') + \
-          files_in(dir, 'onionshare_gui/receive_mode') + \
-          files_in(dir, 'install/scripts') + \
-          files_in(dir, 'tests')
+    src = (files_in(dir, 'onionshare')
+           + files_in(dir, 'onionshare_gui')
+           + files_in(dir, 'onionshare_gui/share_mode')
+           + files_in(dir, 'onionshare_gui/receive_mode')
+           + files_in(dir, 'install/scripts')
+           + files_in(dir, 'tests'))
     pysrc = [p for p in src if p.endswith('.py')]
 
     lang_code = args.lang_code
 
     translate_keys = set()
     # load translate key from python source
-    for line in fileinput.input(pysrc, openhook=fileinput.hook_encoded('utf-8')):
+    for line in fileinput.input(pysrc,
+                                openhook=fileinput.hook_encoded('utf-8')):
         # search `strings._('translate_key')`
         #        `strings._('translate_key', True)`
         m = re.findall(r'strings\._\((.*?)\)', line)
-        if m:
-            for match in m:
-                key = match.split(',')[0].strip('''"' ''')
-                translate_keys.add(key)
+        for match in m:
+            key = match.split(',')[0].strip('''"' ''')
+            translate_keys.add(key)
 
     if args.show_all_keys:
         for k in sorted(translate_keys):
             print(k)
         sys.exit()
 
-    if lang_code == 'all':
-        locale_files = [f for f in files_in(dir, 'share/locale') if f.endswith('.json')]
-    else:
-        locale_files = [f for f in files_in(dir, 'share/locale') if f.endswith('%s.json' % lang_code)]
+    locale_files = [f for f in files_in(dir, 'share/locale')
+                    if f.endswith('.json' if lang_code == 'all'
+                                  else '%s.json' % lang_code)]
     for locale_file in locale_files:
         with codecs.open(locale_file, 'r', encoding='utf-8') as f:
             trans = json.load(f)

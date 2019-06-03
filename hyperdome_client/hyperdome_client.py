@@ -27,7 +27,6 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .update_checker import UpdateThread
 from .add_server_dialog import AddServerDialog, Server
-from . import server_status
 
 import requests
 import traceback
@@ -507,9 +506,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                         'closeEvent, opening warning dialog')
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle(strings._('gui_quit_title'))
-        dialog.setText(strings._('gui_share_quit_warning'
-                                 if self.mode == server_status.MODE_SHARE
-                                 else 'gui_receive_quit_warning'))
+        dialog.setText(strings._('gui_share_quit_warning'))
         dialog.setIcon(QtWidgets.QMessageBox.Critical)
         dialog.addButton(strings._('gui_quit_warning_quit'),
                          QtWidgets.QMessageBox.YesRole)
@@ -520,7 +517,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         reply = dialog.exec_()
 
         if reply == 0:
-            self.stop_server()
+            if self.onion:
+                self.onion.cleanup()
+            if self.app:
+                self.app.cleanup()
             e.accept()
         else:
             e.ignore()

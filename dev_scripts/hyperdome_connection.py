@@ -31,13 +31,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
 
 
-from hyperdome_server import strings
-from hyperdome_server.common import Common
-from hyperdome_server.web import Web
-from hyperdome_server.onion import Onion
-from hyperdome_server.hyperdome_server import HyperdomeServer
-
-from hyperdome_client.add_server_dialog import Server
+from hyperdome_server import strings # noQA
+from hyperdome_server.common import Common # noQA
+from hyperdome_server.web import Web # noQA
+from hyperdome_server.onion import Onion # noQA
+from hyperdome_server.hyperdome_server import HyperdomeServer # noQA
+from hyperdome_client.add_server_dialog import Server # noQA
 
 
 class HyperdomeServerController:
@@ -278,7 +277,6 @@ class HyperdomeUserController(HyperdomeClientController):
             print("ERROR from user: was expecting 'Therapist message 12345', "
                   f"got '{new_message}'")
             self.success = False
-        # time.sleep(5)
 
 
 def main():

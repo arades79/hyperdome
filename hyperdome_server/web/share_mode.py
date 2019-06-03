@@ -31,13 +31,29 @@ import traceback
 
 login_manager = LoginManager()
 
-userfuck = None
-bcryptfuck = None
-dbfuck = None
+
+def get_user_class_from_db_and_bcrypt(db, bcrypt):
+    class User(db.Model, UserMixin):
+        __tablename__ = 'users'
+        id = db.Column(db.Integer, primary_key=True,
+                       autoincrement=True)
+        username = db.Column(db.String(64), unique=True)
+        _password = db.Column(db.String(128))
+
+        @hybrid_property
+        def password(self):
+            return self._password
+
+        @password.setter
+        def password(self, plaintext):
+            self._password = bcrypt.generate_password_hash(plaintext)
+
+        def is_correct_password(self, plaintext):
+            return bcrypt.check_password_hash(self._password, plaintext)
+    return User
 
 
 class ShareModeWeb(object):
-
     """
     All of the web logic for share mode
     """
@@ -48,17 +64,12 @@ class ShareModeWeb(object):
 
         self.web = web
 
-        self.define_routes()
-
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
         self.db = SQLAlchemy(web.app)
-        global dbfuck
-        dbfuck = self.db
+        self.define_routes()
 
         self.bcrypt = Bcrypt(web.app)
-        global bcryptfuck
-        bcryptfuck = self.bcrypt
         login_manager.init_app(web.app)
         login_manager.login_view = "therapist_signin"
         login_manager.session_protection = None
@@ -66,27 +77,8 @@ class ShareModeWeb(object):
         self.connected_therapist = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
-
-        class User(self.db.Model, UserMixin):
-            __tablename__ = 'users'
-            id = self.db.Column(self.db.Integer, primary_key=True,
-                                autoincrement=True)
-            username = self.db.Column(self.db.String(64), unique=True)
-            _password = self.db.Column(self.db.String(128))
-
-            @hybrid_property
-            def password(self):
-                return self._password
-
-            @password.setter
-            def password(self, plaintext):
-                self._password = bcryptfuck.generate_password_hash(plaintext)
-
-            def is_correct_password(self, plaintext):
-                return bcryptfuck.check_password_hash(self._password,
-                                                      plaintext)
-        global userfuck
-        userfuck = User
+        self.user_class = get_user_class_from_db_and_bcrypt(self.db,
+                                                            self.bcrypt)
 
     def define_routes(self):
 
@@ -99,8 +91,9 @@ class ShareModeWeb(object):
 
         @login_manager.user_loader
         def load_user(username):
-            dbfuck.create_all()
-            return userfuck.query.filter(userfuck.username == username).first()
+            self.db.create_all()
+            return self.user_class.query.filter(self.user_class.username
+                                                == username).first()
 
         @self.web.app.errorhandler(Exception)
         def unhandled_exception(e):
@@ -141,8 +134,8 @@ class ShareModeWeb(object):
             if request.form.get('masterkey', "") == "megumin":
                 if load_user(request.form['username']):
                     return "Username already exists"
-                user = userfuck(username=request.form['username'],
-                                password=request.form['password'])
+                user = self.user_class(username=request.form['username'],
+                                       password=request.form['password'])
                 self.db.session.add(user)
                 self.db.session.commit()
                 return "Success"
