@@ -62,7 +62,7 @@ class Web(object):
 
     def __init__(self, common, is_gui):
         self.common = common
-        self.common.log('Web', '__init__', 'is_gui={}'.format(is_gui))
+        self.common.log('Web', '__init__', f'is_gui={is_gui}')
 
         # The flask app
         self.app = Flask(__name__,
@@ -86,15 +86,6 @@ class Web(object):
 
         self.mode = 'share'
 
-        # Starting in Flask 0.11, render_template_string autoescapes template
-        # variables by default. To prevent content injection through template
-        # variables in earlier versions of Flask, we force autoescaping in the
-        # Jinja2 template engine if we detect a Flask version with insecure
-        # default behavior.
-        if Version(flask_version) < Version('0.11'):
-            # Monkey-patch in the fix from
-            # https://github.com/pallets/flask/commit/99c99c4
-            Flask.select_jinja_autoescape = self._safe_select_jinja_autoescape
 
         self.security_headers = [
             ('Content-Security-Policy',
