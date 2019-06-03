@@ -278,7 +278,6 @@ class HyperdomeUserController(HyperdomeClientController):
             print("ERROR from user: was expecting 'Therapist message 12345', "
                   f"got '{new_message}'")
             self.success = False
-        # time.sleep(5)
 
 
 def main():
