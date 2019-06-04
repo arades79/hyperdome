@@ -23,8 +23,6 @@ import json
 import os
 import locale
 
-from hyperdome_server import Common
-
 try:
     # We only need pwd module in macOS, and it's not available in Windows
     import pwd
@@ -40,7 +38,8 @@ class Settings(object):
     settings.
     """
 
-    def __init__(self, common: Common, config: str = ''):
+    def __init__(self, common,
+                 config: str = None):
         self.common = common
 
         self.common.log('Settings', '__init__')
@@ -49,7 +48,7 @@ class Settings(object):
         self.filename = self.build_filename()
 
         # If a readable config file was provided, use that instead
-        if config:
+        if config is not None:
             if os.path.isfile(config):
                 self.filename = config
             else:

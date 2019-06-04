@@ -48,7 +48,7 @@ class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, common: Common,
                  onion: Onion,
                  qtapp: QtWidgets.QApplication,
-                 config=False,
+                 config: str = '',
                  local_only: bool = False):
         super(SettingsDialog, self).__init__()
 
