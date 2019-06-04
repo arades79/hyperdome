@@ -23,10 +23,12 @@ import json
 import os
 import locale
 
+from hyperdome_server import Common
+
 try:
     # We only need pwd module in macOS, and it's not available in Windows
     import pwd
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 
@@ -38,7 +40,7 @@ class Settings(object):
     settings.
     """
 
-    def __init__(self, common, config=False):
+    def __init__(self, common: Common, config: str = ''):
         self.common = common
 
         self.common.log('Settings', '__init__')
@@ -98,12 +100,11 @@ class Settings(object):
             'save_private_key': False,
             'private_key': '',
             'public_mode': False,
-            'slug': '',
             'hidservauth_string': '',
             'data_dir': self.build_default_data_dir(),
             'locale': None  # this gets defined in fill_in_defaults()
         }
-        self._settings = {}
+        self._settings: dict[str] = {}
         self.fill_in_defaults()
 
     def fill_in_defaults(self):
@@ -118,7 +119,7 @@ class Settings(object):
         # Choose the default locale based on the OS preference, and fall-back
         # to English
         if self._settings['locale'] is None:
-            language_code, encoding = locale.getdefaultlocale()
+            language_code, _ = locale.getdefaultlocale()
 
             # Default to English
             if not language_code:
@@ -186,10 +187,10 @@ class Settings(object):
         self.common.log('Settings', 'save',
                         'Settings saved in {}'.format(self.filename))
 
-    def get(self, key):
+    def get(self, key: str):
         return self._settings[key]
 
-    def set(self, key, val):
+    def set(self, key: str, val):
         # If typecasting int values fails, fallback to default values
         if key in ('control_port_port', 'socks_port'):
             try:

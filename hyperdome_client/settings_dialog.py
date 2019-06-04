@@ -24,6 +24,7 @@ import platform
 import re
 import os
 from hyperdome_server import strings
+from hyperdome_server.common import Common
 from hyperdome_server.settings import Settings
 from hyperdome_server.onion import (BundledTorTimeout,
                                     BundledTorNotSupported,
@@ -44,7 +45,11 @@ class SettingsDialog(QtWidgets.QDialog):
     """
     settings_saved = QtCore.pyqtSignal()
 
-    def __init__(self, common, onion, qtapp, config=False, local_only=False):
+    def __init__(self, common: Common,
+                 onion: Onion,
+                 qtapp: QtWidgets.QApplication,
+                 config=False,
+                 local_only: bool = False):
         super(SettingsDialog, self).__init__()
 
         self.common = common
@@ -665,6 +670,8 @@ class SettingsDialog(QtWidgets.QDialog):
 
         try:
             # Show Tor connection status if connection type is bundled tor
+            onion = Onion(self.common)
+
             if settings.get('connection_type') == 'bundled':
                 self.tor_status.show()
                 self._disable_buttons()
@@ -672,13 +679,13 @@ class SettingsDialog(QtWidgets.QDialog):
                 def tor_status_update_func(progress, summary):
                     self._tor_status_update(progress, summary)
                     return True
-            else:
-                tor_status_update_func = None
 
-            onion = Onion(self.common)
-            onion.connect(custom_settings=settings,
-                          config=self.config,
-                          tor_status_update_func=tor_status_update_func)
+                onion.connect(custom_settings=settings,
+                              config=self.config,
+                              tor_status_update_func=tor_status_update_func)
+            else:
+                onion.connect(custom_settings=settings,
+                              config=self.config)
 
             # If an exception hasn't been raised yet, the Tor settings work
             Alert(self.common, strings._('settings_test_success').format(
@@ -712,7 +719,7 @@ class SettingsDialog(QtWidgets.QDialog):
             return any((s1.get(key) != s2.get(key) for key in keys))
 
         settings = self.settings_from_fields()
-        if settings:
+        if settings is not None:
             # If language changed, inform user they need to restart OnionShare
             if changed(settings, self.old_settings, ['locale']):
                 # Look up error message in different locale
@@ -921,7 +928,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 Alert(self.common,
                       strings._('gui_settings_tor_bridges_invalid'))
                 settings.set('no_bridges', True)
-                return False
+                return None
 
         return settings
 
