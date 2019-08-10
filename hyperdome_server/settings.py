@@ -171,3 +171,11 @@ class Settings(object):
                 val = self.default_settings[key]
 
         self._settings[key] = val
+
+    def clear(self):
+        """
+        Clear all settings and re-initialize to defaults
+        """
+        self._settings = self.default_settings
+        self.fill_in_defaults()
+        self.save()

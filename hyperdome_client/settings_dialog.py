@@ -401,9 +401,12 @@ class SettingsDialog(QtWidgets.QDialog):
         self.help_button = QtWidgets.QPushButton(
             strings._('gui_settings_button_help'))
         self.help_button.clicked.connect(self.help_clicked)
+        self.clear_button = QtWidgets.QPushButton('Default Settings')
+        self.clear_button.clicked.connect(self.clear_clicked)
         buttons_layout = QtWidgets.QHBoxLayout()
         buttons_layout.addWidget(version_label)
         buttons_layout.addWidget(self.help_button)
+        buttons_layout.addWidget(self.clear_button)
         buttons_layout.addStretch()
         buttons_layout.addWidget(self.save_button)
         buttons_layout.addWidget(self.cancel_button)
@@ -442,9 +445,6 @@ class SettingsDialog(QtWidgets.QDialog):
         # Load settings, and fill them in
         self.old_settings = Settings(self.common, self.config)
         self.old_settings.load()
-
-        data_dir = self.old_settings.get('data_dir')
-        self.data_dir_lineedit.setText(data_dir)
 
         connection_type = self.old_settings.get('connection_type')
         if connection_type == 'bundled':
@@ -509,11 +509,13 @@ class SettingsDialog(QtWidgets.QDialog):
             self.connect_to_tor_label.hide()
             self.onion_settings_widget.show()
 
-            # If v3 onion services are supported, allow using legacy mode
+            # If v3 onion services are not supported, report
             if not self.onion.supports_v3_onions:
                 self.common.log('SettingsDialog',
                                 '__init__',
-                                'v3 are required for hyperdome')
+                                'v3 onions are required for hyperdome')
+                Alert(self.common, "v3 onion support not detected, "
+                                   "v3 onions are required for Hyperdome")
         else:
             self.connect_to_tor_label.show()
             self.onion_settings_widget.hide()
@@ -803,6 +805,14 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         self.common.log('SettingsDialog', 'help_clicked')
         SettingsDialog.open_help()
+
+    def clear_clicked(self):
+        """
+        Default Settings button clicked.
+        """
+        settings = Settings(self.common, self.config)
+        settings.clear()
+        self.reload_settings()
 
     @staticmethod
     def open_help():
