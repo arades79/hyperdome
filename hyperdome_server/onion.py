@@ -545,25 +545,22 @@ class Onion(object):
         else:
             basic_auth = None
 
+        if not self.supports_v3_onions:
+            raise TorTooOld("Hyperdome requires v3 onion support")
+
         if self.settings.get('private_key'):
             key_content = self.settings.get('private_key')
             # If not v2 key, assume it was a v3 key.
             # Stem will throw an error if it's something illegible.
-            key_type = ("RSA1024" if self.is_v2_key(key_content)
-                        else "ED25519-V3")
+            key_type = "ED25519-V3"
 
         else:
             key_type = "NEW"
             # Work out if we can support v3 onion services, which are preferred
-            key_content = ("ED25519-V3" if (self.supports_v3_onions
-                                            and not self.settings.get(
-                                                'use_legacy_v2_onions'))
-                           else "RSA1024")
+            key_content = "ED25519-V3"
 
         # v3 onions don't yet support basic auth. Our ticket:
         # https://github.com/micahflee/onionshare/issues/697
-        if (key_type == "NEW" and key_content == "ED25519-V3"
-                and not self.settings.get('use_legacy_v2_onions')):
             basic_auth = None
             self.stealth = False
 

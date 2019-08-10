@@ -148,7 +148,6 @@ class Settings(object):
             with open(self.filename, 'r') as f:
                 self._settings = json.load(f)
                 self.fill_in_defaults()
-        os.makedirs(self.get('data_dir'), exist_ok=True)
 
     def save(self):
         """
