@@ -23,12 +23,6 @@ import json
 import os
 import locale
 
-try:
-    # We only need pwd module in macOS, and it's not available in Windows
-    import pwd
-except ImportError:
-    pass
-
 
 class Settings(object):
     """
@@ -95,12 +89,10 @@ class Settings(object):
             'tor_bridges_use_obfs4': False,
             'tor_bridges_use_meek_lite_azure': False,
             'tor_bridges_use_custom_bridges': '',
-            'use_legacy_v2_onions': False,
             'save_private_key': False,
             'private_key': '',
             'public_mode': False,
             'hidservauth_string': '',
-            'data_dir': self.build_default_data_dir(),
             'locale': None  # this gets defined in fill_in_defaults()
         }
         self._settings: dict[str] = {}
@@ -142,25 +134,6 @@ class Settings(object):
         Returns the path of the settings file.
         """
         return os.path.join(self.common.build_data_dir(), 'onionshare.json')
-
-    def build_default_data_dir(self):
-        """
-        Returns the path of the default Downloads directory for receive mode.
-        """
-
-        if self.common.platform == "Darwin":
-            # We can't use os.path.expanduser() in macOS because in the
-            # sandbox it returns the path to the sandboxed homedir
-            real_homedir = pwd.getpwuid(os.getuid()).pw_dir
-            return os.path.join(real_homedir, 'OnionShare')
-        elif self.common.platform == "Windows":
-            # On Windows, os.path.expanduser() needs to use backslash, or else
-            # it retains the forward slash, which breaks opening the folder
-            # in explorer.
-            return os.path.expanduser(r'~\OnionShare')
-        else:
-            # All other OSes
-            return os.path.expanduser('~/OnionShare')
 
     def load(self):
         """
