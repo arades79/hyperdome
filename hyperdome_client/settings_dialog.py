@@ -510,17 +510,10 @@ class SettingsDialog(QtWidgets.QDialog):
             self.onion_settings_widget.show()
 
             # If v3 onion services are supported, allow using legacy mode
-            if self.onion.supports_v3_onions:
+            if not self.onion.supports_v3_onions:
                 self.common.log('SettingsDialog',
                                 '__init__',
-                                'v3 onions are supported')
-                self.use_legacy_v2_onions_checkbox.show()
-            else:
-                self.common.log('SettingsDialog',
-                                '__init__',
-                                'v3 onions are not supported')
-                self.use_legacy_v2_onions_widget.hide()
-                self.use_legacy_v2_onions_checkbox_clicked(True)
+                                'v3 are required for hyperdome')
         else:
             self.connect_to_tor_label.show()
             self.onion_settings_widget.hide()
@@ -825,9 +818,9 @@ class SettingsDialog(QtWidgets.QDialog):
         settings.load()  # To get the last update timestamp
 
         # Language
-        locale_index = self.language_combobox.currentIndex()
-        locale = self.language_combobox.itemData(locale_index)
-        settings.set('locale', locale)
+        # locale_index = self.language_combobox.currentIndex()
+        # locale = self.language_combobox.itemData(locale_index)
+        # settings.set('locale', locale)
 
         # Tor connection
         if self.connection_type_bundled_radio.isChecked():

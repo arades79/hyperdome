@@ -417,13 +417,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if not self.local_only and self.onion.is_authenticated():
                 if not self.timer.isActive():
                     self.timer.start(500)
-                self.share_mode.on_reload_settings()
-                self.status_bar.clearMessage()
-
-            # If we switched off the shutdown timeout setting, ensure the
-            # widget is hidden.
-            if not self.common.settings.get('shutdown_timeout'):
-                self.share_mode.server_status.shutdown_timeout_container.hide()
 
         d = SettingsDialog(self.common, self.onion, self.qtapp, self.config,
                            self.local_only)
