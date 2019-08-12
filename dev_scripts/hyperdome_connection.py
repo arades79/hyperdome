@@ -49,8 +49,8 @@ class HyperdomeServerController:
         self.t = None
         self.onion_connected = False
 
-    def prepare_connection(self, num_tries=10):
-        for try_index in range(num_tries):
+    def prepare_connection(self, num_tries: int = 10):
+        for _ in range(num_tries):
             common = Common()
             common.load_settings()
             strings.load_strings(common)
@@ -100,22 +100,10 @@ class HyperdomeServerController:
         if self.app.shutdown_timeout > 0:
             self.app.shutdown_timer.start()
 
-        # Save the web slug if we are using a persistent private key
-        if common.settings.get('save_private_key'):
-                # common.settings.save()
-
         print('')
-        self.url = 'http://{0:s}/{1:s}'.format(self.app.onion_host,
-                                               self.web.slug)
-        if stealth:
-            print(strings._("give_this_url_stealth"))
-            print("Do not copy the slug (part after last /) for now")
-            print(self.url)
-            print(self.app.auth_string)
-        else:
-            print(strings._("give_this_url"))
-            print("Do not copy the slug (part after last /) for now")
-            print(self.url)
+        self.url = 'http://{0:s}'.format(self.app.onion_host)
+        print(strings._("give_this_url"))
+        print(self.url)
         print()
         print(strings._("ctrlc_to_stop"))
         return True
@@ -225,6 +213,7 @@ class HyperdomeTherapistController(HyperdomeClientController):
                                    "password": self.server.password},
                           data={"message": "Therapist message 12345"})
         print("Posted therapist message")
+        new_message = ''
         for _ in range(60):
             new_message = self.session.get(
                 f"{self.server.url}/collect_therapist_messages",
@@ -258,6 +247,7 @@ class HyperdomeUserController(HyperdomeClientController):
         self.session.post(f'{self.server.url}/message_from_user',
                           data={'message': "User message 12345",
                                 'guest_id': self.uid})
+        new_message = ''
         for _ in range(60):
             new_message = self.session.get(
                 f"{self.server.url}/collect_guest_messages",

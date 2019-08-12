@@ -156,7 +156,6 @@ class Onion(object):
 
         self.common.log('Onion', '__init__')
 
-        self.stealth = False
         self.service_id = None
 
         # Is bundled tor supported?
@@ -415,7 +414,7 @@ class Onion(object):
                     elif self.common.platform == 'Darwin':
                         socket_file_path = (f'/run/user/{os.geteuid()}/Tor/'
                                             'control.socket')
-                    elif self.common.platform == 'Windows':
+                    else: # self.common.platform == 'Windows':
                         # Windows doesn't support unix sockets
                         raise TorErrorAutomatic(
                             strings._('settings_error_automatic'))
@@ -530,39 +529,17 @@ class Onion(object):
         self.auth_string = None
         if not self.supports_ephemeral:
             raise TorTooOld(strings._('error_ephemeral_not_supported'))
-        if self.stealth and not self.supports_stealth:
-            raise TorTooOld(strings._('error_stealth_not_supported'))
-
-        print(strings._("config_onion_service").format(int(port)))
-
-        if self.stealth:
-            if self.settings.get('hidservauth_string'):
-                hidservauth_string = self.settings.get(
-                    'hidservauth_string').split()[2]
-                basic_auth = {'onionshare': hidservauth_string}
-            else:
-                basic_auth = {'onionshare': None}
-        else:
-            basic_auth = None
-
         if not self.supports_v3_onions:
             raise TorTooOld("Hyperdome requires v3 onion support")
 
+        print(strings._("config_onion_service").format(int(port)))
+
         if self.settings.get('private_key'):
             key_content = self.settings.get('private_key')
-            # If not v2 key, assume it was a v3 key.
-            # Stem will throw an error if it's something illegible.
             key_type = "ED25519-V3"
-
         else:
             key_type = "NEW"
-            # Work out if we can support v3 onion services, which are preferred
             key_content = "ED25519-V3"
-
-        # v3 onions don't yet support basic auth. Our ticket:
-        # https://github.com/micahflee/onionshare/issues/697
-            basic_auth = None
-            self.stealth = False
 
         debug_message = 'key_type={}'.format(key_type)
         if key_type == "NEW":
@@ -571,18 +548,9 @@ class Onion(object):
                         '{}'.format(debug_message))
         await_publication = True
         try:
-            if basic_auth is not None:
-                res = self.c.create_ephemeral_hidden_service(
-                    {80: port}, await_publication=await_publication,
-                    basic_auth=basic_auth, key_type=key_type,
-                    key_content=key_content, timeout=10)
-            else:
-                # if the stem interface is older than 1.5.0, basic_auth isn't a
-                # valid keyword arg
-                res = self.c.create_ephemeral_hidden_service(
-                    {80: port}, await_publication=await_publication,
-                    key_type=key_type, key_content=key_content, timeout=10)
-
+            res = self.c.create_ephemeral_hidden_service(
+                {80: port}, await_publication=await_publication,
+                key_type=key_type, key_content=key_content, timeout=10)
         except ProtocolError as e:
             raise TorErrorProtocolError(
                 strings._('error_tor_protocol_error').format(e.args[0]))

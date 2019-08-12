@@ -106,6 +106,10 @@ class Common(object):
                 prefix = os.path.join(sys._MEIPASS, 'share')
             elif self.platform == 'Windows':
                 prefix = os.path.join(os.path.dirname(sys.executable), 'share')
+            else:
+                raise SystemError
+        else:
+            raise SystemError
 
         return os.path.join(prefix, filename)
 
