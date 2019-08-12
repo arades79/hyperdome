@@ -185,10 +185,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.show()
 
-        # Create the timer
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self._timer_callback)
-
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
         tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
         tor_con.canceled.connect(self._tor_connection_canceled)
@@ -196,7 +192,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not self.local_only:
             tor_con.start()
 
-        self.timer.start(1000)
 
     def send_message(self):
         """
@@ -216,21 +211,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             try:
                 if not (self.uid or self.server.is_therapist):
                     self.get_uid()
-                self.chat_history.append("You: " + message)
-                self.on_history_added()
-                if self.server.is_therapist:  # needs auth
-                    self.session.post(
-                        f"{self.server.url}/message_from_therapist",
-                        data={
-                            "username": self.server.username,
-                            "password": self.server.password,
-                            "message": message})
-                else:  # normal user
-                    self.session.post(
-                        f'{self.server.url}/message_from_user',
-                        data={
-                            'message': message,
-                            'guest_id': self.uid})
+                self.chat_window.addItem(f"You: {message}")
+                # run send_message in threadpool
             except Exception as e:
                 print(
                     ''.join(
@@ -250,12 +232,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.Warning,
                 buttons=QtWidgets.QMessageBox.Ok)
 
-    def on_history_added(self):
+    def on_history_added(self, messages: str):
         """
         Update UI with messages retrieved from server.
         """
-        self.chat_window.addItems(self.chat_history)
-        self.chat_history = []
+        if self.server.is_therapist:
+            message_list = [f'{self.therapist}: {message}'
+                            for message in messages.split('\n')]
+        else:
+            message_list = [f'Guest: {message}'
+                            for message in messages.split('\n')]
+        self.chat_window.addItems(message_list)
 
     def get_uid(self):
         """
@@ -287,6 +274,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
+        self.start_chat()
+
+    def start_chat(self):
         try:
             if self.server.is_therapist:
                 self.session.post(f"{self.server.url}/therapist_signup",
