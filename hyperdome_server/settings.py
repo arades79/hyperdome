@@ -33,7 +33,7 @@ class Settings(object):
     """
 
     def __init__(self, common,
-                 config: str = None):
+                 config: str = ''):
         self.common = common
 
         self.common.log('Settings', '__init__')
@@ -42,7 +42,7 @@ class Settings(object):
         self.filename = self.build_filename()
 
         # If a readable config file was provided, use that instead
-        if config is not None:
+        if config:
             if os.path.isfile(config):
                 self.filename = config
             else:

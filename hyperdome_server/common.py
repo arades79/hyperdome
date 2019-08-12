@@ -51,7 +51,7 @@ class Common(object):
         with open(self.get_resource_path('version.txt')) as f:
             self.version = f.read().strip()
 
-    def load_settings(self, config=None):
+    def load_settings(self, config = ''):
         """
         Loading settings, optionally from a custom config json file.
         """
