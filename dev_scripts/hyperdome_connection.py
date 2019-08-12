@@ -102,8 +102,6 @@ class HyperdomeServerController:
 
         # Save the web slug if we are using a persistent private key
         if common.settings.get('save_private_key'):
-            if not common.settings.get('slug'):
-                common.settings.set('slug', self.web.slug)
                 # common.settings.save()
 
         print('')
@@ -187,7 +185,6 @@ class HyperdomeClientController:
             self.server = Server(url=self.onion_url)
             # We might need more arguments to onion connect, unsure
             self.onion.connect(self.common.settings)
-            self.run_client_2()
         except Exception as e:
             print(''.join(traceback.format_exception(type(e),
                                                      e,
