@@ -80,10 +80,7 @@ class Settings(object):
             'socket_file_path': '/var/run/tor/control',
             'auth_type': 'no_auth',
             'auth_password': '',
-            'close_after_first_download': True,
             'shutdown_timeout': False,
-            'use_stealth': False,
-            'use_autoupdate': True,
             'autoupdate_timestamp': None,
             'no_bridges': True,
             'tor_bridges_use_obfs4': False,
@@ -91,7 +88,6 @@ class Settings(object):
             'tor_bridges_use_custom_bridges': '',
             'save_private_key': False,
             'private_key': '',
-            'public_mode': False,
             'hidservauth_string': '',
             'locale': None  # this gets defined in fill_in_defaults()
         }

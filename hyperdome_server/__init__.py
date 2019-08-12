@@ -120,10 +120,7 @@ def main(cwd=None):
         sys.exit()
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True,
-                                                 common.settings.get(
-                                                     'public_mode'),
-                                                 common.settings.get('slug')))
+    t = threading.Thread(target=web.start, args=(app.port, True))
     t.daemon = True
     t.start()
 

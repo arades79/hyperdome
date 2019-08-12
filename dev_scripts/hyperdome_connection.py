@@ -88,8 +88,7 @@ class HyperdomeServerController:
             return False
         # Start OnionShare http service in new thread
         self.t = threading.Thread(target=self.web.start,
-                                  args=(self.app.port, True,
-                                        common.settings.get('public_mode')),
+                                  args=(self.app.port, True),
                                   daemon=True)
         self.t.start()
 

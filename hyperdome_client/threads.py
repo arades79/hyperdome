@@ -88,6 +88,4 @@ class WebThread(QtCore.QThread):
         self.mode.common.log('WebThread', 'run')
         self.mode.app.choose_port()
         self.mode.web.start(self.mode.app.port,
-                            self.mode.app.stay_open,
-                            self.mode.common.settings.get('public_mode'),
-                            self.mode.common.settings.get('slug'))
+                            self.mode.app.stay_open)
