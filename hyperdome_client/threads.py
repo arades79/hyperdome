@@ -19,8 +19,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import time
+import requests
 from PyQt5 import QtCore
 
+from .add_server_dialog import Server
 from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorErrorAuthError,
                                     TorErrorUnreadableCookieFile,
@@ -76,7 +78,7 @@ class WebThread(QtCore.QThread):
     """
     Starts the web service
     """
-    success = QtCore.pyqtSignal()
+    success = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
 
     def __init__(self, mode):
@@ -88,4 +90,70 @@ class WebThread(QtCore.QThread):
         self.mode.common.log('WebThread', 'run')
         self.mode.app.choose_port()
         self.mode.web.start(self.mode.app.port,
-                            self.mode.app.stay_open)
+                            self.mode.app.stay_open,
+                            self.mode.common.settings.get('public_mode'),
+                            self.mode.common.settings.get('slug'))
+
+
+class PostRequestThread(QtCore.QThread):
+    """
+    Send message to server on another thread
+    """
+    success = QtCore.pyqtSignal(str)
+    error = QtCore.pyqtSignal(str)
+
+    def __init__(self,
+                 session: requests.Session,
+                 url: str = '',
+                 data: dict = {}):
+        super(PostRequestThread, self).__init__()
+        self.session = session
+        self.url = url
+        self.data = data
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        try:
+            response = self.session.post(self.url, self.data).text
+            self.success.emit(response)
+        except (requests.ConnectionError, requests.RequestException) as e:
+            self.error.emit(str(e))
+
+
+class GetMessagesThread(QtCore.QThread):
+    """
+    retrieve new messages on a fixed interval
+    """
+    success = QtCore.pyqtSignal(list)
+    error = QtCore.pyqtSignal(str)
+
+    def __init__(self, session: requests.Session, server: Server):
+        super(GetMessagesThread, self).__init__()
+        self.session = session
+        self.server = server
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        while True:
+            if self.server.is_therapist:
+                new_messages = self.session.get(
+                    f"{self.server.url}/collect_therapist_messages",
+                    headers={"username": self.server.username,
+                             "password": self.server.password}).text
+                if new_messages:
+                    new_messages = [f'Guest: {message}' for message
+                                    in new_messages.split('\n')]
+                    self.chat_window.addItems(new_messages)
+            elif self.uid:
+                new_messages = self.session.get(
+                    f"{self.server.url}/collect_guest_messages",
+                    data={"guest_id": self.uid}).text
+                if new_messages:
+                    new_messages = [f'{self.therapist}: {message}' for message
+                                    in new_messages.split('\n')]
+                    self.success.emit(new_messages)
+            self.sleep(2)
