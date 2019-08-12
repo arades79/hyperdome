@@ -122,7 +122,7 @@ class PostRequestThread(QtCore.QThread):
             self.error.emit(str(e))
 
 
-class GetMessagesThread(QtCore.QThread):
+class GetMessagesThread(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
     """
@@ -139,6 +139,7 @@ class GetMessagesThread(QtCore.QThread):
 
     def run(self):
         while True:
+            # TODO: unify counselor and guest versions w/UID
             if self.server.is_therapist:
                 new_messages = self.session.get(
                     f"{self.server.url}/collect_therapist_messages",
@@ -157,3 +158,29 @@ class GetMessagesThread(QtCore.QThread):
                                     in new_messages.split('\n')]
                     self.success.emit(new_messages)
             self.sleep(2)
+
+def send_message(server: Server,
+                 session: requests.Session,
+                 uid: str,
+                 message: str):
+    if server.is_therapist:  # needs auth
+        session.post(
+            f"{server.url}/message_from_therapist",
+            data={
+                "username": server.username,
+                "password": server.password,
+                "message": message})
+    else:  # normal user
+        session.post(
+            f'{server.url}/message_from_user',
+            data={
+                'message': message,
+                'guest_id': uid})
+
+def get_uid(server: Server,
+            session: requests.Session):
+    """
+    Ask server for a new UID for a new user session
+    """
+    return session.get(
+        f'{server.url}/generate_guest_id').text
