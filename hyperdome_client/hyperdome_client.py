@@ -64,12 +64,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             'images/logo.png')))
 
         # initialize session variables
-        self.uid = ''
-        self.chat_history = []
-        self.servers = dict()
-        self.server = Server()
-        self.is_connected = False
-        self._session = None
+        self.uid: str = ''
+        self.chat_history: list = []
+        self.servers: dict = dict()
+        self.server: Server = Server()
+        self.is_connected: bool = False
+        self._session: requests.Session = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -221,7 +221,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 if self.server.is_therapist:  # needs auth
                     self.session.post(
                         f"{self.server.url}/message_from_therapist",
-                        headers={
+                        data={
                             "username": self.server.username,
                             "password": self.server.password,
                             "message": message})
