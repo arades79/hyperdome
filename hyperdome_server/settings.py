@@ -53,19 +53,19 @@ class Settings(object):
         # Dictionary of available languages in this version of OnionShare,
         # mapped to the language name, in that language
         self.available_locales = {
-            'bn': 'বাংলা',       # Bengali
-            'ca': 'Català',     # Catalan
-            'da': 'Dansk',      # Danish
+            # 'bn': 'বাংলা',       # Bengali
+            # 'ca': 'Català',     # Catalan
+            # 'da': 'Dansk',      # Danish
             'en': 'English',    # English
-            'fr': 'Français',   # French
-            'el': 'Ελληνικά',   # Greek
-            'it': 'Italiano',   # Italian
-            'ja': '日本語',      # Japanese
-            'fa': 'فارسی',      # Persian
-            'pt_BR': 'Português (Brasil)',  # Portuguese Brazil
-            'ru': 'Русский',    # Russian
-            'es': 'Español',    # Spanish
-            'sv': 'Svenska'     # Swedish
+            # 'fr': 'Français',   # French
+            # 'el': 'Ελληνικά',   # Greek
+            # 'it': 'Italiano',   # Italian
+            # 'ja': '日本語',      # Japanese
+            # 'fa': 'فارسی',      # Persian
+            # 'pt_BR': 'Português (Brasil)',  # Portuguese Brazil
+            # 'ru': 'Русский',    # Russian
+            # 'es': 'Español',    # Spanish
+            # 'sv': 'Svenska'     # Swedish
         }
 
         # These are the default settings. They will get overwritten when
@@ -86,7 +86,8 @@ class Settings(object):
             'tor_bridges_use_obfs4': False,
             'tor_bridges_use_meek_lite_azure': False,
             'tor_bridges_use_custom_bridges': '',
-            'save_private_key': False,
+            'save_private_key': True, # should be renamed for clarity,
+                                      # perhaps "use ephemeral"
             'private_key': '',
             'hidservauth_string': '',
             'locale': None  # this gets defined in fill_in_defaults()
