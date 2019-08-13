@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import time
 import requests
+import typing
 from PyQt5 import QtCore
 
 from .add_server_dialog import Server
@@ -53,10 +54,6 @@ class OnionThread(QtCore.QThread):
         self.mode.app.stay_open = not self.mode.common.settings.get(
             'close_after_first_download')
 
-        # start onionshare http service in new thread
-        self.mode.web_thread = WebThread(self.mode)
-        self.mode.web_thread.start()
-
         # wait for modules in thread to load, preventing a thread-related
         # cx_Freeze crash
         time.sleep(0.2)
@@ -74,89 +71,45 @@ class OnionThread(QtCore.QThread):
             return
 
 
-class WebThread(QtCore.QThread):
+class GenricTask(QtCore.QRunnable):
     """
-    Starts the web service
-    """
-    success = QtCore.pyqtSignal(str)
-    error = QtCore.pyqtSignal(str)
-
-    def __init__(self, mode):
-        super(WebThread, self).__init__()
-        self.mode = mode
-        self.mode.common.log('WebThread', '__init__')
-
-    def run(self):
-        self.mode.common.log('WebThread', 'run')
-        self.mode.app.choose_port()
-        self.mode.web.start(self.mode.app.port,
-                            self.mode.app.stay_open,
-                            self.mode.common.settings.get('public_mode'),
-                            self.mode.common.settings.get('slug'))
-
-
-class PostRequestThread(QtCore.QThread):
-    """
-    Send message to server on another thread
+    take a zero parameter function and run it
     """
     success = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self,
-                 session: requests.Session,
-                 url: str = '',
-                 data: dict = {}):
-        super(PostRequestThread, self).__init__()
-        self.session = session
-        self.url = url
-        self.data = data
-
-    def __del__(self):
-        self.wait()
+    @QtCore.pyqtSlot(typing.Callable[[],None])
+    def __init__(self, f: typing.Callable[[],None]):
+        self.f = f
 
     def run(self):
-        try:
-            response = self.session.post(self.url, self.data).text
-            self.success.emit(response)
-        except (requests.ConnectionError, requests.RequestException) as e:
-            self.error.emit(str(e))
+        self.f()
 
 
-class GetMessagesThread(QtCore.QRunnable):
+class GetMessagesTask(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
     """
     success = QtCore.pyqtSignal(list)
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, session: requests.Session, server: Server):
-        super(GetMessagesThread, self).__init__()
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(GetMessagesTask, self).__init__()
         self.session = session
         self.server = server
+        self.uid = uid
 
     def __del__(self):
         self.wait()
 
     def run(self):
         while True:
-            # TODO: unify counselor and guest versions w/UID
-            if self.server.is_therapist:
-                new_messages = self.session.get(
-                    f"{self.server.url}/collect_therapist_messages",
-                    headers={"username": self.server.username,
-                             "password": self.server.password}).text
-                if new_messages:
-                    new_messages = [f'Guest: {message}' for message
-                                    in new_messages.split('\n')]
-                    self.chat_window.addItems(new_messages)
-            elif self.uid:
-                new_messages = self.session.get(
-                    f"{self.server.url}/collect_guest_messages",
-                    data={"guest_id": self.uid}).text
-                if new_messages:
-                    new_messages = [f'{self.therapist}: {message}' for message
-                                    in new_messages.split('\n')]
-                    self.success.emit(new_messages)
+            try:
+                self.success.emit(
+                    get_messages(self.server, self.session, self.uid))
+            except:
+                self.error.emit("Error in get messages request")
+                break
             self.sleep(2)
 
 def send_message(server: Server,
@@ -184,3 +137,20 @@ def get_uid(server: Server,
     """
     return session.get(
         f'{server.url}/generate_guest_id').text
+
+def get_messages(server: Server,
+                 session: requests.Session,
+                 uid: str = ''):
+    # TODO: unify counselor and guest versions w/UID
+    if server.is_therapist:
+        new_messages = session.get(
+            f"{server.url}/collect_therapist_messages",
+            headers={"username": server.username,
+                     "password": server.password}).text
+    elif uid:
+        new_messages = session.get(
+            f"{server.url}/collect_guest_messages",
+            data={"guest_id": uid}).text
+    else:
+        new_messages = ''
+    return new_messages
