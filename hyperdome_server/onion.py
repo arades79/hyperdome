@@ -399,7 +399,7 @@ class Onion(object):
                         self.c = Controller.from_socket_file(
                             path=socket_file_path)
                         found_tor = True
-                    except AttributeError:
+                    except (AttributeError, stem.SocketError):
                         pass
 
             # If connecting to default control ports failed, so let's try
