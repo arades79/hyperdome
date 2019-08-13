@@ -176,6 +176,8 @@ class HyperdomeClientController:
             print(''.join(traceback.format_exception(type(e),
                                                      e,
                                                      e.__traceback__)))
+    def run_client_2(self):
+        raise NotImplementedError
 
     def run_client_2(self):
         raise NotImplementedError
