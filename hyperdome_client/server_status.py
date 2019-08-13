@@ -229,7 +229,6 @@ class ServerStatus(QtWidgets.QWidget):
             if self.common.settings.get('shutdown_timeout'):
                 self.shutdown_timeout_container.hide()
 
-
                 self.copy_hidservauth_button.hide()
         else:
             self.url_description.hide()
@@ -272,11 +271,11 @@ class ServerStatus(QtWidgets.QWidget):
                     if self.mode == ServerStatus.MODE_SHARE:
                         self.server_button.setToolTip(strings._(
                             'gui_share_stop_server_shutdown_timeout_tooltip'
-                            ).format(self.timeout))
+                        ).format(self.timeout))
                     else:
                         self.server_button.setToolTip(strings._(
                             'gui_receive_stop_server_shutdown_timeout_tooltip'
-                            ).format(self.timeout))
+                        ).format(self.timeout))
 
             elif self.status == self.STATUS_WORKING:
                 self.server_button.setStyleSheet(
@@ -301,13 +300,13 @@ class ServerStatus(QtWidgets.QWidget):
             if self.common.settings.get('shutdown_timeout'):
                 if self.local_only:
                     self.timeout = self.shutdown_timeout.dateTime(
-                        ).toPyDateTime()
+                    ).toPyDateTime()
                 else:
                     # Get the timeout chosen, stripped of its seconds. This
                     # prevents confusion if the share stops at (say) 37 seconds
                     # past the minute chosen
                     self.timeout = self.shutdown_timeout.dateTime(
-                        ).toPyDateTime().replace(second=0, microsecond=0)
+                    ).toPyDateTime().replace(second=0, microsecond=0)
                 # If the timeout has actually passed already before the user
                 # hit Start, refuse to start the server.
                 if (QtCore.QDateTime.currentDateTime().toPyDateTime()

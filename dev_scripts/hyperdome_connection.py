@@ -31,12 +31,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
 
 
-from hyperdome_server import strings # noQA
-from hyperdome_server.common import Common # noQA
-from hyperdome_server.web import Web # noQA
-from hyperdome_server.onion import Onion # noQA
-from hyperdome_server.hyperdome_server import HyperdomeServer # noQA
-from hyperdome_client.add_server_dialog import Server # noQA
+from hyperdome_server import strings  # noQA
+from hyperdome_server.common import Common  # noQA
+from hyperdome_server.web import Web  # noQA
+from hyperdome_server.onion import Onion  # noQA
+from hyperdome_server.hyperdome_server import HyperdomeServer  # noQA
+from hyperdome_client.add_server_dialog import Server  # noQA
 
 
 class HyperdomeServerController:
@@ -277,7 +277,7 @@ def main():
         print("Connected to tor")
         while hsc_thread.is_alive() and not hsc.url:
             time.sleep(0.1)
-        url_no_slug = hsc.url # slugs are no longer real
+        url_no_slug = hsc.url  # slugs are no longer real
         print("\n\n\n\n\n\n\n\n\n\nGot HSC url")
         htc = HyperdomeTherapistController(url_no_slug)
         huc = HyperdomeUserController(url_no_slug)

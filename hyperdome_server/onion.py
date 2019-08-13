@@ -412,7 +412,7 @@ class Onion(object):
                     elif self.common.platform == 'Darwin':
                         socket_file_path = (f'/run/user/{os.geteuid()}/Tor/'
                                             'control.socket')
-                    else: # self.common.platform == 'Windows':
+                    else:  # self.common.platform == 'Windows':
                         # Windows doesn't support unix sockets
                         raise TorErrorAutomatic(
                             strings._('settings_error_automatic'))
@@ -492,7 +492,6 @@ class Onion(object):
             self.c, "list_ephemeral_hidden_services", None)
         self.supports_ephemeral = callable(
             list_ephemeral_hidden_services) and self.tor_version >= '0.2.7.1'
-
 
         # Does this version of Tor support next-gen ('v3') onions?
         # Note, this is the version of Tor where this bug was fixed:
