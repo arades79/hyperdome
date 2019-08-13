@@ -66,7 +66,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # initialize session variables
         self.uid: str = ''
         self.chat_history: list = []
-        self.servers: dict = dict()
+        self.servers: dict = {}
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
@@ -413,22 +413,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
-    def check_for_updates(self):
-        """
-        Check for updates in a new thread, if enabled.
-        """
-        if self.common.platform in ('Windows', 'Darwin'):
-            if self.common.settings.get('use_autoupdate'):
-                def update_available(update_url, installed_version,
-                                     latest_version):
-                    Alert(self.common, strings._("update_available").format(
-                        update_url, installed_version, latest_version))
-
-                self.update_thread = UpdateThread(self.common,
-                                                  self.onion,
-                                                  self.config)
-                self.update_thread.update_available.connect(update_available)
-                self.update_thread.start()
 
     def _timer_callback(self):
         """
