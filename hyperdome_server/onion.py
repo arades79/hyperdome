@@ -142,8 +142,6 @@ class Onion(object):
     creating onion services. OnionShare supports creating onion services by
     connecting to the Tor controller and using ADD_ONION, DEL_ONION.
 
-    stealth: Should the onion service be stealth?
-
     settings: A Settings object. If it's not passed in, load from disk.
 
     bundled_connection_func: If the tor connection type is bundled, optionally
@@ -179,7 +177,7 @@ class Onion(object):
 
     def __repr__(self):
         dict_props = {key: self.__dict__.get(key, 'NOT FOUND') for key in
-                      ('stealth', 'service_id', 'bundle_tor_supported',
+                      ('service_id', 'bundle_tor_supported',
                        'tor_proc', 'c', 'connected_to_tor')
                       }
         return f'<Onion {dict_props}>'
@@ -495,18 +493,6 @@ class Onion(object):
         self.supports_ephemeral = callable(
             list_ephemeral_hidden_services) and self.tor_version >= '0.2.7.1'
 
-        # Do the versions of stem and tor that I'm using support stealth onion
-        # services?
-        try:
-            res = self.c.create_ephemeral_hidden_service(
-                {1: 1}, basic_auth={'onionshare': None},
-                await_publication=False)
-            tmp_service_id = res.service_id
-            self.c.remove_ephemeral_hidden_service(tmp_service_id)
-            self.supports_stealth = True
-        except (stem.ControllerError, stem.Timeout):
-            # ephemeral stealth onion services are not supported
-            self.supports_stealth = False
 
         # Does this version of Tor support next-gen ('v3') onions?
         # Note, this is the version of Tor where this bug was fixed:
@@ -563,26 +549,6 @@ class Onion(object):
             if not self.settings.get('private_key'):
                 self.settings.set('private_key', res.private_key)
 
-        if self.stealth:
-            # Similar to the PrivateKey, the Control port only returns the
-            # ClientAuth in the response if it was responsible for creating
-            # the basic_auth password in the first place.
-            # If we sent the basic_auth (due to a saved hidservauth_string in
-            # the settings), there is no response here, so use the saved value
-            # from settings.
-            if self.settings.get('save_private_key'):
-                if self.settings.get('hidservauth_string'):
-                    self.auth_string = self.settings.get('hidservauth_string')
-                else:
-                    auth_cookie = list(res.client_auth.values())[0]
-                    self.auth_string = 'HidServAuth {} {}'.format(onion_host,
-                                                                  auth_cookie)
-                    self.settings.set('hidservauth_string', self.auth_string)
-            else:
-                auth_cookie = list(res.client_auth.values())[0]
-                self.auth_string = 'HidServAuth {} {}'.format(onion_host,
-                                                              auth_cookie)
-
         if onion_host is not None:
             self.settings.save()
             return onion_host
@@ -622,7 +588,6 @@ class Onion(object):
 
             # Reset other Onion settings
             self.connected_to_tor = False
-            self.stealth = False
 
             try:
                 # Delete the temporary tor data directory

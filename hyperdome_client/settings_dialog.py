@@ -686,7 +686,6 @@ class SettingsDialog(QtWidgets.QDialog):
             Alert(self.common, strings._('settings_test_success').format(
                 onion.tor_version,
                 onion.supports_ephemeral,
-                onion.supports_stealth,
                 onion.supports_v3_onions))
             onion.cleanup()
 

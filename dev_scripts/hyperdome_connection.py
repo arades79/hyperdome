@@ -59,7 +59,6 @@ class HyperdomeServerController:
             local_only = False
             common.debug = True
             shutdown_timeout = 0
-            stealth = False
 
             self.web = Web(common, False)
 
@@ -72,7 +71,6 @@ class HyperdomeServerController:
                                        self.onion,
                                        local_only,
                                        shutdown_timeout)
-            self.app.set_stealth(stealth)
             self.app.choose_port()
             try:
                 self.app.start_onion_service()
@@ -279,7 +277,7 @@ def main():
         print("Connected to tor")
         while hsc_thread.is_alive() and not hsc.url:
             time.sleep(0.1)
-        url_no_slug = hsc.url.rsplit('/', 1)[0]
+        url_no_slug = hsc.url # slugs are no longer real
         print("\n\n\n\n\n\n\n\n\n\nGot HSC url")
         htc = HyperdomeTherapistController(url_no_slug)
         huc = HyperdomeUserController(url_no_slug)

@@ -226,17 +226,10 @@ class ServerStatus(QtWidgets.QWidget):
 
             self.copy_url_button.show()
 
-            if self.common.settings.get('save_private_key'):
-                if not self.common.settings.get('slug'):
-                    self.common.settings.set('slug', self.web.slug)
-                    self.common.settings.save()
-
             if self.common.settings.get('shutdown_timeout'):
                 self.shutdown_timeout_container.hide()
 
-            if self.app.stealth:
-                self.copy_hidservauth_button.show()
-            else:
+
                 self.copy_hidservauth_button.hide()
         else:
             self.url_description.hide()

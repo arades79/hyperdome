@@ -153,7 +153,6 @@ class Mode(QtWidgets.QWidget):
         self.start_server_custom()
 
         self.set_server_active.emit(True)
-        self.app.set_stealth(self.common.settings.get('use_stealth'))
 
         # Clear the status bar
         self.status_bar.clearMessage()
