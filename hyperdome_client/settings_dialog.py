@@ -26,7 +26,6 @@ import re
 import os
 from hyperdome_server import strings
 from hyperdome_server.settings import Settings
-from .update_checker import UpdateThread
 from hyperdome_server.onion import (BundledTorTimeout,
                                     BundledTorNotSupported,
                                     TorErrorProtocolError, TorErrorAuthError,
@@ -46,7 +45,12 @@ class SettingsDialog(QtWidgets.QDialog):
     """
     settings_saved = QtCore.pyqtSignal()
 
-    def __init__(self, common, onion, qtapp, config=False, local_only=False):
+    def __init__(self,
+                 common,
+                 onion,
+                 qtapp: QtWidgets.QApplication,
+                 config: bool = False,
+                 local_only: bool = False):
         super(SettingsDialog, self).__init__()
 
         self.common = common
@@ -54,9 +58,9 @@ class SettingsDialog(QtWidgets.QDialog):
         self.common.log('SettingsDialog', '__init__')
 
         self.onion = onion
-        self.qtapp = qtapp
-        self.config = config
-        self.local_only = local_only
+        self.qtapp: QtWidgets.QApplication = qtapp
+        self.config: bool = config
+        self.local_only: bool = local_only
 
         self.setModal(True)
         self.setWindowTitle(strings._('gui_settings_window_title'))
