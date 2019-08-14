@@ -225,6 +225,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if not self.server.is_therapist:
                 self.uid = self.session.get(
                     f'{self.server.url}/generate_guest_id').text
+            self.start_chat_button.setEnabled(True)
         except:
             Alert(
                 self.common,
@@ -258,7 +259,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
         if self.is_connected:
             self.disconnect_chat()
-            self.is_connected = False
         if self.server_dropdown.currentIndex() == \
            self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
@@ -267,9 +267,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         elif self.server_dropdown.currentIndex() != 0:
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
-            self.start_chat_button.setEnabled(True)
-        else:
-            self.start_chat_button.setEnabled(False)
+
 
     def start_chat(self):
         try:
@@ -312,8 +310,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 # TODO: authenticate the therapist here when that's a thing
             else:
                 self.session.get(f'{self.server.url}/generate_guest_id').text
-            self.server_dropdown.insertItem(self.server_dropdown.count() - 1,
-                                            server.nick)
+            self.server_dropdown.insertItem(1, server.nick)
             self.server_add_dialog.close()
         except Exception as e:
             print(
@@ -454,6 +451,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                                      strings._('gui_copied_hidservauth'))
 
     def disconnect_chat(self):
+        self.is_connected = False
         if self.server.is_therapist and self.is_connected:
             self.session.post(f"{self.server.url}/therapist_signout",
                               data={"username": self.server.username,
