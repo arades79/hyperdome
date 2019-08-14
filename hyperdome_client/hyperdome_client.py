@@ -25,7 +25,6 @@ from hyperdome_server import strings
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
 from .widgets import Alert
-from .update_checker import UpdateThread
 from .add_server_dialog import AddServerDialog, Server
 
 import requests
