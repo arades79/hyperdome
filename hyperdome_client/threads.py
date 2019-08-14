@@ -78,8 +78,8 @@ class GenricTask(QtCore.QRunnable):
     success = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
 
-    @QtCore.pyqtSlot(typing.Callable[[],None])
-    def __init__(self, f: typing.Callable[[],None]):
+    @QtCore.pyqtSlot(typing.Callable[[], None])
+    def __init__(self, f: typing.Callable[[], None]):
         self.f = f
 
     def run(self):
@@ -112,10 +112,14 @@ class GetMessagesTask(QtCore.QRunnable):
                 break
             self.sleep(2)
 
+
 def send_message(server: Server,
                  session: requests.Session,
                  uid: str,
                  message: str):
+    """
+    Send message to server provided using session for given user
+    """
     if server.is_therapist:  # needs auth
         session.post(
             f"{server.url}/message_from_therapist",
@@ -130,6 +134,7 @@ def send_message(server: Server,
                 'message': message,
                 'guest_id': uid})
 
+
 def get_uid(server: Server,
             session: requests.Session):
     """
@@ -138,9 +143,13 @@ def get_uid(server: Server,
     return session.get(
         f'{server.url}/generate_guest_id').text
 
+
 def get_messages(server: Server,
                  session: requests.Session,
                  uid: str = ''):
+    """
+    collect new messages waiting on server for active session
+    """
     # TODO: unify counselor and guest versions w/UID
     if server.is_therapist:
         new_messages = session.get(
