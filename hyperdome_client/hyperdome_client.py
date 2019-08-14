@@ -40,19 +40,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     def __init__(self,
                  common,
                  onion,
-                 qtapp,
+                 qtapp: QtWidgets.QApplication,
                  app,
                  filenames,
-                 config=False,
-                 local_only=False):
+                 config: bool = False,
+                 local_only: bool = False):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
         self.common = common
         self.onion = onion
-        self.qtapp = qtapp
+        self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
-        self.local_only = local_only
+        self.local_only: bool = local_only
         self.common.log('OnionShareGui', '__init__')
 
         # set window constants
@@ -65,7 +65,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # initialize session variables
         self.uid: str = ''
         self.chat_history: list = []
-        self.servers: dict = {}
+        self.servers: dict = dict()
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
@@ -74,32 +74,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.config = config
         if self.config:
             self.common.load_settings(self.config)
-
-        # Server status indicator on the status bar
-        self.server_status_image_stopped = QtGui.QImage(
-            self.common.get_resource_path('images/server_stopped.png'))
-        self.server_status_image_working = QtGui.QImage(
-            self.common.get_resource_path('images/server_working.png'))
-        self.server_status_image_started = QtGui.QImage(
-            self.common.get_resource_path('images/server_started.png'))
-        self.server_status_image_label = QtWidgets.QLabel()
-        self.server_status_image_label.setFixedWidth(20)
-        self.server_status_label = QtWidgets.QLabel('')
-        self.server_status_label.setStyleSheet(
-            self.common.css['server_status_indicator_label'])
-        server_status_indicator_layout = QtWidgets.QHBoxLayout()
-        server_status_indicator_layout.addWidget(
-            self.server_status_image_label)
-        server_status_indicator_layout.addWidget(self.server_status_label)
-        self.server_status_indicator = QtWidgets.QWidget()
-        self.server_status_indicator.setLayout(server_status_indicator_layout)
-
-        # Status bar
-        self.status_bar = QtWidgets.QStatusBar()
-        self.status_bar.setSizeGripEnabled(False)
-        self.status_bar.setStyleSheet(self.common.css['status_bar'])
-        self.status_bar.addPermanentWidget(self.server_status_indicator)
-        self.setStatusBar(self.status_bar)
 
         # System tray
         menu = QtWidgets.QMenu()
@@ -159,19 +133,20 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.chat_pane.addLayout(self.enter_text)
 
         # server list view
-        self.server_dialog_button = QtWidgets.QPushButton()
-        self.server_dialog_button.setText('Add New Server')
-        self.server_dialog_button.setFixedWidth(100)
-        self.server_dialog_button.clicked.connect(self.server_add_dialog.exec_)
+        self.start_chat_button = QtWidgets.QPushButton()
+        self.start_chat_button.setText('Start Chat')
+        self.start_chat_button.setFixedWidth(100)
+        self.start_chat_button.clicked.connect(self.start_chat)
+        self.start_chat_button.setEnabled(False)
 
-        self.server_dropdown = QtWidgets.QComboBox()
-        self.server_dropdown.currentIndexChanged.connect(
-            lambda i: self.server_switcher(
-                self.server_dropdown.currentText()))
+        self.server_dropdown = QtWidgets.QComboBox(self)
+        self.server_dropdown.addItem("Select a Server")
+        self.server_dropdown.addItem("Add New Server")
+        self.server_dropdown.currentIndexChanged.connect(self.server_switcher)
 
         self.server_pane = QtWidgets.QHBoxLayout()
         self.server_pane.addWidget(self.server_dropdown)
-        self.server_pane.addWidget(self.server_dialog_button)
+        self.server_pane.addWidget(self.start_chat_button)
 
         # full view
         self.full_layout = QtWidgets.QVBoxLayout()
@@ -190,7 +165,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         tor_con.open_settings.connect(self._tor_connection_open_settings)
         if not self.local_only:
             tor_con.start()
-
 
     def send_message(self):
         """
@@ -247,8 +221,18 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        self.uid = self.session.get(
-            f'{self.server.url}/generate_guest_id').text
+        try:
+            if not self.server.is_therapist:
+                self.uid = self.session.get(
+                    f'{self.server.url}/generate_guest_id').text
+        except:
+            Alert(
+                self.common,
+                "therapy machine broke",
+                QtWidgets.QMessageBox.Warning,
+                buttons=QtWidgets.QMessageBox.Ok)
+
+
 
     @property
     def session(self):
@@ -265,34 +249,44 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     'https': f'socks5h://{socks_address}:{socks_port}'}
         return self._session
 
-    def server_switcher(self, server):
+    def server_switcher(self):
         """
         Handle a switch to a different saved server by establishing a new
         connection and retrieving new UID.
         """
-        self.server = self.servers[server]
         self.chat_window.clear()
         self.message_text_field.clear()
-        self.start_chat()
+        if self.is_connected:
+            self.disconnect_chat()
+            self.is_connected = False
+        if self.server_dropdown.currentIndex() == \
+           self.server_dropdown.count() - 1:
+            self.server_dropdown.setCurrentIndex(0)
+            self.start_chat_button.setEnabled(False)
+            self.server_add_dialog.exec_()
+        elif self.server_dropdown.currentIndex() != 0:
+            self.server = self.servers[self.server_dropdown.currentText()]
+            self.get_uid()
+            self.start_chat_button.setEnabled(True)
+        else:
+            self.start_chat_button.setEnabled(False)
 
     def start_chat(self):
         try:
             if self.server.is_therapist:
-                self.session.post(f"{self.server.url}/therapist_signup",
-                                  data={"masterkey": "megumin",
-                                        "username": self.server.username,
-                                        "password": self.server.password})
                 self.session.post(f"{self.server.url}/therapist_signin",
                                   data={"username": self.server.username,
                                         "password": self.server.password})
-
+                self.is_connected = True
             else:
-                self.get_uid()
+                if not self.uid:
+                    raise Exception #TODO: make exceptions specific
                 self.therapist = self.session.post(
                     f"{self.server.url}/request_therapist",
                     data={"guest_id": self.uid}).text
                 if self.therapist:
                     self.is_connected = True
+            #start message collection
         except Exception as e:
             print(
                 ''.join(
@@ -318,7 +312,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 # TODO: authenticate the therapist here when that's a thing
             else:
                 self.session.get(f'{self.server.url}/generate_guest_id').text
-            self.server_dropdown.addItem(server.nick)
+            self.server_dropdown.insertItem(self.server_dropdown.count() - 1,
+                                            server.nick)
             self.server_add_dialog.close()
         except Exception as e:
             print(
@@ -419,7 +414,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
-
     def _timer_callback(self):
         """
         Passed to timer to continually check for new messages on the server
@@ -466,34 +460,24 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.system_tray.showMessage(strings._('gui_copied_hidservauth_title'),
                                      strings._('gui_copied_hidservauth'))
 
-    def closeEvent(self, e):
+    def disconnect_chat(self):
+        if self.server.is_therapist and self.is_connected:
+            self.session.post(f"{self.server.url}/therapist_signout",
+                              data={"username": self.server.username,
+                                    "password": self.server.password})
+
+    def closeEvent(self, _):
         """
         When the main window is closed, do some cleanup
         """
         self.common.log('OnionShareGui', 'closeEvent')
-        if self.server.is_therapist:
-            self.session.post(f"{self.server.url}/therapist_signout",
-                              data={"username": self.server.username,
-                                    "password": self.server.password})
-        self.common.log('OnionShareGui',
-                        'closeEvent, opening warning dialog')
-        dialog = QtWidgets.QMessageBox()
-        dialog.setWindowTitle(strings._('gui_quit_title'))
-        dialog.setText(strings._('gui_share_quit_warning'))
-        dialog.setIcon(QtWidgets.QMessageBox.Critical)
-        dialog.addButton(strings._('gui_quit_warning_quit'),
-                         QtWidgets.QMessageBox.YesRole)
-        dont_quit_button = dialog.addButton(
-            strings._('gui_quit_warning_dont_quit'),
-            QtWidgets.QMessageBox.NoRole)
-        dialog.setDefaultButton(dont_quit_button)
-        reply = dialog.exec_()
+        self.disconnect_chat()
 
-        if reply == 0:
-            if self.onion:
-                self.onion.cleanup()
-            if self.app:
-                self.app.cleanup()
-            e.accept()
-        else:
-            e.ignore()
+        self.system_tray.hide() # I hate that this is necessary
+
+        if self.onion:
+            self.onion.cleanup()
+        if self.app:
+            self.app.cleanup()
+
+
