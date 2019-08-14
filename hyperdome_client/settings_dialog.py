@@ -45,10 +45,11 @@ class SettingsDialog(QtWidgets.QDialog):
     """
     settings_saved = QtCore.pyqtSignal()
 
-    def __init__(self, common: Common,
-                 onion: Onion,
+    def __init__(self,
+                 common,
+                 onion,
                  qtapp: QtWidgets.QApplication,
-                 config: str = '',
+                 config: bool = False,
                  local_only: bool = False):
         super(SettingsDialog, self).__init__()
 
@@ -57,9 +58,9 @@ class SettingsDialog(QtWidgets.QDialog):
         self.common.log('SettingsDialog', '__init__')
 
         self.onion = onion
-        self.qtapp = qtapp
-        self.config = config
-        self.local_only = local_only
+        self.qtapp: QtWidgets.QApplication = qtapp
+        self.config: bool = config
+        self.local_only: bool = local_only
 
         self.setModal(True)
         self.setWindowTitle(strings._('gui_settings_window_title'))
