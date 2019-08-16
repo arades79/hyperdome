@@ -61,6 +61,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.get_messages_task: threads.GetMessagesTask = None
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self._timer_callback)
+        self.timer.setInterval(1000)
 
         # set window constants
         self.setMinimumWidth(500)
@@ -212,12 +215,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.Warning,
                 buttons=QtWidgets.QMessageBox.Ok)
 
-    @QtCore.pyqtSlot()
+    @QtCore.pyqtSlot(str)
     def on_history_added(self, messages: str):
         """
         Update UI with messages retrieved from server.
         """
-        if self.server.is_therapist:
+        if not messages:
+            return
+        if not self.server.is_therapist:
             message_list = [f'{self.therapist}: {message}'
                             for message in messages.split('\n')]
         else:
@@ -229,7 +234,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        @QtCore.pyqtSlot()
+        @QtCore.pyqtSlot(str)
         def after_id(uid: str):
             self.uid = uid
             if self.get_messages_task is not None:
@@ -241,8 +246,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.signals.success.connect(
                 self.on_history_added)
             self.get_messages_task.signals.error.connect(self.task_fail)
+            self.timer.start()
             self.start_chat_button.setEnabled(True)
 
+        if self.timer.isActive():
+            self.timer.stop()
         if not self.server.is_therapist:
             get_uid_task = threads.GetUidTask(self.server, self.session)
             get_uid_task.signals.success.connect(after_id)
@@ -423,14 +431,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
+    @QtCore.pyqtSlot()
     def _timer_callback(self):
         """
         Passed to timer to continually check for new messages on the server
         """
-        self.timer.start(1000)
-        if self.get_messages_task is None:
-            return
-        self.worker.tryStart(self.get_messages_task)
+        if self.get_messages_task is not None:
+            self.worker.tryStart(self.get_messages_task)
+        # self.timer.start(1000)
 
     def copy_url(self):
         """
