@@ -248,6 +248,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             get_uid_task.signals.success.connect(after_id)
             get_uid_task.signals.error.connect(self.task_fail)
             self.worker.start(get_uid_task)
+        else:
+            after_id('')
 
     @QtCore.pyqtSlot()
     def task_fail(self, error: str):
