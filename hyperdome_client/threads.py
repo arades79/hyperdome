@@ -71,12 +71,16 @@ class OnionThread(QtCore.QThread):
             return
 
 
+class TaskSignals(QtCore.QObject):
+    success = QtCore.pyqtSignal(str)
+    error = QtCore.pyqtSignal(str)
+
+
 class SendMessageTask(QtCore.QRunnable):
     """
     send client message to server
     """
-    error = QtCore.pyqtSignal(str)
-
+    signals = TaskSignals()
 
     def __del__(self):
         self.wait(1000)
@@ -96,14 +100,14 @@ class SendMessageTask(QtCore.QRunnable):
         try:
             send_message(self.server, self.session, self.uid, self.message)
         except:
-            self.error.emit("Couldn't send message")
+            self.signals.error.emit("Couldn't send message")
+
 
 class GetUidTask(QtCore.QRunnable):
     """
     Get a UID from the server
     """
-    success = QtCore.pyqtSignal(str)
-    error = QtCore.pyqtSignal(str)
+    signals = TaskSignals()
 
     def __del__(self):
         self.wait(1000)
@@ -118,17 +122,16 @@ class GetUidTask(QtCore.QRunnable):
     def run(self):
         try:
             uid = get_uid(self.server, self.session)
-            self.success.emit(uid)
+            self.signals.success.emit(uid)
         except:
-            self.error.emit()
+            self.signals.error.emit()
 
 
 class GetMessagesTask(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
     """
-    success = QtCore.pyqtSignal(list)
-    error = QtCore.pyqtSignal(str)
+    signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
         super(GetMessagesTask, self).__init__()
@@ -141,10 +144,10 @@ class GetMessagesTask(QtCore.QRunnable):
 
     def run(self):
         try:
-            self.success.emit(
+            self.signals.success.emit(
                 get_messages(self.server, self.session, self.uid))
         except:
-            self.error.emit("Error in get messages request")
+            self.signals.error.emit("Error in get messages request")
 
 
 def send_message(server: Server,
