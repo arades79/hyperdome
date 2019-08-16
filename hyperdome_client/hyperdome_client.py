@@ -331,26 +331,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         self.server = server
         self.servers[server.nick] = self.server
-        try:
-            if self.server.is_therapist:
-                pass
-                # TODO: authenticate the therapist here when that's a thing
-            else:
-                self.session.get(f'{self.server.url}/generate_guest_id').text
-            self.server_dropdown.insertItem(1, server.nick)
-            self.server_add_dialog.close()
-        except Exception as e:
-            print(
-                ''.join(
-                    traceback.format_exception(
-                        type(e),
-                        e,
-                        e.__traceback__)))
-            Alert(
-                self.common,
-                f"server {self.server.url} is invalid",
-                QtWidgets.QMessageBox.Warning,
-                buttons=QtWidgets.QMessageBox.Ok)
+        self.server_dropdown.insertItem(1, server.nick)
+        self.server_add_dialog.close()
+
 
     def _tor_connection_canceled(self):
         """
