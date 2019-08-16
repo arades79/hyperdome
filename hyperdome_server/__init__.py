@@ -131,7 +131,7 @@ def main(cwd=None):
             app.shutdown_timer.start()
 
         print('')
-        url = 'http://{0:s}/{1:s}'.format(app.onion_host)
+        url = f'http://{app.onion_host}'
         print(strings._("give_this_url"))
         print("Do not copy the slug (part after last /) for now")
         print(url)
