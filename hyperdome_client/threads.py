@@ -121,6 +121,29 @@ class GetUidTask(QtCore.QRunnable):
             self.signals.error.emit()
 
 
+class StartChatTask(QtCore.QRunnable):
+    """
+    Signin therapist, or request therapist session if user
+    """
+    signals = TaskSignals()
+
+    def __init__(self,
+                 server: Server,
+                 session: requests.Session,
+                 uid: str):
+        super(StartChatTask, self).__init__()
+        self.server = server
+        self.session = session
+        self.uid = uid
+
+    def run(self):
+        try:
+            self.signals.success.emit(start_chat(
+                self.server, self.session, self.uid))
+        except:
+            self.signals.error.emit("Couldn't start a chat session")
+
+
 class GetMessagesTask(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
@@ -132,7 +155,6 @@ class GetMessagesTask(QtCore.QRunnable):
         self.session = session
         self.server = server
         self.uid = uid
-
 
     def run(self):
         try:
@@ -192,3 +214,17 @@ def get_messages(server: Server,
     else:
         new_messages = ''
     return new_messages
+
+
+def start_chat(server: Server,
+               session: requests.Session,
+               uid: str):
+    if server.is_therapist:
+        session.post(f"{server.url}/therapist_signin",
+                     data={"username": server.username,
+                           "password": server.password})
+        return ''
+    else:
+        return session.post(
+            f"{server.url}/request_therapist",
+            data={"guest_id": uid}).text
