@@ -82,9 +82,6 @@ class SendMessageTask(QtCore.QRunnable):
     """
     signals = TaskSignals()
 
-    def __del__(self):
-        self.wait(1000)
-
     def __init__(self,
                  server: Server,
                  session: requests.Session,
@@ -108,9 +105,6 @@ class GetUidTask(QtCore.QRunnable):
     Get a UID from the server
     """
     signals = TaskSignals()
-
-    def __del__(self):
-        self.wait(1000)
 
     def __init__(self,
                  server: Server,
@@ -139,8 +133,6 @@ class GetMessagesTask(QtCore.QRunnable):
         self.server = server
         self.uid = uid
 
-    def __del__(self):
-        self.wait()
 
     def run(self):
         try:
