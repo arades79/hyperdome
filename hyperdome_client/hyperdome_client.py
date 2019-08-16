@@ -435,6 +435,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def disconnect_chat(self):
         self.is_connected = False
+        self.start_chat_button.setEnabled(False)
         if self.get_messages_task is not None:
             self.worker.clear()
             del self.get_messages_task
@@ -442,6 +443,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.session.post(f"{self.server.url}/therapist_signout",
                               data={"username": self.server.username,
                                     "password": self.server.password})
+        self.start_chat_button.setText('Start Chat') # locale
+        self.start_chat_button.clicked.connect(self.start_chat)
+        self.start_chat_button.setEnabled(True)
 
     def closeEvent(self, e):  # unsure of what use the event var is
         """
