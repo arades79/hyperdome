@@ -26,6 +26,7 @@ from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .add_server_dialog import AddServerDialog, Server
+from . import threads
 
 import requests
 import traceback
@@ -54,6 +55,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.app = app
         self.local_only: bool = local_only
         self.common.log('OnionShareGui', '__init__')
+
+        # setup threadpool and tasks for async
+        self.worker = QtCore.QThreadPool()
+        self.get_messages_task: threads.GetMessagesTask = None
+        self.send_message_task: threads.SendMessageTask = None
+        self.get_uid_task: threads.GetUidTask = None
 
         # set window constants
         self.setMinimumWidth(500)
@@ -221,17 +228,25 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        try:
-            if not self.server.is_therapist:
-                self.uid = self.session.get(
-                    f'{self.server.url}/generate_guest_id').text
+        def after_id():
+            if self.get_messages_task is not None:
+                del self.get_messages_task
+            self.get_messages_task = threads.GetMessagesTask(self.session, self.server, self.uid)
+            self.get_messages_task.setAutoDelete(False)
+            self.get_messages_task.success.connect(self.on_history_added)
+            self.get_messages_task.error.connect(self.task_fail)
             self.start_chat_button.setEnabled(True)
-        except:
-            Alert(
-                self.common,
-                "therapy machine broke",
-                QtWidgets.QMessageBox.Warning,
-                buttons=QtWidgets.QMessageBox.Ok)
+
+        if not self.server.is_therapist:
+            self.get_uid_task = threads.GetUidTask(self.server, self.session)
+            self.get_uid_task.success.connect(after_id)
+            self.get_uid_task.error.connect(self.task_fail)
+            self.worker.start()
+
+
+
+    def task_fail(self, error: str):
+        self.common.log('HyperdomeClient', 'ThreadPool', error)
 
 
 
@@ -337,8 +352,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.common,
                 strings._('gui_tor_connection_ask'),
                 QtWidgets.QMessageBox.Question,
-                buttons=QtWidgets.QMessageBox.NoButton,
-                autostart=False)
+                buttons = QtWidgets.QMessageBox.NoButton,
+                autostart = False)
             settings_button = QtWidgets.QPushButton(
                 strings._('gui_tor_connection_ask_open_settings'))
             quit_button = QtWidgets.QPushButton(
@@ -408,29 +423,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Passed to timer to continually check for new messages on the server
         """
-
-        if self.server is None:
-            self.timer.start(1000)
-            return
-        if self.server.is_therapist:
-            new_messages = self.session.get(
-                f"{self.server.url}/collect_therapist_messages",
-                headers={"username": self.server.username,
-                         "password": self.server.password}).text
-            if new_messages:
-                new_messages = [f'Guest: {message}' for message
-                                in new_messages.split('\n')]
-                self.chat_window.addItems(new_messages)
-        elif self.uid:
-            new_messages = self.session.get(
-                f"{self.server.url}/collect_guest_messages",
-                data={"guest_id": self.uid}).text
-            if new_messages:
-                new_messages = [f'{self.therapist}: {message}' for message
-                                in new_messages.split('\n')]
-                self.chat_window.addItems(new_messages)
-
         self.timer.start(1000)
+        if self.get_messages_task is None:
+            return
+        self.worker.tryStart(self.get_messages_task)
+
+
 
     def copy_url(self):
         """
@@ -452,19 +450,24 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def disconnect_chat(self):
         self.is_connected = False
+        if self.get_messages_task is not None:
+            self.worker.clear()
+            del self.get_messages_task
         if self.server.is_therapist and self.is_connected:
             self.session.post(f"{self.server.url}/therapist_signout",
                               data={"username": self.server.username,
                                     "password": self.server.password})
 
-    def closeEvent(self, _):
+    def closeEvent(self, e): # unsure of what use the event var is
         """
         When the main window is closed, do some cleanup
         """
         self.common.log('OnionShareGui', 'closeEvent')
         self.disconnect_chat()
 
-        self.system_tray.hide() # I hate that this is necessary
+        self.worker.event(e)
+
+        self.system_tray.hide() # seemingly necessarry
 
         if self.onion:
             self.onion.cleanup()

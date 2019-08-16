@@ -71,19 +71,56 @@ class OnionThread(QtCore.QThread):
             return
 
 
-class GenricTask(QtCore.QRunnable):
+class SendMessageTask(QtCore.QRunnable):
     """
-    take a zero parameter function and run it
+    send client message to server
+    """
+    error = QtCore.pyqtSignal(str)
+
+
+    def __del__(self):
+        self.wait(1000)
+
+    def __init__(self,
+                 server: Server,
+                 session: requests.Session,
+                 uid: str,
+                 message: str):
+        super(SendMessageTask, self).__init__()
+        self.server = server
+        self.session = session
+        self.uid = uid
+        self.message = message
+
+    def run(self):
+        try:
+            send_message(self.server, self.session, self.uid, self.message)
+        except:
+            self.error.emit("Couldn't send message")
+
+class GetUidTask(QtCore.QRunnable):
+    """
+    Get a UID from the server
     """
     success = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
 
-    @QtCore.pyqtSlot(typing.Callable[[], None])
-    def __init__(self, f: typing.Callable[[], None]):
-        self.f = f
+    def __del__(self):
+        self.wait(1000)
+
+    def __init__(self,
+                 server: Server,
+                 session: requests.Session):
+        super(GetUidTask, self).__init__()
+        self.server = server
+        self.session = session
 
     def run(self):
-        self.f()
+        try:
+            uid = get_uid(self.server, self.session)
+            self.success.emit(uid)
+        except:
+            self.error.emit()
 
 
 class GetMessagesTask(QtCore.QRunnable):
@@ -103,14 +140,11 @@ class GetMessagesTask(QtCore.QRunnable):
         self.wait()
 
     def run(self):
-        while True:
-            try:
-                self.success.emit(
-                    get_messages(self.server, self.session, self.uid))
-            except:
-                self.error.emit("Error in get messages request")
-                break
-            self.sleep(2)
+        try:
+            self.success.emit(
+                get_messages(self.server, self.session, self.uid))
+        except:
+            self.error.emit("Error in get messages request")
 
 
 def send_message(server: Server,
