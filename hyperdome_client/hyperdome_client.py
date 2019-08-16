@@ -212,6 +212,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.Warning,
                 buttons=QtWidgets.QMessageBox.Ok)
 
+    @QtCore.pyqtSlot()
     def on_history_added(self, messages: str):
         """
         Update UI with messages retrieved from server.
@@ -228,27 +229,29 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        def after_id():
+        @QtCore.pyqtSlot()
+        def after_id(uid: str):
+            self.uid = uid
             if self.get_messages_task is not None:
                 del self.get_messages_task
-            self.get_messages_task = threads.GetMessagesTask(self.session, self.server, self.uid)
+            self.get_messages_task = threads.GetMessagesTask(self.session,
+                                                             self.server,
+                                                             self.uid)
             self.get_messages_task.setAutoDelete(False)
-            self.get_messages_task.success.connect(self.on_history_added)
-            self.get_messages_task.error.connect(self.task_fail)
+            self.get_messages_task.signals.success.connect(
+                self.on_history_added)
+            self.get_messages_task.signals.error.connect(self.task_fail)
             self.start_chat_button.setEnabled(True)
 
         if not self.server.is_therapist:
-            self.get_uid_task = threads.GetUidTask(self.server, self.session)
-            self.get_uid_task.success.connect(after_id)
-            self.get_uid_task.error.connect(self.task_fail)
-            self.worker.start()
+            get_uid_task = threads.GetUidTask(self.server, self.session)
+            get_uid_task.signals.success.connect(after_id)
+            get_uid_task.signals.error.connect(self.task_fail)
+            self.worker.start(get_uid_task)
 
-
-
+    @QtCore.pyqtSlot()
     def task_fail(self, error: str):
         self.common.log('HyperdomeClient', 'ThreadPool', error)
-
-
 
     @property
     def session(self):
@@ -283,7 +286,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
 
-
     def start_chat(self):
         try:
             if self.server.is_therapist:
@@ -293,13 +295,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.is_connected = True
             else:
                 if not self.uid:
-                    raise Exception #TODO: make exceptions specific
+                    raise Exception  # TODO: make exceptions specific
                 self.therapist = self.session.post(
                     f"{self.server.url}/request_therapist",
                     data={"guest_id": self.uid}).text
                 if self.therapist:
                     self.is_connected = True
-            #start message collection
+            # start message collection
         except Exception as e:
             print(
                 ''.join(
@@ -352,8 +354,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.common,
                 strings._('gui_tor_connection_ask'),
                 QtWidgets.QMessageBox.Question,
-                buttons = QtWidgets.QMessageBox.NoButton,
-                autostart = False)
+                buttons=QtWidgets.QMessageBox.NoButton,
+                autostart=False)
             settings_button = QtWidgets.QPushButton(
                 strings._('gui_tor_connection_ask_open_settings'))
             quit_button = QtWidgets.QPushButton(
@@ -435,8 +437,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             return
         self.worker.tryStart(self.get_messages_task)
 
-
-
     def copy_url(self):
         """
         When the URL gets copied to the clipboard, display this \
@@ -465,7 +465,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                               data={"username": self.server.username,
                                     "password": self.server.password})
 
-    def closeEvent(self, e): # unsure of what use the event var is
+    def closeEvent(self, e):  # unsure of what use the event var is
         """
         When the main window is closed, do some cleanup
         """
@@ -474,11 +474,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.worker.event(e)
 
-        self.system_tray.hide() # seemingly necessarry
+        self.system_tray.hide()  # seemingly necessarry
 
         if self.onion:
             self.onion.cleanup()
         if self.app:
             self.app.cleanup()
-
-
