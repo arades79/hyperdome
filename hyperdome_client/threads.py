@@ -96,7 +96,7 @@ class SendMessageTask(QtCore.QRunnable):
     def run(self):
         try:
             send_message(self.server, self.session, self.uid, self.message)
-        except:
+        except requests.RequestException:
             self.signals.error.emit("Couldn't send message")
 
 
@@ -117,8 +117,8 @@ class GetUidTask(QtCore.QRunnable):
         try:
             uid = get_uid(self.server, self.session)
             self.signals.success.emit(uid)
-        except:
-            self.signals.error.emit()
+        except requests.RequestException:
+            self.signals.error.emit("couldn't get UID")
 
 
 class StartChatTask(QtCore.QRunnable):
@@ -140,7 +140,7 @@ class StartChatTask(QtCore.QRunnable):
         try:
             self.signals.success.emit(start_chat(
                 self.server, self.session, self.uid))
-        except:
+        except requests.RequestException:
             self.signals.error.emit("Couldn't start a chat session")
 
 
@@ -160,7 +160,7 @@ class GetMessagesTask(QtCore.QRunnable):
         try:
             self.signals.success.emit(
                 get_messages(self.server, self.session, self.uid))
-        except:
+        except requests.RequestException:
             self.signals.error.emit("Error in get messages request")
 
 
@@ -203,10 +203,12 @@ def get_messages(server: Server,
     """
     # TODO: unify counselor and guest versions w/UID
     if server.is_therapist:
-        new_messages = session.get(
+        messages_response = session.get(
             f"{server.url}/collect_therapist_messages",
             headers={"username": server.username,
-                     "password": server.password}).text
+                     "password": server.password})
+        messages_response.raise_for_status()
+        new_messages = messages_response.text
     elif uid:
         new_messages = session.get(
             f"{server.url}/collect_guest_messages",
