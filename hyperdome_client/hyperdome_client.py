@@ -249,7 +249,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         else:
             after_id('')
 
-    @QtCore.pyqtSlot()
+    @QtCore.pyqtSlot(str)
     def task_fail(self, error: str):
         self.common.log('HyperdomeClient', 'ThreadPool', error)
 

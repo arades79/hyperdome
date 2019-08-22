@@ -158,8 +158,8 @@ class GetMessagesTask(QtCore.QRunnable):
 
     def run(self):
         try:
-            self.signals.success.emit(
-                get_messages(self.server, self.session, self.uid))
+            new_messages = get_messages(self.server, self.session, self.uid)
+            self.signals.success.emit(new_messages)
         except requests.RequestException:
             self.signals.error.emit("Error in get messages request")
 
