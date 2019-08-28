@@ -160,6 +160,8 @@ class GetMessagesTask(QtCore.QRunnable):
         try:
             new_messages = get_messages(self.server, self.session, self.uid)
             self.signals.success.emit(new_messages)
+        except requests.HTTPError:
+            self.signals.error.emit("Counselor not in chat")
         except requests.RequestException:
             self.signals.error.emit("Error in get messages request")
 
@@ -207,8 +209,14 @@ def get_messages(server: Server,
             f"{server.url}/collect_therapist_messages",
             headers={"username": server.username,
                      "password": server.password})
-        messages_response.raise_for_status()
-        new_messages = messages_response.text
+        status = messages_response.status_code
+        if status == 404:
+            raise requests.HTTPError
+        elif status == 200:
+            return messages_response.text
+        else:
+            raise requests.RequestException
+
     elif uid:
         new_messages = session.get(
             f"{server.url}/collect_guest_messages",
