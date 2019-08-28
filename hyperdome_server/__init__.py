@@ -67,8 +67,7 @@ def main(cwd=None):
     parser.add_argument('--connect-timeout', metavar='<int>',
                         dest='connect_timeout', default=120,
                         help=strings._("help_connect_timeout"))
-    parser.add_argument('--stealth', action='store_true', dest='stealth',
-                        help=strings._("help_stealth"))
+
     parser.add_argument('--config', metavar='config', default=False,
                         help=strings._('help_config'))
     parser.add_argument('--debug', action='store_true', dest='debug',
@@ -79,7 +78,6 @@ def main(cwd=None):
     debug = bool(args.debug)
     shutdown_timeout = int(args.shutdown_timeout)
     connect_timeout = int(args.connect_timeout)
-    stealth = bool(args.stealth)
     config = args.config
 
     # Re-load settings, if a custom config was passed in
@@ -108,7 +106,6 @@ def main(cwd=None):
     # Start the onionshare app
     try:
         app = HyperdomeServer(common, onion, local_only, shutdown_timeout)
-        app.set_stealth(stealth)
         app.choose_port()
         app.start_onion_service()
     except KeyboardInterrupt:
@@ -120,10 +117,7 @@ def main(cwd=None):
         sys.exit()
 
     # Start OnionShare http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True,
-                                                 common.settings.get(
-                                                     'public_mode'),
-                                                 common.settings.get('slug')))
+    t = threading.Thread(target=web.start, args=(app.port, True))
     t.daemon = True
     t.start()
 
@@ -136,23 +130,11 @@ def main(cwd=None):
         if app.shutdown_timeout > 0:
             app.shutdown_timer.start()
 
-        # Save the web slug if we are using a persistent private key
-        if common.settings.get('save_private_key'):
-            if not common.settings.get('slug'):
-                common.settings.set('slug', web.slug)
-                common.settings.save()
-
         print('')
-        url = 'http://{0:s}/{1:s}'.format(app.onion_host, web.slug)
-        if stealth:
-            print(strings._("give_this_url_stealth"))
-            print("Do not copy the slug (part after last /) for now")
-            print(url)
-            print(app.auth_string)
-        else:
-            print(strings._("give_this_url"))
-            print("Do not copy the slug (part after last /) for now")
-            print(url)
+        url = f'http://{app.onion_host}'
+        print(strings._("give_this_url"))
+        print("Do not copy the slug (part after last /) for now")
+        print(url)
         print()
         print(strings._("ctrlc_to_stop"))
 

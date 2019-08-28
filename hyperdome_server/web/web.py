@@ -149,11 +149,10 @@ class Web(object):
 
             # In receive mode, with public mode enabled, skip rate limiting
             # 404s
-            if not self.common.settings.get('public_mode'):
-                if self.error404_count == 20:
-                    self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
-                    self.force_shutdown()
-                    print(strings._('error_rate_limit'))
+            if self.error404_count == 20:
+                self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
+                self.force_shutdown()
+                print(strings._('error_rate_limit'))
 
         r = make_response(render_template('404.html'), 404)
         return self.add_security_headers(r)
@@ -208,15 +207,6 @@ class Web(object):
         log_handler.setLevel(logging.WARNING)
         self.app.logger.addHandler(log_handler)
 
-    def check_slug_candidate(self, slug_candidate):
-        self.common.log('Web',
-                        'check_slug_candidate: slug_candidate={}'.format(
-                            slug_candidate))
-        if self.common.settings.get('public_mode'):
-            abort(404)
-        if not hmac.compare_digest(self.slug, slug_candidate):
-            abort(404)
-
     def check_shutdown_slug_candidate(self, slug_candidate):
         self.common.log('Web',
                         'check_shutdown_slug_candidate: slug_candidate='
@@ -235,17 +225,12 @@ class Web(object):
         func()
         self.running = False
 
-    def start(self, port, stay_open=False, public_mode=False,
-              persistent_slug=None):
+    def start(self, port, stay_open=False):
         """
         Start the flask web server.
         """
         self.common.log('Web', 'start',
-                        f'port={port}, stay_open={stay_open}, '
-                        f'public_mode={public_mode}, '
-                        f'persistent_slug={persistent_slug}')
-        if not public_mode:
-            self.generate_slug(persistent_slug)
+                        f'port={port}, stay_open={stay_open}')
 
         self.stay_open = stay_open
 

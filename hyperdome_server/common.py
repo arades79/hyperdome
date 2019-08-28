@@ -51,7 +51,7 @@ class Common(object):
         with open(self.get_resource_path('version.txt')) as f:
             self.version = f.read().strip()
 
-    def load_settings(self, config=None):
+    def load_settings(self, config=''):
         """
         Loading settings, optionally from a custom config json file.
         """
@@ -106,6 +106,10 @@ class Common(object):
                 prefix = os.path.join(sys._MEIPASS, 'share')
             elif self.platform == 'Windows':
                 prefix = os.path.join(os.path.dirname(sys.executable), 'share')
+            else:
+                raise SystemError
+        else:
+            raise SystemError
 
         return os.path.join(prefix, filename)
 

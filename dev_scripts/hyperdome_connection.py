@@ -31,12 +31,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
 
 
-from hyperdome_server import strings # noQA
-from hyperdome_server.common import Common # noQA
-from hyperdome_server.web import Web # noQA
-from hyperdome_server.onion import Onion # noQA
-from hyperdome_server.hyperdome_server import HyperdomeServer # noQA
-from hyperdome_client.add_server_dialog import Server # noQA
+from hyperdome_server import strings  # noQA
+from hyperdome_server.common import Common  # noQA
+from hyperdome_server.web import Web  # noQA
+from hyperdome_server.onion import Onion  # noQA
+from hyperdome_server.hyperdome_server import HyperdomeServer  # noQA
+from hyperdome_client.add_server_dialog import Server  # noQA
 
 
 class HyperdomeServerController:
@@ -49,8 +49,8 @@ class HyperdomeServerController:
         self.t = None
         self.onion_connected = False
 
-    def prepare_connection(self, num_tries=10):
-        for try_index in range(num_tries):
+    def prepare_connection(self, num_tries: int = 10):
+        for _ in range(num_tries):
             common = Common()
             common.load_settings()
             strings.load_strings(common)
@@ -59,7 +59,6 @@ class HyperdomeServerController:
             local_only = False
             common.debug = True
             shutdown_timeout = 0
-            stealth = False
 
             self.web = Web(common, False)
 
@@ -72,7 +71,6 @@ class HyperdomeServerController:
                                        self.onion,
                                        local_only,
                                        shutdown_timeout)
-            self.app.set_stealth(stealth)
             self.app.choose_port()
             try:
                 self.app.start_onion_service()
@@ -88,9 +86,7 @@ class HyperdomeServerController:
             return False
         # Start OnionShare http service in new thread
         self.t = threading.Thread(target=self.web.start,
-                                  args=(self.app.port, True,
-                                        common.settings.get('public_mode'),
-                                        common.settings.get('slug')),
+                                  args=(self.app.port, True),
                                   daemon=True)
         self.t.start()
 
@@ -102,24 +98,10 @@ class HyperdomeServerController:
         if self.app.shutdown_timeout > 0:
             self.app.shutdown_timer.start()
 
-        # Save the web slug if we are using a persistent private key
-        if common.settings.get('save_private_key'):
-            if not common.settings.get('slug'):
-                common.settings.set('slug', self.web.slug)
-                # common.settings.save()
-
         print('')
-        self.url = 'http://{0:s}/{1:s}'.format(self.app.onion_host,
-                                               self.web.slug)
-        if stealth:
-            print(strings._("give_this_url_stealth"))
-            print("Do not copy the slug (part after last /) for now")
-            print(self.url)
-            print(self.app.auth_string)
-        else:
-            print(strings._("give_this_url"))
-            print("Do not copy the slug (part after last /) for now")
-            print(self.url)
+        self.url = 'http://{0:s}'.format(self.app.onion_host)
+        print(strings._("give_this_url"))
+        print(self.url)
         print()
         print(strings._("ctrlc_to_stop"))
         return True
@@ -194,6 +176,11 @@ class HyperdomeClientController:
             print(''.join(traceback.format_exception(type(e),
                                                      e,
                                                      e.__traceback__)))
+    def run_client_2(self):
+        raise NotImplementedError
+
+    def run_client_2(self):
+        raise NotImplementedError
 
     @property
     def session(self):
@@ -230,6 +217,7 @@ class HyperdomeTherapistController(HyperdomeClientController):
                                    "password": self.server.password},
                           data={"message": "Therapist message 12345"})
         print("Posted therapist message")
+        new_message = ''
         for _ in range(60):
             new_message = self.session.get(
                 f"{self.server.url}/collect_therapist_messages",
@@ -263,6 +251,7 @@ class HyperdomeUserController(HyperdomeClientController):
         self.session.post(f'{self.server.url}/message_from_user',
                           data={'message': "User message 12345",
                                 'guest_id': self.uid})
+        new_message = ''
         for _ in range(60):
             new_message = self.session.get(
                 f"{self.server.url}/collect_guest_messages",
@@ -294,7 +283,7 @@ def main():
         print("Connected to tor")
         while hsc_thread.is_alive() and not hsc.url:
             time.sleep(0.1)
-        url_no_slug = hsc.url.rsplit('/', 1)[0]
+        url_no_slug = hsc.url  # slugs are no longer real
         print("\n\n\n\n\n\n\n\n\n\nGot HSC url")
         htc = HyperdomeTherapistController(url_no_slug)
         huc = HyperdomeUserController(url_no_slug)

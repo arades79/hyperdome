@@ -417,13 +417,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if not self.local_only and self.onion.is_authenticated():
                 if not self.timer.isActive():
                     self.timer.start(500)
-                self.share_mode.on_reload_settings()
-                self.status_bar.clearMessage()
-
-            # If we switched off the shutdown timeout setting, ensure the
-            # widget is hidden.
-            if not self.common.settings.get('shutdown_timeout'):
-                self.share_mode.server_status.shutdown_timeout_container.hide()
 
         d = SettingsDialog(self.common, self.onion, self.qtapp, self.config,
                            self.local_only)
@@ -502,25 +495,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.session.post(f"{self.server.url}/therapist_signout",
                               data={"username": self.server.username,
                                     "password": self.server.password})
-        self.common.log('OnionShareGui',
-                        'closeEvent, opening warning dialog')
-        dialog = QtWidgets.QMessageBox()
-        dialog.setWindowTitle(strings._('gui_quit_title'))
-        dialog.setText(strings._('gui_share_quit_warning'))
-        dialog.setIcon(QtWidgets.QMessageBox.Critical)
-        dialog.addButton(strings._('gui_quit_warning_quit'),
-                         QtWidgets.QMessageBox.YesRole)
-        dont_quit_button = dialog.addButton(
-            strings._('gui_quit_warning_dont_quit'),
-            QtWidgets.QMessageBox.NoRole)
-        dialog.setDefaultButton(dont_quit_button)
-        reply = dialog.exec_()
 
-        if reply == 0:
-            if self.onion:
-                self.onion.cleanup()
-            if self.app:
-                self.app.cleanup()
-            e.accept()
-        else:
-            e.ignore()
+        if self.onion:
+            self.onion.cleanup()
+        if self.app:
+            self.app.cleanup()

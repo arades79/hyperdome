@@ -42,7 +42,6 @@ class HyperdomeServer(object):
         self.hidserv_dir = None
         self.onion_host = None
         self.port = None
-        self.stealth = None
 
         # files and dirs to delete on shutdown
         # Note: Was originally files used for onionshare, but we could use this
@@ -56,13 +55,6 @@ class HyperdomeServer(object):
         self.shutdown_timeout = shutdown_timeout
         # init timing thread
         self.shutdown_timer = None
-
-    def set_stealth(self, stealth):
-        self.common.log('OnionShare', 'set_stealth',
-                        'stealth={}'.format(stealth))
-
-        self.stealth = stealth
-        self.onion.stealth = stealth
 
     def choose_port(self):
         """
@@ -89,8 +81,6 @@ class HyperdomeServer(object):
 
         self.onion_host = self.onion.start_onion_service(self.port)
 
-        if self.stealth:
-            self.auth_string = self.onion.auth_string
 
     def cleanup(self):
         """

@@ -23,12 +23,6 @@ import json
 import os
 import locale
 
-try:
-    # We only need pwd module in macOS, and it's not available in Windows
-    import pwd
-except ModuleNotFoundError:
-    pass
-
 
 class Settings(object):
     """
@@ -38,7 +32,8 @@ class Settings(object):
     settings.
     """
 
-    def __init__(self, common, config=False):
+    def __init__(self, common,
+                 config: str = ''):
         self.common = common
 
         self.common.log('Settings', '__init__')
@@ -58,19 +53,19 @@ class Settings(object):
         # Dictionary of available languages in this version of OnionShare,
         # mapped to the language name, in that language
         self.available_locales = {
-            'bn': 'বাংলা',       # Bengali
-            'ca': 'Català',     # Catalan
-            'da': 'Dansk',      # Danish
+            # 'bn': 'বাংলা',       # Bengali
+            # 'ca': 'Català',     # Catalan
+            # 'da': 'Dansk',      # Danish
             'en': 'English',    # English
-            'fr': 'Français',   # French
-            'el': 'Ελληνικά',   # Greek
-            'it': 'Italiano',   # Italian
-            'ja': '日本語',      # Japanese
-            'fa': 'فارسی',      # Persian
-            'pt_BR': 'Português (Brasil)',  # Portuguese Brazil
-            'ru': 'Русский',    # Russian
-            'es': 'Español',    # Spanish
-            'sv': 'Svenska'     # Swedish
+            # 'fr': 'Français',   # French
+            # 'el': 'Ελληνικά',   # Greek
+            # 'it': 'Italiano',   # Italian
+            # 'ja': '日本語',      # Japanese
+            # 'fa': 'فارسی',      # Persian
+            # 'pt_BR': 'Português (Brasil)',  # Portuguese Brazil
+            # 'ru': 'Русский',    # Russian
+            # 'es': 'Español',    # Spanish
+            # 'sv': 'Svenska'     # Swedish
         }
 
         # These are the default settings. They will get overwritten when
@@ -85,25 +80,19 @@ class Settings(object):
             'socket_file_path': '/var/run/tor/control',
             'auth_type': 'no_auth',
             'auth_password': '',
-            'close_after_first_download': True,
             'shutdown_timeout': False,
-            'use_stealth': False,
-            'use_autoupdate': True,
             'autoupdate_timestamp': None,
             'no_bridges': True,
             'tor_bridges_use_obfs4': False,
             'tor_bridges_use_meek_lite_azure': False,
             'tor_bridges_use_custom_bridges': '',
-            'use_legacy_v2_onions': False,
-            'save_private_key': False,
+            'save_private_key': True, # should be renamed for clarity,
+                                      # perhaps "use ephemeral"
             'private_key': '',
-            'public_mode': False,
-            'slug': '',
             'hidservauth_string': '',
-            'data_dir': self.build_default_data_dir(),
             'locale': None  # this gets defined in fill_in_defaults()
         }
-        self._settings = {}
+        self._settings: dict[str] = {}
         self.fill_in_defaults()
 
     def fill_in_defaults(self):
@@ -118,7 +107,7 @@ class Settings(object):
         # Choose the default locale based on the OS preference, and fall-back
         # to English
         if self._settings['locale'] is None:
-            language_code, encoding = locale.getdefaultlocale()
+            language_code, _ = locale.getdefaultlocale()
 
             # Default to English
             if not language_code:
@@ -143,25 +132,6 @@ class Settings(object):
         """
         return os.path.join(self.common.build_data_dir(), 'onionshare.json')
 
-    def build_default_data_dir(self):
-        """
-        Returns the path of the default Downloads directory for receive mode.
-        """
-
-        if self.common.platform == "Darwin":
-            # We can't use os.path.expanduser() in macOS because in the
-            # sandbox it returns the path to the sandboxed homedir
-            real_homedir = pwd.getpwuid(os.getuid()).pw_dir
-            return os.path.join(real_homedir, 'OnionShare')
-        elif self.common.platform == "Windows":
-            # On Windows, os.path.expanduser() needs to use backslash, or else
-            # it retains the forward slash, which breaks opening the folder
-            # in explorer.
-            return os.path.expanduser(r'~\OnionShare')
-        else:
-            # All other OSes
-            return os.path.expanduser('~/OnionShare')
-
     def load(self):
         """
         Load the settings from file.
@@ -175,7 +145,6 @@ class Settings(object):
             with open(self.filename, 'r') as f:
                 self._settings = json.load(f)
                 self.fill_in_defaults()
-        os.makedirs(self.get('data_dir'), exist_ok=True)
 
     def save(self):
         """
@@ -186,10 +155,10 @@ class Settings(object):
         self.common.log('Settings', 'save',
                         'Settings saved in {}'.format(self.filename))
 
-    def get(self, key):
+    def get(self, key: str):
         return self._settings[key]
 
-    def set(self, key, val):
+    def set(self, key: str, val):
         # If typecasting int values fails, fallback to default values
         if key in ('control_port_port', 'socks_port'):
             try:
@@ -198,3 +167,11 @@ class Settings(object):
                 val = self.default_settings[key]
 
         self._settings[key] = val
+
+    def clear(self):
+        """
+        Clear all settings and re-initialize to defaults
+        """
+        self._settings = self.default_settings
+        self.fill_in_defaults()
+        self.save()

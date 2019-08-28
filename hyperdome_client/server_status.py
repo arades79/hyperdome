@@ -226,17 +226,9 @@ class ServerStatus(QtWidgets.QWidget):
 
             self.copy_url_button.show()
 
-            if self.common.settings.get('save_private_key'):
-                if not self.common.settings.get('slug'):
-                    self.common.settings.set('slug', self.web.slug)
-                    self.common.settings.save()
-
             if self.common.settings.get('shutdown_timeout'):
                 self.shutdown_timeout_container.hide()
 
-            if self.app.stealth:
-                self.copy_hidservauth_button.show()
-            else:
                 self.copy_hidservauth_button.hide()
         else:
             self.url_description.hide()
@@ -279,11 +271,11 @@ class ServerStatus(QtWidgets.QWidget):
                     if self.mode == ServerStatus.MODE_SHARE:
                         self.server_button.setToolTip(strings._(
                             'gui_share_stop_server_shutdown_timeout_tooltip'
-                            ).format(self.timeout))
+                        ).format(self.timeout))
                     else:
                         self.server_button.setToolTip(strings._(
                             'gui_receive_stop_server_shutdown_timeout_tooltip'
-                            ).format(self.timeout))
+                        ).format(self.timeout))
 
             elif self.status == self.STATUS_WORKING:
                 self.server_button.setStyleSheet(
@@ -308,13 +300,13 @@ class ServerStatus(QtWidgets.QWidget):
             if self.common.settings.get('shutdown_timeout'):
                 if self.local_only:
                     self.timeout = self.shutdown_timeout.dateTime(
-                        ).toPyDateTime()
+                    ).toPyDateTime()
                 else:
                     # Get the timeout chosen, stripped of its seconds. This
                     # prevents confusion if the share stops at (say) 37 seconds
                     # past the minute chosen
                     self.timeout = self.shutdown_timeout.dateTime(
-                        ).toPyDateTime().replace(second=0, microsecond=0)
+                    ).toPyDateTime().replace(second=0, microsecond=0)
                 # If the timeout has actually passed already before the user
                 # hit Start, refuse to start the server.
                 if (QtCore.QDateTime.currentDateTime().toPyDateTime()
@@ -398,12 +390,4 @@ class ServerStatus(QtWidgets.QWidget):
         """
         Returns the OnionShare URL.
         """
-        return 'http://{0:s}{}'.format(
-            self.app.onion_host, '/{1:s}'.format(self.web.slug)
-            if self.common.settings.get('public_mode') else '')
-        # if self.common.settings.get('public_mode'):
-        #     url = 'http://{0:s}'.format(self.app.onion_host)
-        # else:
-        #     url = 'http://{0:s}/{1:s}'.format(
-        #         self.app.onion_host, self.web.slug)
-        # return url
+        return f'http://{self.app.onion_host}'
