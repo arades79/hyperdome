@@ -79,6 +79,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
+        self.get_messages_task = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -446,11 +447,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.get_messages_task is not None:
             self.worker.clear()
             del self.get_messages_task
+            self.get_messages_task = None
         if self.server.is_therapist and self.is_connected:
             self.session.post(f"{self.server.url}/therapist_signout",
                               data={"username": self.server.username,
                                     "password": self.server.password})
-        self.start_chat_button.setText('Start Chat') # locale
+        self.start_chat_button.setText('Start Chat')  # locale
         self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(True)
 
