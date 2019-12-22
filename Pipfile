@@ -19,7 +19,7 @@ flake8 = "==3.7.9"
 
 [packages]
 altgraph = "==0.16.1"
-asn1crypto = "==0.24.0"
+asn1crypto = "==1.2.0"
 certifi = "==2018.10.15"
 cffi = "==1.11.5"
 chardet = "==3.0.4"

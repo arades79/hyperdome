@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c447bebb57cd36015a2ef1ef48f00bca742d54f5645f9c70bd1592ead0c7a449"
+            "sha256": "93699a66127337389aedb8d535e867ce30a5a8d81db8899114e4348f096bad16"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -26,11 +26,11 @@
         },
         "asn1crypto": {
             "hashes": [
-                "sha256:2f1adbb7546ed199e3c90ef23ec95c5cf3585bac7d11fb7eb562a3fe89c64e87",
-                "sha256:9d5c20441baf0cb60a4ac34cc447c6c189024b6b4c6cd7877034f4965c464e49"
+                "sha256:7bb1cc02a5620b3d72da4ba070bda2f44f0e61b44dee910a302eddff802b6fb5",
+                "sha256:87620880a477123e01177a1f73d0f327210b43a3cdbd714efcd2fa49a8d7b384"
             ],
             "index": "pypi",
-            "version": "==0.24.0"
+            "version": "==1.2.0"
         },
         "bcrypt": {
             "hashes": [
