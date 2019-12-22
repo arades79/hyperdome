@@ -15,7 +15,7 @@ pytest-faulthandler = "==2.0.1"
 pytest-qt = "==3.3.0"
 six = "==1.13.0"
 urllib3 = "==1.24.2"
-flake8 = "*"
+flake8 = "==3.7.9"
 
 [packages]
 altgraph = "==0.16.1"
@@ -46,7 +46,7 @@ Werkzeug = "==0.15.3"
 Flask-Login = "==0.4.1"
 Flask-SQLAlchemy = "==2.4.0"
 Flask-Bcrypt = "==0.7.1"
-flake8 = "*"
+flake8 = "==3.7.9"
 
 [requires]
 python_version = "3.7"
