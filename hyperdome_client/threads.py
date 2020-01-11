@@ -23,8 +23,6 @@ import requests
 import typing
 import functools
 from PyQt5 import QtCore
-from  import ArgumentError
-from  import HTTPException
 
 from .add_server_dialog import Server
 from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
