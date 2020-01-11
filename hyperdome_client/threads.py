@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import time
 import requests
-import typing
-import functools
 from PyQt5 import QtCore
 
 from .add_server_dialog import Server
