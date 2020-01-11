@@ -241,43 +241,6 @@ def start_chat(server: Server,
             data={"guest_id": uid}).text
 
 
-class GenericRequestTask(QtCore.QRunnable):
-    """
-    Generic Runnable for injecting function behavior
-    """
-    signals = TaskSignals()
-
-    def __init__(self, func, *args, **kwargs):
-        super().__init__()
-        self._func = func
-        self._args = args
-        self._kwargs = kwargs
-
-    def run(self):
-        try:
-            success = self._func(*self._args, **self._kwargs)
-            self.signals.success.emit(success)
-        except ArgumentError as e:
-            self.signals.error.emit(e)
-        except HTTPException as e:
-            self.signals.error.emit(e)
-
-    def __del__(self):
-        self.wait()
-
-def create_task(success, error):
-    """
-    Decorator to transform function def into runnable task
-    """
-    def outer(func):
-        @functools.wraps(func)
-        def inner(*args, **kwargs):
-            task = GenericRequestTask(func, *args, **kwargs)
-            task.signals.success.connect(success)
-            task.signals.error.connect(error)
-        return inner
-    return outer
-
 
 
 
