@@ -32,6 +32,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorErrorSocketFile, TorErrorSocketPort,
                                     TorErrorAutomatic, TorErrorInvalidSetting,
                                     TorTooOld)
+from werkzeug.exceptions import MethodNotAllowed
 
 
 class OnionThread(QtCore.QThread):
@@ -165,6 +166,8 @@ class GetMessagesTask(QtCore.QRunnable):
             self.signals.error.emit("Counselor not in chat")
         except requests.RequestException:
             self.signals.error.emit("Error in get messages request")
+        except MethodNotAllowed:
+            self.signals.error.emit("not allowed")
 
 
 def send_message(server: Server,
