@@ -101,7 +101,7 @@ class ShareModeWeb(object):
                                                        e,
                                                        e.__traceback__))
             print(e_str)
-            return e_str
+            return "Exception raised", 500
 
         @self.web.app.route("/request_therapist", methods=['POST'])
         def request_therapist():
