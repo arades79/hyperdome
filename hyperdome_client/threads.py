@@ -195,50 +195,38 @@ def get_uid(server: Server,
     """
     Ask server for a new UID for a new user session
     """
-    return session.get(
+    if server.is_therapist:
+        uid = session.post(f"{server.url}/counselor_signin",
+                    data={"username": server.username,
+                        "password": server.password}).text
+    else:
+        uid = session.get(
         f'{server.url}/generate_guest_id').text
+    return uid
 
 
 def get_messages(server: Server,
                  session: requests.Session,
-                 uid: str = ''):
+                 uid: str):
     """
     collect new messages waiting on server for active session
     """
-    # TODO: unify counselor and guest versions w/UID
-    if server.is_therapist:
-        messages_response = session.get(
-            f"{server.url}/collect_therapist_messages",
-            headers={"username": server.username,
-                     "password": server.password})
-        status = messages_response.status_code
-        if status == 404:
-            raise requests.HTTPError
-        elif status == 200:
-            return messages_response.text
-        else:
-            raise requests.RequestException
-
-    elif uid:
-        new_messages = session.get(
-            f"{server.url}/collect_guest_messages",
-            data={"guest_id": uid}).text
-    else:
-        new_messages = ''
-    return new_messages
+    return session.get(
+        f"{server.url}/collect_messages",
+        data={"guest_id": uid}).text
 
 
 def start_chat(server: Server,
                session: requests.Session,
                uid: str):
     if server.is_therapist:
-        session.post(f"{server.url}/therapist_signin",
+        session.post(f"{server.url}/counselor_signin",
                      data={"username": server.username,
                            "password": server.password})
         return ''
     else:
         return session.post(
-            f"{server.url}/request_therapist",
+            f"{server.url}/request_counselor",
             data={"guest_id": uid}).text
 
 
