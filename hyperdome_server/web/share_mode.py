@@ -33,7 +33,7 @@ login_manager = LoginManager()
 
 
 def get_user_class_from_db_and_bcrypt(db, bcrypt):
-    class User(db.Model, UserMixin):
+    class User(db.Model):
         __tablename__ = 'users'
         id = db.Column(db.Integer, primary_key=True,
                        autoincrement=True)
@@ -73,7 +73,7 @@ class ShareModeWeb(object):
         login_manager.init_app(web.app)
         login_manager.login_view = "therapist_signin"
         login_manager.session_protection = None
-        self.therapists_available = []
+        self.therapists_available = dict()
         self.connected_therapist = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
@@ -83,14 +83,6 @@ class ShareModeWeb(object):
 
 
     def define_routes(self):
-
-        def load_user(username):
-            if username in self.therapists_available:
-                return username
-            self.db.create_all()
-            return self.user_class.query.filter(self.user_class.username
-                                                == username).first()
-
 
         @self.web.app.errorhandler(Exception)
         def unhandled_exception(e):
@@ -104,8 +96,8 @@ class ShareModeWeb(object):
         def request_therapist():
             guest_id = request.form['guest_id']
             if self.therapists_available:
-                chosen_therapist = random.choice(self.therapists_available)
-                self.therapists_available.remove(chosen_therapist)
+                chosen_therapist = random.choice([counselors for counselors in self.therapists_available if self.therapists_available[counselors] > 0])
+                self.therapists_available[chosen_therapist] -= 1
                 self.connected_therapist[guest_id] = chosen_therapist.username
                 self.connected_guest[chosen_therapist.username] = guest_id
                 return chosen_therapist.username
@@ -116,31 +108,32 @@ class ShareModeWeb(object):
             self.connected_therapist.pop(
                 self.connected_guest[current_user.username])
             self.connected_guest.pop(current_user.username)
-            self.therapists_available.append(current_user)
+            self.therapists_available[current_user] += 1
 
         @self.web.app.route("/therapist_signout", methods=["POST"])
         def therapist_signout():
-            user = load_user(request.form['username'])
-            logout_user(user)
-            self.therapists_available.remove(user)
+            sid = request.form['session_id']
+            self.therapists_available.pop(sid)
 
-        @self.web.app.route("/therapist_signup", methods=["POST"])
-        def therapist_signup():
-            if request.form.get('masterkey', "") == "megumin":
-                if load_user(request.form['username']):
-                    return "Username already exists"
-                user = self.user_class(username=request.form['username'],
-                                       password=request.form['password'])
-                self.db.session.add(user)
-                self.db.session.commit()
-                return "Success"
-            return abort(401)
+        # on hold temporarily for debugging
+        # @self.web.app.route("/therapist_signup", methods=["POST"])
+        # def therapist_signup():
+        #     if request.form.get('masterkey', "") == "megumin":
+        #         if request.form['username'] in self.therapists_available.keys:
+        #             return "Username already exists"
+        #         user = self.user_class(username=request.form['username'],
+        #                                password=request.form['password'])
+        #         self.db.session.add(user)
+        #         self.db.session.commit()
+        #         return "Success"
+        #     return abort(401)
 
         @self.web.app.route("/therapist_signin", methods=["POST", 'GET'])
         def therapist_signin():
             # TODO authenticate
-            user = load_user(request.form['username'])
-            self.therapists_available.append(user)
+            # user = load_user(request.form['username'])
+            sid = binascii.b2a_hex(os.urandom(15))
+            self.therapists_available[sid] = 1 # will use capacity variable for this later
             return "Success"
 
         @self.web.app.route("/generate_guest_id")
