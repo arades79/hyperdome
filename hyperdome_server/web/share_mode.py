@@ -65,16 +65,16 @@ class ShareModeWeb(object):
         self.web = web
 
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
+        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./counselors.db'
         self.db = SQLAlchemy(web.app)
         self.define_routes()
 
         self.bcrypt = Bcrypt(web.app)
         login_manager.init_app(web.app)
-        login_manager.login_view = "therapist_signin"
+        login_manager.login_view = "counselor_signin"
         login_manager.session_protection = None
-        self.therapists_available = dict()
-        self.connected_therapist = dict()
+        self.counselors_available = dict()
+        self.connected_counselor = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
@@ -92,35 +92,35 @@ class ShareModeWeb(object):
             print(e_str)
             return "Exception raised", 500
 
-        @self.web.app.route("/request_therapist", methods=['POST'])
-        def request_therapist():
+        @self.web.app.route("/request_counselor", methods=['POST'])
+        def request_counselor():
             guest_id = request.form['guest_id']
-            if self.therapists_available:
-                chosen_therapist = random.choice([counselor for counselor in self.therapists_available if self.therapists_available[counselor] > 0])
-                self.therapists_available[chosen_therapist] -= 1
-                self.connected_therapist[guest_id] = chosen_therapist.username
-                self.connected_guest[chosen_therapist.username] = guest_id
-                return chosen_therapist.username
+            if self.counselors_available:
+                chosen_counselor = random.choice([counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0])
+                self.counselors_available[chosen_counselor] -= 1
+                self.connected_counselor[guest_id] = chosen_counselor.username
+                self.connected_guest[chosen_counselor.username] = guest_id
+                return chosen_counselor.username
             return ''
 
-        @self.web.app.route("/therapy_complete", methods=['POST'])
-        def therapy_complete():
+        @self.web.app.route("/counseling_complete", methods=['POST'])
+        def counseling_complete():
             sid = request.form['user_id']
-            self.connected_therapist.pop(
+            self.connected_counselor.pop(
                 self.connected_guest[sid])
             self.connected_guest.pop(sid)
-            self.therapists_available[sid] += 1
+            self.counselors_available[sid] += 1
 
-        @self.web.app.route("/therapist_signout", methods=["POST"])
-        def therapist_signout():
+        @self.web.app.route("/counselor_signout", methods=["POST"])
+        def counselor_signout():
             sid = request.form['user_id']
-            self.therapists_available.pop(sid)
+            self.counselors_available.pop(sid)
 
         # on hold temporarily for debugging
-        # @self.web.app.route("/therapist_signup", methods=["POST"])
-        # def therapist_signup():
+        # @self.web.app.route("/counselor_signup", methods=["POST"])
+        # def counselor_signup():
         #     if request.form.get('masterkey', "") == "megumin":
-        #         if request.form['username'] in self.therapists_available.keys:
+        #         if request.form['username'] in self.counselors_available.keys:
         #             return "Username already exists"
         #         user = self.user_class(username=request.form['username'],
         #                                password=request.form['password'])
@@ -129,12 +129,12 @@ class ShareModeWeb(object):
         #         return "Success"
         #     return abort(401)
 
-        @self.web.app.route("/therapist_signin")
-        def therapist_signin():
+        @self.web.app.route("/counselor_signin")
+        def counselor_signin():
             # TODO authenticate
             # user = load_user(request.form['username'])
             sid = binascii.b2a_hex(os.urandom(15))
-            self.therapists_available[sid] = 1 # will use capacity variable for this later
+            self.counselors_available[sid] = 1 # will use capacity variable for this later
             return sid
 
         @self.web.app.route("/generate_guest_id")
@@ -145,10 +145,10 @@ class ShareModeWeb(object):
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']
-            if user_id in self.therapists_available:
+            if user_id in self.counselors_available:
                 other_user = self.connected_guest[user_id]
             else:
-                other_user = self.connected_therapist[user_id]
+                other_user = self.connected_counselor[user_id]
             self.pending_messages[other_user] = (
                 self.pending_messages.get(other_user, "")
                 + message + "\n")
