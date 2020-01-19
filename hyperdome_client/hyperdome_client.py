@@ -62,6 +62,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
         self.probe_server_task: threads.ProbeServerTask = None
+
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._timer_callback)
         self.timer.setInterval(1000)
@@ -324,10 +325,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Reciever for the add server dialog to handle the new server details.
         """
-        self.server = server
-        self.servers[server.nick] = self.server
-        self.server_dropdown.insertItem(1, server.nick)
-        self.server_add_dialog.close()
+        def set_server(_: str):
+            self.server = server
+            self.servers[server.nick] = self.server
+            self.server_dropdown.insertItem(1, server.nick)
+            self.server_add_dialog.close()
+
+        probe = threads.ProbeServerTask(self.session, server)
+        probe.signals.success.connect(set_server)
+        probe.signals.error.connect(self.task_fail)
+
+
 
     def _tor_connection_canceled(self):
         """
