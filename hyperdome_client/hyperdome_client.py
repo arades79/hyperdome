@@ -333,7 +333,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         probe = threads.ProbeServerTask(self.session, server)
         probe.signals.success.connect(set_server)
-        probe.signals.error.connect(self.task_fail)
+        probe.signals.error.connect(lambda s: Alert(self.common, s))
+        self.worker.start(probe)
 
 
 

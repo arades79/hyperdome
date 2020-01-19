@@ -183,9 +183,10 @@ class ProbeServerTask(QtCore.QRunnable):
     def run(self):
         try:
             status = probe_server(self.server, self.session)
-            if status != 'Success':
-                raise Exception
-            self.signals.success('good')
+            if status:
+                raise Exception()
+
+            self.signals.success.emit('good')
         except:
             self.signals.error.emit('server incompatible')
 
@@ -252,7 +253,7 @@ def start_chat(server: Server,
             f"{server.url}/request_counselor",
             data={"guest_id": uid}).text
 
-COMPATIBLE_SERVERS = ['0.1']
+COMPATIBLE_SERVERS = ['2.0']
 
 def probe_server(server: Server,
                  session: requests.Session):
@@ -261,7 +262,7 @@ def probe_server(server: Server,
         return 'not hyperdome'
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'
-    return 'Success'
+    return ''
 
 
 
