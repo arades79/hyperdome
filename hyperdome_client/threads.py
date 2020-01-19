@@ -31,6 +31,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorErrorAutomatic, TorErrorInvalidSetting,
                                     TorTooOld)
 from werkzeug.exceptions import MethodNotAllowed
+import json
 
 
 class OnionThread(QtCore.QThread):
@@ -167,6 +168,28 @@ class GetMessagesTask(QtCore.QRunnable):
         except MethodNotAllowed:
             self.signals.error.emit("not allowed")
 
+class ProbeServerTask(QtCore.QRunnable):
+    """
+    probe server for confirmation of hyperdome api
+    and api version compatibility
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server):
+        super(ProbeServerTask, self).__init__()
+        self.session = session
+        self.server = server
+
+    def run(self):
+        try:
+            status = probe_server(self.server, self.session)
+            if status != 'Success':
+                raise Exception
+            self.signals.success('good')
+        except:
+            self.signals.error.emit('server incompatible')
+
+
 
 def send_message(server: Server,
                  session: requests.Session,
@@ -228,6 +251,17 @@ def start_chat(server: Server,
         return session.post(
             f"{server.url}/request_counselor",
             data={"guest_id": uid}).text
+
+COMPATIBLE_SERVERS = ['0.1']
+
+def probe_server(server: Server,
+                 session: requests.Session):
+    info = json.loads(session.get(f"{server.url}/probe").text)
+    if not info['name'] == 'hyperdome':
+        return 'not hyperdome'
+    if info['version'] not in COMPATIBLE_SERVERS:
+        return 'bad version'
+    return 'Success'
 
 
 
