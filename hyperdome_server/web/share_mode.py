@@ -33,7 +33,7 @@ login_manager = LoginManager()
 
 
 def get_user_class_from_db_and_bcrypt(db, bcrypt):
-    class User(db.Model, UserMixin):
+    class User(db.Model):
         __tablename__ = 'users'
         id = db.Column(db.Integer, primary_key=True,
                        autoincrement=True)
@@ -65,35 +65,24 @@ class ShareModeWeb(object):
         self.web = web
 
         web.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./therapists.db'
+        web.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./counselors.db'
         self.db = SQLAlchemy(web.app)
         self.define_routes()
 
         self.bcrypt = Bcrypt(web.app)
         login_manager.init_app(web.app)
-        login_manager.login_view = "therapist_signin"
+        login_manager.login_view = "counselor_signin"
         login_manager.session_protection = None
-        self.therapists_available = []
-        self.connected_therapist = dict()
+        self.counselors_available = dict()
+        self.connected_counselor = dict()
         self.connected_guest = dict()
         self.pending_messages = dict()
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
+
+
     def define_routes(self):
-
-        @self.web.app.before_request
-        def before_request():
-            user = load_user(request.headers.get("username", ""))
-            if user and user.is_correct_password(
-                    request.headers.get("password", "")):
-                login_user(user)
-
-        @login_manager.user_loader
-        def load_user(username):
-            self.db.create_all()
-            return self.user_class.query.filter(self.user_class.username
-                                                == username).first()
 
         @self.web.app.errorhandler(Exception)
         def unhandled_exception(e):
@@ -101,87 +90,71 @@ class ShareModeWeb(object):
                                                        e,
                                                        e.__traceback__))
             print(e_str)
-            return e_str
+            return "Exception raised", 500
 
-        @self.web.app.route("/request_therapist", methods=['POST'])
-        def request_therapist():
+        @self.web.app.route("/request_counselor", methods=['POST'])
+        def request_counselor():
             guest_id = request.form['guest_id']
-            if self.therapists_available:
-                chosen_therapist = random.choice(self.therapists_available)
-                self.therapists_available.remove(chosen_therapist)
-                self.connected_therapist[guest_id] = chosen_therapist.username
-                self.connected_guest[chosen_therapist.username] = guest_id
-                return chosen_therapist.username
+            if self.counselors_available:
+                chosen_counselor = random.choice([counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0])
+                self.counselors_available[chosen_counselor] -= 1
+                self.connected_counselor[guest_id] = chosen_counselor.username
+                self.connected_guest[chosen_counselor.username] = guest_id
+                return chosen_counselor.username
             return ''
 
-        @login_required
-        @self.web.app.route("/therapy_complete", methods=['POST'])
-        def therapy_complete():
-            self.connected_therapist.pop(
-                self.connected_guest[current_user.username])
-            self.connected_guest.pop(current_user.username)
-            self.therapists_available.append(current_user)
+        @self.web.app.route("/counseling_complete", methods=['POST'])
+        def counseling_complete():
+            sid = request.form['user_id']
+            self.connected_counselor.pop(
+                self.connected_guest[sid])
+            self.connected_guest.pop(sid)
+            self.counselors_available[sid] += 1
 
-        @self.web.app.route("/therapist_signout", methods=["POST"])
-        @login_required
-        def therapist_signout():
-            user = load_user(request.form['username'])
-            logout_user(user)
-            self.therapists_available.remove(user)
+        @self.web.app.route("/counselor_signout", methods=["POST"])
+        def counselor_signout():
+            sid = request.form['user_id']
+            self.counselors_available.pop(sid)
 
-        @self.web.app.route("/therapist_signup", methods=["POST"])
-        def therapist_signup():
-            if request.form.get('masterkey', "") == "megumin":
-                if load_user(request.form['username']):
-                    return "Username already exists"
-                user = self.user_class(username=request.form['username'],
-                                       password=request.form['password'])
-                self.db.session.add(user)
-                self.db.session.commit()
-                return "Success"
-            return abort(401)
+        # on hold temporarily for debugging
+        # @self.web.app.route("/counselor_signup", methods=["POST"])
+        # def counselor_signup():
+        #     if request.form.get('masterkey', "") == "megumin":
+        #         if request.form['username'] in self.counselors_available.keys:
+        #             return "Username already exists"
+        #         user = self.user_class(username=request.form['username'],
+        #                                password=request.form['password'])
+        #         self.db.session.add(user)
+        #         self.db.session.commit()
+        #         return "Success"
+        #     return abort(401)
 
-        @self.web.app.route("/therapist_signin", methods=["POST"])
-        def therapist_signin():
+        @self.web.app.route("/counselor_signin")
+        def counselor_signin():
             # TODO authenticate
-            user = load_user(request.form['username'])
-            self.therapists_available.append(user)
-            return "Success"
+            # user = load_user(request.form['username'])
+            sid = binascii.b2a_hex(os.urandom(15))
+            self.counselors_available[sid] = 1 # will use capacity variable for this later
+            return sid
 
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
 
-        @self.web.app.route("/message_from_therapist", methods=['POST'])
-        @login_required
-        def message_from_therapist():
-            if current_user.username not in self.connected_guest:
-                return abort(401)
-            message = request.form['message']
-
-            guest_id = self.connected_guest[current_user.username]
-            self.pending_messages[guest_id] = (
-                self.pending_messages.get(
-                    guest_id, "") + message + "\n")
-            return "Success"
-
-        @self.web.app.route("/message_from_user", methods=['POST'])
+        @self.web.app.route("/new_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
-            guest_id = request.form['guest_id']
-            therapist_username = self.connected_therapist[guest_id]
-            self.pending_messages[therapist_username] = (
-                self.pending_messages.get(therapist_username, "")
+            user_id = request.form['user_id']
+            if user_id in self.counselors_available:
+                other_user = self.connected_guest[user_id]
+            else:
+                other_user = self.connected_counselor[user_id]
+            self.pending_messages[other_user] = (
+                self.pending_messages.get(other_user, "")
                 + message + "\n")
             return "Success"
 
-        @self.web.app.route("/collect_guest_messages")
-        def collect_guest_messages():
-            guest_id = request.form['guest_id']
+        @self.web.app.route("/collect_messages", methods=['GET'])
+        def collect_messages():
+            guest_id = request.form['user_id']
             return self.pending_messages.pop(guest_id, "")
-
-        @self.web.app.route("/collect_therapist_messages")
-        @login_required
-        def collect_therapist_messages():
-            therapist_username = current_user.username
-            return self.pending_messages.pop(therapist_username, "")
