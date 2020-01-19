@@ -28,6 +28,7 @@ from flask_bcrypt import Bcrypt
 import random
 import binascii
 import traceback
+import json
 
 login_manager = LoginManager()
 
@@ -80,6 +81,10 @@ class ShareModeWeb(object):
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
+        self.info = {'name':'hyperdome',
+                     'version': self.common.version,
+                     'online': str(len(self.counselors_available))}
+
 
 
     def define_routes(self):
@@ -91,6 +96,11 @@ class ShareModeWeb(object):
                                                        e.__traceback__))
             print(e_str)
             return "Exception raised", 500
+
+        @self.web.app.route("/probe")
+        def probe():
+            self.info['online'] = str(len(self.counselors_available))
+            return json.dumps(self.info)
 
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
