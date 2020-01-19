@@ -91,6 +91,8 @@ class ShareModeWeb(object):
 
         @login_manager.user_loader
         def load_user(username):
+            if username in self.therapists_available:
+                return username
             self.db.create_all()
             return self.user_class.query.filter(self.user_class.username
                                                 == username).first()
@@ -114,7 +116,6 @@ class ShareModeWeb(object):
                 return chosen_therapist.username
             return ''
 
-        @login_required
         @self.web.app.route("/therapy_complete", methods=['POST'])
         def therapy_complete():
             self.connected_therapist.pop(
@@ -123,7 +124,6 @@ class ShareModeWeb(object):
             self.therapists_available.append(current_user)
 
         @self.web.app.route("/therapist_signout", methods=["POST"])
-        @login_required
         def therapist_signout():
             user = load_user(request.form['username'])
             logout_user(user)
@@ -141,7 +141,7 @@ class ShareModeWeb(object):
                 return "Success"
             return abort(401)
 
-        @self.web.app.route("/therapist_signin", methods=["POST"])
+        @self.web.app.route("/therapist_signin", methods=["POST", 'GET'])
         def therapist_signin():
             # TODO authenticate
             user = load_user(request.form['username'])
@@ -153,7 +153,6 @@ class ShareModeWeb(object):
             return binascii.b2a_hex(os.urandom(15))
 
         @self.web.app.route("/message_from_therapist", methods=['POST'])
-        @login_required
         def message_from_therapist():
             if current_user.username not in self.connected_guest:
                 return abort(401)
@@ -175,13 +174,12 @@ class ShareModeWeb(object):
                 + message + "\n")
             return "Success"
 
-        @self.web.app.route("/collect_guest_messages")
+        @self.web.app.route("/collect_guest_messages", methods=['GET'])
         def collect_guest_messages():
             guest_id = request.form['guest_id']
             return self.pending_messages.pop(guest_id, "")
 
-        @self.web.app.route("/collect_therapist_messages")
-        @login_required
+        @self.web.app.route("/collect_therapist_messages", methods=['GET'])
         def collect_therapist_messages():
             therapist_username = current_user.username
             return self.pending_messages.pop(therapist_username, "")
