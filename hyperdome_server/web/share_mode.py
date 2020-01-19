@@ -96,7 +96,7 @@ class ShareModeWeb(object):
         def request_therapist():
             guest_id = request.form['guest_id']
             if self.therapists_available:
-                chosen_therapist = random.choice([counselors for counselors in self.therapists_available if self.therapists_available[counselors] > 0])
+                chosen_therapist = random.choice([counselor for counselor in self.therapists_available if self.therapists_available[counselor] > 0])
                 self.therapists_available[chosen_therapist] -= 1
                 self.connected_therapist[guest_id] = chosen_therapist.username
                 self.connected_guest[chosen_therapist.username] = guest_id
@@ -105,14 +105,15 @@ class ShareModeWeb(object):
 
         @self.web.app.route("/therapy_complete", methods=['POST'])
         def therapy_complete():
+            sid = request.form['user_id']
             self.connected_therapist.pop(
-                self.connected_guest[current_user.username])
-            self.connected_guest.pop(current_user.username)
-            self.therapists_available[current_user] += 1
+                self.connected_guest[sid])
+            self.connected_guest.pop(sid)
+            self.therapists_available[sid] += 1
 
         @self.web.app.route("/therapist_signout", methods=["POST"])
         def therapist_signout():
-            sid = request.form['session_id']
+            sid = request.form['user_id']
             self.therapists_available.pop(sid)
 
         # on hold temporarily for debugging
@@ -128,47 +129,32 @@ class ShareModeWeb(object):
         #         return "Success"
         #     return abort(401)
 
-        @self.web.app.route("/therapist_signin", methods=["POST", 'GET'])
+        @self.web.app.route("/therapist_signin")
         def therapist_signin():
             # TODO authenticate
             # user = load_user(request.form['username'])
             sid = binascii.b2a_hex(os.urandom(15))
             self.therapists_available[sid] = 1 # will use capacity variable for this later
-            return "Success"
+            return sid
 
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
 
-        @self.web.app.route("/message_from_therapist", methods=['POST'])
-        def message_from_therapist():
-            if current_user.username not in self.connected_guest:
-                return abort(401)
-            message = request.form['message']
-
-            guest_id = self.connected_guest[current_user.username]
-            self.pending_messages[guest_id] = (
-                self.pending_messages.get(
-                    guest_id, "") + message + "\n")
-            return "Success"
-
-        @self.web.app.route("/message_from_user", methods=['POST'])
+        @self.web.app.route("/new_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
-            guest_id = request.form['guest_id']
-            therapist_username = self.connected_therapist[guest_id]
-            self.pending_messages[therapist_username] = (
-                self.pending_messages.get(therapist_username, "")
+            user_id = request.form['user_id']
+            if user_id in self.therapists_available:
+                other_user = self.connected_guest[user_id]
+            else:
+                other_user = self.connected_therapist[user_id]
+            self.pending_messages[other_user] = (
+                self.pending_messages.get(other_user, "")
                 + message + "\n")
             return "Success"
 
-        @self.web.app.route("/collect_guest_messages", methods=['GET'])
-        def collect_guest_messages():
-            guest_id = request.form['guest_id']
+        @self.web.app.route("/collect_messages", methods=['GET'])
+        def collect_messages():
+            guest_id = request.form['user_id']
             return self.pending_messages.pop(guest_id, "")
-
-        @self.web.app.route("/collect_therapist_messages", methods=['GET'])
-        def collect_therapist_messages():
-            sid = request.form['username']
-            if self.pending_messages[sid]:
-                return self.pending_messages.pop(sid, "")
