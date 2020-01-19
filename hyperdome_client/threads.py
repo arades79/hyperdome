@@ -124,7 +124,7 @@ class GetUidTask(QtCore.QRunnable):
 
 class StartChatTask(QtCore.QRunnable):
     """
-    Signin therapist, or request therapist session if user
+    Signin counselor, or request counselor session if user
     """
     signals = TaskSignals()
 
@@ -198,9 +198,9 @@ def send_message(server: Server,
     """
     Send message to server provided using session for given user
     """
-    if server.is_therapist:  # needs auth
+    if server.is_counselor:  # needs auth
         session.post(
-            f"{server.url}/message_from_therapist",
+            f"{server.url}/message_from_counselor",
             data={
                 "username": server.username,
                 "password": server.password,
@@ -218,7 +218,7 @@ def get_uid(server: Server,
     """
     Ask server for a new UID for a new user session
     """
-    if server.is_therapist:
+    if server.is_counselor:
         uid = session.post(f"{server.url}/counselor_signin",
                     data={"username": server.username,
                         "password": server.password}).text
@@ -242,7 +242,7 @@ def get_messages(server: Server,
 def start_chat(server: Server,
                session: requests.Session,
                uid: str):
-    if server.is_therapist:
+    if server.is_counselor:
         session.post(f"{server.url}/counselor_signin",
                      data={"username": server.username,
                            "password": server.password})
