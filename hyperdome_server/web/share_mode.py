@@ -80,22 +80,17 @@ class ShareModeWeb(object):
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
+
+
     def define_routes(self):
 
-        @self.web.app.before_request
-        def before_request():
-            user = load_user(request.headers.get("username", ""))
-            if user and user.is_correct_password(
-                    request.headers.get("password", "")):
-                login_user(user)
-
-        @login_manager.user_loader
         def load_user(username):
             if username in self.therapists_available:
                 return username
             self.db.create_all()
             return self.user_class.query.filter(self.user_class.username
                                                 == username).first()
+
 
         @self.web.app.errorhandler(Exception)
         def unhandled_exception(e):
@@ -181,5 +176,6 @@ class ShareModeWeb(object):
 
         @self.web.app.route("/collect_therapist_messages", methods=['GET'])
         def collect_therapist_messages():
-            therapist_username = current_user.username
-            return self.pending_messages.pop(therapist_username, "")
+            sid = request.form['username']
+            if self.pending_messages[sid]:
+                return self.pending_messages.pop(sid, "")
