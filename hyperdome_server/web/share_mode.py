@@ -116,10 +116,15 @@ class ShareModeWeb(object):
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
             sid = request.form['user_id']
-            self.connected_counselor.pop(
-                self.connected_guest[sid])
-            self.connected_guest.pop(sid)
-            self.counselors_available[sid] += 1
+            if sid in self.connected_counselor:
+                self.connected_counselor.pop(
+                    self.connected_guest[sid])
+                self.connected_guest.pop(sid)
+                self.counselors_available[sid] += 1
+            elif sid in self.connected_guest:
+                self.connected_guest.pop(
+                    self.connected_guest[sid])
+                self.connected_counselor.pop(sid)
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():

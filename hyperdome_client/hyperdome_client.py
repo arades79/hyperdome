@@ -254,7 +254,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(str)
     def task_fail(self, error: str):
-        self.common.log('HyperdomeClient', 'ThreadPool', error)
+        Alert(self.common, error)
 
     @property
     def session(self):
@@ -284,6 +284,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
            self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
+            self.server_add_dialog.exec()
             self.server_add_dialog.exec_()
         elif self.server_dropdown.currentIndex() != 0:
             self.server = self.servers[self.server_dropdown.currentText()]
@@ -300,7 +301,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     buttons=QtWidgets.QMessageBox.Ok)
                 self.start_chat_button.setEnabled(True)
                 return
-            self.counselor = counselor
+            if self.server.is_counselor:
+                self.uid = counselor
+            else:
+                self.counselor = counselor
             self.is_connected = True
             self.get_messages_task = threads.GetMessagesTask(self.session,
                                                              self.server,
@@ -445,19 +449,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                                      strings._('gui_copied_hidservauth'))
 
     def disconnect_chat(self):
-        self.is_connected = False
         self.start_chat_button.setEnabled(False)
         if self.get_messages_task is not None:
             self.worker.clear()
             del self.get_messages_task
             self.get_messages_task = None
-        if self.server.is_counselor and self.is_connected:
-            self.session.post(f"{self.server.url}/counselor_signout",
-                              data={"username": self.server.username,
-                                    "password": self.server.password})
+        if self.is_connected:
+            self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
         self.start_chat_button.setText('Start Chat')  # locale
         self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(True)
+        self.is_connected = False
 
     def closeEvent(self, e):  # unsure of what use the event var is
         """

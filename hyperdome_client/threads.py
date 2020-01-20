@@ -191,6 +191,51 @@ class ProbeServerTask(QtCore.QRunnable):
             self.signals.error.emit('server incompatible')
 
 
+class EndChatTask(QtCore.QRunnable):
+    """
+    inform the server that the current chat session is concluded,
+    freeing up the counselor for a new guest, and disconnecting the guest
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(EndChatTask, self).__init__()
+        self.session = session
+        self.server = server
+        self.uid = uid
+
+    def run(self):
+        try:
+            self.session.post(f"{self.server.url}/counseling_complete",
+                 data={'user_id': self.uid})
+            self.signals.success.emit('good')
+        except:
+            self.signals.error.emit("you're stuck here now")
+
+
+
+class CounselorSignoutTask(QtCore.QRunnable):
+    """
+    deregister counselor identified from active list,
+    stopping them from receiving additional guests
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(CounselorSignoutTask, self).__init__()
+        self.session = session
+        self.server = server
+        self.uid = uid
+
+    def run(self):
+        try:
+            self.session.post(f"{self.server.url}/counselor_signout",
+                              data={"uid": self.uid})
+            self.signals.success.emit('good')
+        except:
+            self.signals.error.emit("you're stuck here now")
+
+
 
 def send_message(server: Server,
                  session: requests.Session,
@@ -199,19 +244,11 @@ def send_message(server: Server,
     """
     Send message to server provided using session for given user
     """
-    if server.is_counselor:  # needs auth
-        session.post(
-            f"{server.url}/message_from_counselor",
-            data={
-                "username": server.username,
-                "password": server.password,
-                "message": message})
-    else:  # normal user
-        session.post(
-            f'{server.url}/message_from_user',
-            data={
-                'message': message,
-                'guest_id': uid})
+    session.post(
+        f'{server.url}/message_from_user',
+        data={
+            'message': message,
+            'guest_id': uid})
 
 
 def get_uid(server: Server,
@@ -244,10 +281,10 @@ def start_chat(server: Server,
                session: requests.Session,
                uid: str):
     if server.is_counselor:
-        session.post(f"{server.url}/counselor_signin",
+        return session.post(f"{server.url}/counselor_signin",
                      data={"username": server.username,
-                           "password": server.password})
-        return ''
+                           "password": server.password}).text
+
     else:
         return session.post(
             f"{server.url}/request_counselor",
@@ -263,6 +300,7 @@ def probe_server(server: Server,
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'
     return ''
+
 
 
 
