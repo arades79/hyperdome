@@ -156,7 +156,7 @@ class ShareModeWeb(object):
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
 
-        @self.web.app.route("/new_message", methods=['POST'])
+        @self.web.app.route("/send_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']

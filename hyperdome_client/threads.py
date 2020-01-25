@@ -245,10 +245,10 @@ def send_message(server: Server,
     Send message to server provided using session for given user
     """
     session.post(
-        f'{server.url}/message_from_user',
+        f'{server.url}/send_user',
         data={
             'message': message,
-            'guest_id': uid})
+            'user_id': uid})
 
 
 def get_uid(server: Server,
@@ -274,7 +274,7 @@ def get_messages(server: Server,
     """
     return session.get(
         f"{server.url}/collect_messages",
-        data={"guest_id": uid}).text
+        data={"user_id": uid}).text
 
 
 def start_chat(server: Server,
