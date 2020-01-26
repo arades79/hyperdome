@@ -74,6 +74,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
             'images/logo.png')))
 
+        # make dialg for error messages
+        self.error_window = Alert(self.common, '', autostart=False)
+
         # initialize session variables
         self.uid: str = ''
         self.chat_history: list = []
@@ -81,7 +84,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
-        self.get_messages_task = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -254,7 +256,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(str)
     def task_fail(self, error: str):
-        Alert(self.common, error)
+        self.error_window.setText(error)
+        if self.error_window.isActiveWindow():
+            self.error_window.setFocus()
+        else:
+            self.error_window.exec_()
 
     @property
     def session(self):
@@ -312,7 +318,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.setAutoDelete(False)
             self.get_messages_task.signals.success.connect(
                 self.on_history_added)
-            self.get_messages_task.signals.error.connect(self.task_fail)
+            self.get_messages_task.signals.error.connect(lambda: 0)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")  # locale
             self.start_chat_button.clicked.connect(self.disconnect_chat)
@@ -334,10 +340,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.servers[server.nick] = self.server
             self.server_dropdown.insertItem(1, server.nick)
             self.server_add_dialog.close()
+        def bad_server(err: str):
+            self.task_fail(err)
+            self.server_add_dialog.add_server_button.setEnabled(True)
 
         probe = threads.ProbeServerTask(self.session, server)
         probe.signals.success.connect(set_server)
-        probe.signals.error.connect(lambda s: Alert(self.common, s))
+        probe.signals.error.connect(bad_server)
         self.worker.start(probe)
 
 
