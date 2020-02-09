@@ -281,7 +281,7 @@ def start_chat(server: Server,
                session: requests.Session,
                uid: str):
     if server.is_counselor:
-        return session.post(f"{server.url}/counselor_signin",
+        return session.get(f"{server.url}/counselor_signin",
                      data={"username": server.username,
                            "password": server.password}).text
 

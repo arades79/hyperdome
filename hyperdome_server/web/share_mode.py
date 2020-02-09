@@ -108,9 +108,9 @@ class ShareModeWeb(object):
             if self.counselors_available:
                 chosen_counselor = random.choice([counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0])
                 self.counselors_available[chosen_counselor] -= 1
-                self.connected_counselor[guest_id] = chosen_counselor.username
-                self.connected_guest[chosen_counselor.username] = guest_id
-                return chosen_counselor.username
+                self.connected_counselor[guest_id] = chosen_counselor
+                self.connected_guest[chosen_counselor] = guest_id
+                return chosen_counselor
             return ''
 
         @self.web.app.route("/counseling_complete", methods=['POST'])
