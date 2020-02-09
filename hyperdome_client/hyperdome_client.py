@@ -290,7 +290,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
            self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
-            self.server_add_dialog.exec()
             self.server_add_dialog.exec_()
         elif self.server_dropdown.currentIndex() != 0:
             self.server = self.servers[self.server_dropdown.currentText()]
@@ -335,15 +334,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Reciever for the add server dialog to handle the new server details.
         """
+        @QtCore.pyqtSlot(str)
         def set_server(_: str):
+            self.server_add_dialog.close()
+            self.server_add_dialog.add_server_button.setEnabled(True)
             self.server = server
             self.servers[server.nick] = self.server
             self.server_dropdown.insertItem(1, server.nick)
-            self.server_add_dialog.close()
+        @QtCore.pyqtSlot(str)
         def bad_server(err: str):
-            self.task_fail(err)
             self.server_add_dialog.add_server_button.setEnabled(True)
+            self.task_fail(err)
 
+        self.server_add_dialog.add_server_button.setEnabled(False)
         probe = threads.ProbeServerTask(self.session, server)
         probe.signals.success.connect(set_server)
         probe.signals.error.connect(bad_server)
