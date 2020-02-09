@@ -61,6 +61,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.get_messages_task: threads.GetMessagesTask = None
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
+        self.probe_server_task: threads.ProbeServerTask = None
+
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._timer_callback)
         self.timer.setInterval(1000)
@@ -72,6 +74,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
             'images/logo.png')))
 
+        # make dialg for error messages
+        self.error_window = Alert(self.common, '', autostart=False)
+
         # initialize session variables
         self.uid: str = ''
         self.chat_history: list = []
@@ -79,7 +84,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
-        self.get_messages_task = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -184,7 +188,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         if self.uid and not self.counselor:
             self.counselor = self.session.post(
-                f"{self.server.url}/request_therapist",
+                f"{self.server.url}/request_counselor",
                 data={"guest_id": self.uid}).text
             if self.counselor:
                 self.is_connected = True
@@ -193,7 +197,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             message = self.message_text_field.toPlainText()
             self.message_text_field.clear()
             try:
-                if not (self.uid or self.server.is_therapist):
+                if not (self.uid or self.server.is_counselor):
                     self.get_uid()
                 self.chat_window.addItem(f"You: {message}")
                 # run send_message in threadpool
@@ -206,7 +210,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                             e.__traceback__)))
                 Alert(
                     self.common,
-                    "therapy machine broke",
+                    "counseling machine broke",
                     QtWidgets.QMessageBox.Warning,
                     buttons=QtWidgets.QMessageBox.Ok)
         else:
@@ -223,7 +227,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         if not messages:
             return
-        if not self.server.is_therapist:
+        if not self.server.is_counselor:
             message_list = [f'{self.counselor}: {message}'
                             for message in messages.split('\n')]
         else:
@@ -242,7 +246,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         if self.timer.isActive():
             self.timer.stop()
-        if not self.server.is_therapist:
+        if not self.server.is_counselor:
             get_uid_task = threads.GetUidTask(self.server, self.session)
             get_uid_task.signals.success.connect(after_id)
             get_uid_task.signals.error.connect(self.task_fail)
@@ -252,7 +256,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(str)
     def task_fail(self, error: str):
-        self.common.log('HyperdomeClient', 'ThreadPool', error)
+        self.error_window.setText(error)
+        if self.error_window.isActiveWindow():
+            self.error_window.setFocus()
+        else:
+            self.error_window.exec_()
 
     @property
     def session(self):
@@ -290,7 +298,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     def start_chat(self):
         @QtCore.pyqtSlot(str)
         def after_start(counselor: str):
-            if not self.server.is_therapist and not counselor:
+            if not self.server.is_counselor and not counselor:
                 Alert(
                     self.common,
                     "No counselors available.",
@@ -298,7 +306,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     buttons=QtWidgets.QMessageBox.Ok)
                 self.start_chat_button.setEnabled(True)
                 return
-            self.counselor = counselor
+            if self.server.is_counselor:
+                self.uid = counselor
+            else:
+                self.counselor = counselor
             self.is_connected = True
             self.get_messages_task = threads.GetMessagesTask(self.session,
                                                              self.server,
@@ -306,7 +317,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.setAutoDelete(False)
             self.get_messages_task.signals.success.connect(
                 self.on_history_added)
-            self.get_messages_task.signals.error.connect(self.task_fail)
+            self.get_messages_task.signals.error.connect(lambda: 0)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")  # locale
             self.start_chat_button.clicked.connect(self.disconnect_chat)
@@ -323,10 +334,25 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Reciever for the add server dialog to handle the new server details.
         """
-        self.server = server
-        self.servers[server.nick] = self.server
-        self.server_dropdown.insertItem(1, server.nick)
-        self.server_add_dialog.close()
+        @QtCore.pyqtSlot(str)
+        def set_server(_: str):
+            self.server_add_dialog.close()
+            self.server_add_dialog.add_server_button.setEnabled(True)
+            self.server = server
+            self.servers[server.nick] = self.server
+            self.server_dropdown.insertItem(1, server.nick)
+        @QtCore.pyqtSlot(str)
+        def bad_server(err: str):
+            self.server_add_dialog.add_server_button.setEnabled(True)
+            self.task_fail(err)
+
+        self.server_add_dialog.add_server_button.setEnabled(False)
+        probe = threads.ProbeServerTask(self.session, server)
+        probe.signals.success.connect(set_server)
+        probe.signals.error.connect(bad_server)
+        self.worker.start(probe)
+
+
 
     def _tor_connection_canceled(self):
         """
@@ -435,19 +461,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                                      strings._('gui_copied_hidservauth'))
 
     def disconnect_chat(self):
-        self.is_connected = False
         self.start_chat_button.setEnabled(False)
         if self.get_messages_task is not None:
             self.worker.clear()
             del self.get_messages_task
             self.get_messages_task = None
-        if self.server.is_therapist and self.is_connected:
-            self.session.post(f"{self.server.url}/therapist_signout",
-                              data={"username": self.server.username,
-                                    "password": self.server.password})
+        if self.is_connected:
+            self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
         self.start_chat_button.setText('Start Chat')  # locale
         self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(True)
+        self.is_connected = False
 
     def closeEvent(self, e):  # unsure of what use the event var is
         """

@@ -31,6 +31,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorErrorAutomatic, TorErrorInvalidSetting,
                                     TorTooOld)
 from werkzeug.exceptions import MethodNotAllowed
+import json
 
 
 class OnionThread(QtCore.QThread):
@@ -123,7 +124,7 @@ class GetUidTask(QtCore.QRunnable):
 
 class StartChatTask(QtCore.QRunnable):
     """
-    Signin therapist, or request therapist session if user
+    Signin counselor, or request counselor session if user
     """
     signals = TaskSignals()
 
@@ -167,6 +168,74 @@ class GetMessagesTask(QtCore.QRunnable):
         except MethodNotAllowed:
             self.signals.error.emit("not allowed")
 
+class ProbeServerTask(QtCore.QRunnable):
+    """
+    probe server for confirmation of hyperdome api
+    and api version compatibility
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server):
+        super(ProbeServerTask, self).__init__()
+        self.session = session
+        self.server = server
+
+    def run(self):
+        try:
+            status = probe_server(self.server, self.session)
+            if status:
+                raise Exception()
+
+            self.signals.success.emit('good')
+        except:
+            self.signals.error.emit('server incompatible')
+
+
+class EndChatTask(QtCore.QRunnable):
+    """
+    inform the server that the current chat session is concluded,
+    freeing up the counselor for a new guest, and disconnecting the guest
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(EndChatTask, self).__init__()
+        self.session = session
+        self.server = server
+        self.uid = uid
+
+    def run(self):
+        try:
+            self.session.post(f"{self.server.url}/counseling_complete",
+                 data={'user_id': self.uid})
+            self.signals.success.emit('good')
+        except:
+            self.signals.error.emit("you're stuck here now")
+
+
+
+class CounselorSignoutTask(QtCore.QRunnable):
+    """
+    deregister counselor identified from active list,
+    stopping them from receiving additional guests
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(CounselorSignoutTask, self).__init__()
+        self.session = session
+        self.server = server
+        self.uid = uid
+
+    def run(self):
+        try:
+            self.session.post(f"{self.server.url}/counselor_signout",
+                              data={"uid": self.uid})
+            self.signals.success.emit('good')
+        except:
+            self.signals.error.emit("you're stuck here now")
+
+
 
 def send_message(server: Server,
                  session: requests.Session,
@@ -175,19 +244,11 @@ def send_message(server: Server,
     """
     Send message to server provided using session for given user
     """
-    if server.is_therapist:  # needs auth
-        session.post(
-            f"{server.url}/message_from_therapist",
-            data={
-                "username": server.username,
-                "password": server.password,
-                "message": message})
-    else:  # normal user
-        session.post(
-            f'{server.url}/message_from_user',
-            data={
-                'message': message,
-                'guest_id': uid})
+    session.post(
+        f'{server.url}/send_user',
+        data={
+            'message': message,
+            'user_id': uid})
 
 
 def get_uid(server: Server,
@@ -195,51 +256,51 @@ def get_uid(server: Server,
     """
     Ask server for a new UID for a new user session
     """
-    return session.get(
+    if server.is_counselor:
+        uid = session.post(f"{server.url}/counselor_signin",
+                    data={"username": server.username,
+                        "password": server.password}).text
+    else:
+        uid = session.get(
         f'{server.url}/generate_guest_id').text
+    return uid
 
 
 def get_messages(server: Server,
                  session: requests.Session,
-                 uid: str = ''):
+                 uid: str):
     """
     collect new messages waiting on server for active session
     """
-    # TODO: unify counselor and guest versions w/UID
-    if server.is_therapist:
-        messages_response = session.get(
-            f"{server.url}/collect_therapist_messages",
-            headers={"username": server.username,
-                     "password": server.password})
-        status = messages_response.status_code
-        if status == 404:
-            raise requests.HTTPError
-        elif status == 200:
-            return messages_response.text
-        else:
-            raise requests.RequestException
-
-    elif uid:
-        new_messages = session.get(
-            f"{server.url}/collect_guest_messages",
-            data={"guest_id": uid}).text
-    else:
-        new_messages = ''
-    return new_messages
+    return session.get(
+        f"{server.url}/collect_messages",
+        data={"user_id": uid}).text
 
 
 def start_chat(server: Server,
                session: requests.Session,
                uid: str):
-    if server.is_therapist:
-        session.post(f"{server.url}/therapist_signin",
+    if server.is_counselor:
+        return session.post(f"{server.url}/counselor_signin",
                      data={"username": server.username,
-                           "password": server.password})
-        return ''
+                           "password": server.password}).text
+
     else:
         return session.post(
-            f"{server.url}/request_therapist",
+            f"{server.url}/request_counselor",
             data={"guest_id": uid}).text
+
+COMPATIBLE_SERVERS = ['2.0']
+
+def probe_server(server: Server,
+                 session: requests.Session):
+    info = json.loads(session.get(f"{server.url}/probe").text)
+    if not info['name'] == 'hyperdome':
+        return 'not hyperdome'
+    if info['version'] not in COMPATIBLE_SERVERS:
+        return 'bad version'
+    return ''
+
 
 
 

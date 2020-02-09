@@ -28,6 +28,7 @@ from flask_bcrypt import Bcrypt
 import random
 import binascii
 import traceback
+import json
 
 login_manager = LoginManager()
 
@@ -80,6 +81,10 @@ class ShareModeWeb(object):
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
+        self.info = {'name':'hyperdome',
+                     'version': self.common.version,
+                     'online': str(len(self.counselors_available))}
+
 
 
     def define_routes(self):
@@ -91,6 +96,11 @@ class ShareModeWeb(object):
                                                        e.__traceback__))
             print(e_str)
             return "Exception raised", 500
+
+        @self.web.app.route("/probe")
+        def probe():
+            self.info['online'] = str(len(self.counselors_available))
+            return json.dumps(self.info)
 
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
@@ -106,10 +116,15 @@ class ShareModeWeb(object):
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
             sid = request.form['user_id']
-            self.connected_counselor.pop(
-                self.connected_guest[sid])
-            self.connected_guest.pop(sid)
-            self.counselors_available[sid] += 1
+            if sid in self.connected_counselor:
+                self.connected_counselor.pop(
+                    self.connected_guest[sid])
+                self.connected_guest.pop(sid)
+                self.counselors_available[sid] += 1
+            elif sid in self.connected_guest:
+                self.connected_guest.pop(
+                    self.connected_guest[sid])
+                self.connected_counselor.pop(sid)
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
@@ -141,7 +156,7 @@ class ShareModeWeb(object):
         def generate_guest_id():
             return binascii.b2a_hex(os.urandom(15))
 
-        @self.web.app.route("/new_message", methods=['POST'])
+        @self.web.app.route("/send_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']

@@ -32,13 +32,13 @@ class Server(object):
             nick='',
             uname='',
             passwd='',
-            is_therapist=False):
+            is_counselor=False):
         self.url = url
         self._check_url()
         self.nick = nick
         self.username = uname
         self.password = passwd
-        self.is_therapist = is_therapist
+        self.is_counselor = is_counselor
 
     def _check_url(self):
         """
@@ -57,7 +57,7 @@ class AddServerDialog(QtWidgets.QDialog):
     def __init__(self, common, add_server_action):
         super(AddServerDialog, self).__init__()
 
-        self.is_therapist = False
+        self.is_counselor = False
 
         self.setWindowTitle('Add Hyperdome Server')
         self.setWindowIcon(
@@ -124,33 +124,34 @@ class AddServerDialog(QtWidgets.QDialog):
         nick = self.server_nick_text.text()
         uname = self.counselor_username_input.text()
         passwd = self.counselor_password_input.text()
-        is_therapist = self.is_therapist
+        is_counselor = self.is_counselor
 
         return Server(
             url=url,
             nick=nick,
             uname=uname,
             passwd=passwd,
-            is_therapist=is_therapist)
+            is_counselor=is_counselor)
 
     def radio_switch(self, radio_switch):
         """
         Show or hide crediential fields based on user type selected.
         """
         if radio_switch.text() == 'Counselor':
-            self.is_therapist = True
+            self.is_counselor = True
             self.counselor_username_input.show()
             self.counselor_password_input.show()
         else:
-            self.is_therapist = False
+            self.is_counselor = False
             self.counselor_username_input.hide()
             self.counselor_password_input.hide()
 
-    def close(self):
+    def closeEvent(self, e):
         """
         Cleanup for when window is closed.
         """
         self.counselor_username_input.clear()
         self.counselor_password_input.clear()
         self.server_add_text.clear()
-        super(AddServerDialog, self).close()
+
+        e.accept()

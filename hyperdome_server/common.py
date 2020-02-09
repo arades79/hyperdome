@@ -39,6 +39,8 @@ class Common(object):
     The Common object is shared amongst all parts of OnionShare.
     """
 
+    version = '0.1'
+
     def __init__(self, debug=False):
         self.debug = debug
 
