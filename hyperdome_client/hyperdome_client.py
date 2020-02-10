@@ -186,12 +186,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Send the contents of the message box to the server to be forwarded to
         either counsel or guest.
         """
-        if self.uid and not self.counselor:
-            self.counselor = self.session.post(
-                f"{self.server.url}/request_counselor",
-                data={"guest_id": self.uid}).text
-            if self.counselor:
-                self.is_connected = True
+
 
         if self.is_connected:
             message = self.message_text_field.toPlainText()
@@ -227,11 +222,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         if not messages:
             return
-        if not self.server.is_counselor:
-            message_list = [f'{self.counselor}: {message}'
+        if self.server.is_counselor:
+            message_list = [f'guest: {message}'
                             for message in messages.split('\n')]
         else:
-            message_list = [f'Guest: {message}'
+            message_list = [f'counselor: {message}'
                             for message in messages.split('\n')]
         self.chat_window.addItems(message_list)
 
