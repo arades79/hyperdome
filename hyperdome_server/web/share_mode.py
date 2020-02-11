@@ -105,13 +105,14 @@ class ShareModeWeb(object):
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
             guest_id = request.form['guest_id']
-            if self.counselors_available:
-                chosen_counselor = random.choice([counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0])
-                self.counselors_available[chosen_counselor] -= 1
-                self.connected_counselor[guest_id] = chosen_counselor
-                self.connected_guest[chosen_counselor] = guest_id
-                return chosen_counselor
-            return ''
+            counselors = [counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0]
+            if not counselors:
+                return ''
+            chosen_counselor = random.choice(counselors)
+            self.counselors_available[chosen_counselor] -= 1
+            self.connected_counselor[guest_id] = chosen_counselor
+            self.connected_guest[chosen_counselor] = guest_id
+            return 'Success'
 
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
@@ -131,39 +132,29 @@ class ShareModeWeb(object):
             sid = request.form['user_id']
             self.counselors_available.pop(sid)
 
-        # on hold temporarily for debugging
-        # @self.web.app.route("/counselor_signup", methods=["POST"])
-        # def counselor_signup():
-        #     if request.form.get('masterkey', "") == "megumin":
-        #         if request.form['username'] in self.counselors_available.keys:
-        #             return "Username already exists"
-        #         user = self.user_class(username=request.form['username'],
-        #                                password=request.form['password'])
-        #         self.db.session.add(user)
-        #         self.db.session.commit()
-        #         return "Success"
-        #     return abort(401)
-
         @self.web.app.route("/counselor_signin")
         def counselor_signin():
             # TODO authenticate
             # user = load_user(request.form['username'])
-            sid = binascii.b2a_hex(os.urandom(15))
+            sid = binascii.b2a_hex(os.urandom(15)).decode('utf-8')
             self.counselors_available[sid] = 1 # will use capacity variable for this later
             return sid
 
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
-            return binascii.b2a_hex(os.urandom(15))
+            # TODO check for collisions
+            return binascii.b2a_hex(os.urandom(15)).decode('utf-8')
 
         @self.web.app.route("/send_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']
-            if user_id in self.counselors_available:
+            if user_id in self.connected_guest:
                 other_user = self.connected_guest[user_id]
-            else:
+            elif user_id in self.connected_counselor:
                 other_user = self.connected_counselor[user_id]
+            else:
+                return "no chat", 500
             self.pending_messages[other_user] = (
                 self.pending_messages.get(other_user, "")
                 + message + "\n")
