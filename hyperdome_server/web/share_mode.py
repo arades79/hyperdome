@@ -120,7 +120,7 @@ class ShareModeWeb(object):
                 return 'no active chat', 404
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
-            self.active_chat_user_map.pop(other_user)
+            self.active_chat_user_map.update({other_user: ''})
             counselor = sid if sid in self.counselors_available else other_user
             self.counselors_available[counselor] += 1
             return 'Chat Ended'
@@ -151,9 +151,22 @@ class ShareModeWeb(object):
             if user_id not in self.active_chat_user_map:
                 return "no chat", 404
             other_user = self.active_chat_user_map[user_id]
-            messages = self.pending_messages.get(other_user, '') + f"{message}\n"
-            self.pending_messages[other_user] = messages
+            if other_user in self.pending_messages:
+                self.pending_messages[other_user] += f"\n{message}"
+            else:
+                self.pending_messages[other_user] = message
             return "Success"
+
+        @self.web.app.route("/chat_status")
+        def chat_status():
+            user_id = request.form['user_id']
+            try:
+                if self.active_chat_user_map[user_id] == '':
+                    return "CHAT_OVER"
+                else:
+                    return "CHAT_ACTIVE"
+            except KeyError:
+                return "NO_CHAT"
 
         @self.web.app.route("/collect_messages", methods=['GET'])
         def collect_messages():
