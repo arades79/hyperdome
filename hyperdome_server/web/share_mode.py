@@ -151,7 +151,8 @@ class ShareModeWeb(object):
             if user_id not in self.active_chat_user_map:
                 return "no chat", 404
             other_user = self.active_chat_user_map[user_id]
-            self.pending_messages[other_user] += f"{message}\n"
+            messages = self.pending_messages.get(other_user, '') + f"{message}\n"
+            self.pending_messages[other_user] = messages
             return "Success"
 
         @self.web.app.route("/collect_messages", methods=['GET'])
