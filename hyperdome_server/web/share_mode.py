@@ -116,12 +116,15 @@ class ShareModeWeb(object):
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
             sid = request.form['user_id']
-            if sid in self.active_chat_user_map:
-                other_user = self.active_chat_user_map[sid]
-                self.active_chat_user_map.pop(sid)
-                self.active_chat_user_map.pop(other_user)
-                counselor = sid if sid in self.counselors_available else other_user
-                self.counselors_available[counselor] += 1
+            if sid not in self.active_chat_user_map:
+                return 'no active chat', 404
+            other_user = self.active_chat_user_map[sid]
+            self.active_chat_user_map.pop(sid)
+            self.active_chat_user_map.pop(other_user)
+            counselor = sid if sid in self.counselors_available else other_user
+            self.counselors_available[counselor] += 1
+            return 'Chat Ended'
+
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
