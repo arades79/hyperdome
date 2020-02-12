@@ -276,13 +276,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def start_chat(self):
         @QtCore.pyqtSlot(str)
+        def chat_status_handler(status: str):
+            if status == 'CHAT_OVER': self.disconnect_chat()
+            elif status == 'NO_CHAT': self.task_fail('no chat')
+        @QtCore.pyqtSlot(str)
         def after_start(counselor: str):
             if not self.server.is_counselor and not counselor:
-                Alert(
-                    self.common,
-                    "No counselors available.",
-                    QtWidgets.QMessageBox.Warning,
-                    buttons=QtWidgets.QMessageBox.Ok)
+                self.task_fail("No counselors available.")
                 self.start_chat_button.setEnabled(True)
                 return
             if self.server.is_counselor:
@@ -296,7 +296,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.setAutoDelete(False)
             self.get_messages_task.signals.success.connect(
                 self.on_history_added)
-            self.get_messages_task.signals.error.connect(lambda: 0)
+            self.get_messages_task.signals.error.connect(chat_status_handler)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")  # locale
             self.start_chat_button.clicked.connect(self.disconnect_chat)

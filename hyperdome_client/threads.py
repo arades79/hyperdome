@@ -32,6 +32,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorTooOld)
 from werkzeug.exceptions import MethodNotAllowed
 import json
+from functools import partial
 
 
 class OnionThread(QtCore.QThread):
@@ -153,13 +154,23 @@ class GetMessagesTask(QtCore.QRunnable):
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
         super(GetMessagesTask, self).__init__()
-        self.session = session
-        self.server = server
-        self.uid = uid
+        self.check_status = partial(check_status, server, session, uid)
+        self.get_messages = partial(get_messages, server, session, uid)
+        self.attempt_count = 0
+
 
     def run(self):
         try:
-            new_messages = get_messages(self.server, self.session, self.uid)
+            if self.attempt_count % 3 == 0:
+                status = self.check_status()
+                if status == 'CHAT_OVER':
+                    self.signals.error.emit("chat over")
+                    return
+                elif status == 'NO_CHAT':
+                    self.signals.error.emit("no chat")
+                    return
+            self.attempt_count += 1
+            new_messages = self.get_messages()
             self.signals.success.emit(new_messages)
         except requests.HTTPError:
             self.signals.error.emit("Counselor not in chat")
@@ -264,6 +275,16 @@ def get_uid(server: Server,
         uid = session.get(
         f'{server.url}/generate_guest_id').text
     return uid
+
+def check_status(server: Server,
+                 session: requests.Session,
+                 uid: str):
+    """
+    check that a chat is active every once in a while
+    """
+    return session.get(
+        f"{server.url}/chat_status",
+        data={"user_id": uid}).text
 
 
 def get_messages(server: Server,
