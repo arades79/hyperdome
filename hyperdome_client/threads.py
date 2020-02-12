@@ -245,7 +245,7 @@ def send_message(server: Server,
     Send message to server provided using session for given user
     """
     session.post(
-        f'{server.url}/send_user',
+        f'{server.url}/send_message',
         data={
             'message': message,
             'user_id': uid})

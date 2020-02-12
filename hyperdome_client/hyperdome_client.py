@@ -65,7 +65,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._timer_callback)
-        self.timer.setInterval(1000)
+        self.timer.setInterval(3500)
 
         # set window constants
         self.setMinimumWidth(500)
@@ -187,33 +187,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         either counsel or guest.
         """
 
+        message = self.message_text_field.toPlainText()
+        self.message_text_field.clear()
 
-        if self.is_connected:
-            message = self.message_text_field.toPlainText()
-            self.message_text_field.clear()
-            try:
-                if not (self.uid or self.server.is_counselor):
-                    self.get_uid()
-                self.chat_window.addItem(f"You: {message}")
-                # run send_message in threadpool
-            except Exception as e:
-                print(
-                    ''.join(
-                        traceback.format_exception(
-                            type(e),
-                            e,
-                            e.__traceback__)))
-                Alert(
-                    self.common,
-                    "counseling machine broke",
-                    QtWidgets.QMessageBox.Warning,
-                    buttons=QtWidgets.QMessageBox.Ok)
-        else:
-            Alert(
-                self.common,
-                "Not connected to a counselor!",
-                QtWidgets.QMessageBox.Warning,
-                buttons=QtWidgets.QMessageBox.Ok)
+        if not self.is_connected and not self.uid:
+            return self.task_fail("not in an active chat")
+
+        send_message = threads.SendMessageTask(self.server, self.session, self.uid, message)
+        send_message.signals.error.connect(self.task_fail)
+
+        self.worker.start(send_message)
+        self.chat_window.addItem(f"You: {message}")
 
     @QtCore.pyqtSlot(str)
     def on_history_added(self, messages: str):
