@@ -75,8 +75,7 @@ class ShareModeWeb(object):
         login_manager.login_view = "counselor_signin"
         login_manager.session_protection = None
         self.counselors_available = dict()
-        self.connected_counselor = dict()
-        self.connected_guest = dict()
+        self.active_chat_user_map = dict()
         self.pending_messages = dict()
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
@@ -110,22 +109,19 @@ class ShareModeWeb(object):
                 return ''
             chosen_counselor = random.choice(counselors)
             self.counselors_available[chosen_counselor] -= 1
-            self.connected_counselor[guest_id] = chosen_counselor
-            self.connected_guest[chosen_counselor] = guest_id
+            self.active_chat_user_map[guest_id] = chosen_counselor
+            self.active_chat_user_map[chosen_counselor] = guest_id
             return 'Success'
 
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
             sid = request.form['user_id']
-            if sid in self.connected_counselor:
-                self.connected_counselor.pop(
-                    self.connected_guest[sid])
-                self.connected_guest.pop(sid)
-                self.counselors_available[sid] += 1
-            elif sid in self.connected_guest:
-                self.connected_guest.pop(
-                    self.connected_guest[sid])
-                self.connected_counselor.pop(sid)
+            if sid in self.active_chat_user_map:
+                other_user = self.active_chat_user_map[sid]
+                self.active_chat_user_map.pop(sid)
+                self.active_chat_user_map.pop(other_user)
+                counselor = sid if sid in self.counselors_available else other_user
+                self.counselors_available[counselor] += 1
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
@@ -149,15 +145,10 @@ class ShareModeWeb(object):
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']
-            if user_id in self.connected_guest:
-                other_user = self.connected_guest[user_id]
-            elif user_id in self.connected_counselor:
-                other_user = self.connected_counselor[user_id]
-            else:
-                return "no chat", 500
-            self.pending_messages[other_user] = (
-                self.pending_messages.get(other_user, "")
-                + message + "\n")
+            if user_id not in self.active_chat_user_map:
+                return "no chat", 404
+            other_user = self.active_chat_user_map[user_id]
+            self.pending_messages[other_user] += f"{message}\n"
             return "Success"
 
         @self.web.app.route("/collect_messages", methods=['GET'])
