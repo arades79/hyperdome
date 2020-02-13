@@ -121,8 +121,10 @@ class ShareModeWeb(object):
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
             self.active_chat_user_map.update({other_user: ''})
-            counselor = sid if sid in self.counselors_available else other_user
-            self.counselors_available[counselor] += 1
+            if sid in self.counselors_available:
+                self.counselors_available[sid] += 1
+            elif other_user in self.counselors_available:
+                self.counselors_available[other_user] += 1
             return 'Chat Ended'
 
 
@@ -130,6 +132,7 @@ class ShareModeWeb(object):
         def counselor_signout():
             sid = request.form['user_id']
             self.counselors_available.pop(sid)
+            return "Success"
 
         @self.web.app.route("/counselor_signin")
         def counselor_signin():
