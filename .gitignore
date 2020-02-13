@@ -54,3 +54,6 @@ tags
 
 # server specific
 *.db
+
+# debug logs
+debug_dumps/
