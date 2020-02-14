@@ -75,17 +75,14 @@ class ShareModeWeb(object):
         login_manager.login_view = "counselor_signin"
         login_manager.session_protection = None
         self.counselors_available = dict()
-        self.connected_counselor = dict()
-        self.connected_guest = dict()
+        self.active_chat_user_map = dict()
         self.pending_messages = dict()
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
-        self.info = {'name':'hyperdome',
+        self.info = {'name': 'hyperdome',
                      'version': self.common.version,
                      'online': str(len(self.counselors_available))}
-
-
 
     def define_routes(self):
 
@@ -105,69 +102,76 @@ class ShareModeWeb(object):
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
             guest_id = request.form['guest_id']
-            if self.counselors_available:
-                chosen_counselor = random.choice([counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0])
-                self.counselors_available[chosen_counselor] -= 1
-                self.connected_counselor[guest_id] = chosen_counselor.username
-                self.connected_guest[chosen_counselor.username] = guest_id
-                return chosen_counselor.username
-            return ''
+            counselors = [
+                counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0]
+            if not counselors:
+                return ''
+            chosen_counselor = random.choice(counselors)
+            self.counselors_available[chosen_counselor] -= 1
+            self.active_chat_user_map[guest_id] = chosen_counselor
+            self.active_chat_user_map[chosen_counselor] = guest_id
+            return 'Success'
 
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
             sid = request.form['user_id']
-            if sid in self.connected_counselor:
-                self.connected_counselor.pop(
-                    self.connected_guest[sid])
-                self.connected_guest.pop(sid)
+            if sid not in self.active_chat_user_map:
+                return 'no active chat', 404
+            other_user = self.active_chat_user_map[sid]
+            self.active_chat_user_map.pop(sid)
+            self.pending_messages.pop(sid, '')
+            self.active_chat_user_map.update({other_user: ''})
+            if sid in self.counselors_available:
                 self.counselors_available[sid] += 1
-            elif sid in self.connected_guest:
-                self.connected_guest.pop(
-                    self.connected_guest[sid])
-                self.connected_counselor.pop(sid)
+            elif other_user in self.counselors_available:
+                self.counselors_available[other_user] += 1
+            return 'Chat Ended'
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
             sid = request.form['user_id']
-            self.counselors_available.pop(sid)
-
-        # on hold temporarily for debugging
-        # @self.web.app.route("/counselor_signup", methods=["POST"])
-        # def counselor_signup():
-        #     if request.form.get('masterkey', "") == "megumin":
-        #         if request.form['username'] in self.counselors_available.keys:
-        #             return "Username already exists"
-        #         user = self.user_class(username=request.form['username'],
-        #                                password=request.form['password'])
-        #         self.db.session.add(user)
-        #         self.db.session.commit()
-        #         return "Success"
-        #     return abort(401)
+            self.counselors_available.pop(sid, '')
+            return "Success"
 
         @self.web.app.route("/counselor_signin")
         def counselor_signin():
             # TODO authenticate
             # user = load_user(request.form['username'])
-            sid = binascii.b2a_hex(os.urandom(15))
-            self.counselors_available[sid] = 1 # will use capacity variable for this later
+            sid = binascii.b2a_hex(os.urandom(15)).decode('utf-8')
+            # will use capacity variable for this later
+            self.counselors_available[sid] = 1
             return sid
 
         @self.web.app.route("/generate_guest_id")
         def generate_guest_id():
-            return binascii.b2a_hex(os.urandom(15))
+            # TODO check for collisions
+            return binascii.b2a_hex(os.urandom(15)).decode('utf-8')
 
         @self.web.app.route("/send_message", methods=['POST'])
         def message_from_user():
             message = request.form['message']
             user_id = request.form['user_id']
-            if user_id in self.counselors_available:
-                other_user = self.connected_guest[user_id]
+            if user_id not in self.active_chat_user_map:
+                return "no chat", 404
+            other_user = self.active_chat_user_map[user_id]
+            if other_user in self.pending_messages:
+                self.pending_messages[other_user] += f"\n{message}"
+            elif other_user:  # may be empty string if other disconnected
+                self.pending_messages[other_user] = message
             else:
-                other_user = self.connected_counselor[user_id]
-            self.pending_messages[other_user] = (
-                self.pending_messages.get(other_user, "")
-                + message + "\n")
+                return "user left", 404
             return "Success"
+
+        @self.web.app.route("/chat_status")
+        def chat_status():
+            user_id = request.form['user_id']
+            try:
+                if self.active_chat_user_map[user_id] == '':
+                    return "CHAT_OVER"
+                else:
+                    return "CHAT_ACTIVE"
+            except KeyError:
+                return "NO_CHAT"
 
         @self.web.app.route("/collect_messages", methods=['GET'])
         def collect_messages():

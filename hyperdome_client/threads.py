@@ -168,6 +168,7 @@ class GetMessagesTask(QtCore.QRunnable):
         except MethodNotAllowed:
             self.signals.error.emit("not allowed")
 
+
 class ProbeServerTask(QtCore.QRunnable):
     """
     probe server for confirmation of hyperdome api
@@ -207,11 +208,10 @@ class EndChatTask(QtCore.QRunnable):
     def run(self):
         try:
             self.session.post(f"{self.server.url}/counseling_complete",
-                 data={'user_id': self.uid})
+                              data={'user_id': self.uid})
             self.signals.success.emit('good')
         except:
             self.signals.error.emit("you're stuck here now")
-
 
 
 class CounselorSignoutTask(QtCore.QRunnable):
@@ -230,11 +230,10 @@ class CounselorSignoutTask(QtCore.QRunnable):
     def run(self):
         try:
             self.session.post(f"{self.server.url}/counselor_signout",
-                              data={"uid": self.uid})
+                              data={"user_id": self.uid})
             self.signals.success.emit('good')
         except:
             self.signals.error.emit("you're stuck here now")
-
 
 
 def send_message(server: Server,
@@ -245,7 +244,7 @@ def send_message(server: Server,
     Send message to server provided using session for given user
     """
     session.post(
-        f'{server.url}/send_user',
+        f'{server.url}/send_message',
         data={
             'message': message,
             'user_id': uid})
@@ -258,11 +257,11 @@ def get_uid(server: Server,
     """
     if server.is_counselor:
         uid = session.post(f"{server.url}/counselor_signin",
-                    data={"username": server.username,
-                        "password": server.password}).text
+                           data={"username": server.username,
+                                 "password": server.password}).text
     else:
         uid = session.get(
-        f'{server.url}/generate_guest_id').text
+            f'{server.url}/generate_guest_id').text
     return uid
 
 
@@ -281,16 +280,18 @@ def start_chat(server: Server,
                session: requests.Session,
                uid: str):
     if server.is_counselor:
-        return session.post(f"{server.url}/counselor_signin",
-                     data={"username": server.username,
-                           "password": server.password}).text
+        return session.get(f"{server.url}/counselor_signin",
+                           data={"username": server.username,
+                                 "password": server.password}).text
 
     else:
         return session.post(
             f"{server.url}/request_counselor",
             data={"guest_id": uid}).text
 
+
 COMPATIBLE_SERVERS = ['2.0']
+
 
 def probe_server(server: Server,
                  session: requests.Session):
@@ -300,10 +301,3 @@ def probe_server(server: Server,
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'
     return ''
-
-
-
-
-
-
-
