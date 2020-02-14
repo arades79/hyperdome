@@ -80,11 +80,9 @@ class ShareModeWeb(object):
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
-        self.info = {'name':'hyperdome',
+        self.info = {'name': 'hyperdome',
                      'version': self.common.version,
                      'online': str(len(self.counselors_available))}
-
-
 
     def define_routes(self):
 
@@ -104,7 +102,8 @@ class ShareModeWeb(object):
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
             guest_id = request.form['guest_id']
-            counselors = [counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0]
+            counselors = [
+                counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0]
             if not counselors:
                 return ''
             chosen_counselor = random.choice(counselors)
@@ -128,7 +127,6 @@ class ShareModeWeb(object):
                 self.counselors_available[other_user] += 1
             return 'Chat Ended'
 
-
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
             sid = request.form['user_id']
@@ -140,7 +138,8 @@ class ShareModeWeb(object):
             # TODO authenticate
             # user = load_user(request.form['username'])
             sid = binascii.b2a_hex(os.urandom(15)).decode('utf-8')
-            self.counselors_available[sid] = 1 # will use capacity variable for this later
+            # will use capacity variable for this later
+            self.counselors_available[sid] = 1
             return sid
 
         @self.web.app.route("/generate_guest_id")
@@ -157,7 +156,7 @@ class ShareModeWeb(object):
             other_user = self.active_chat_user_map[user_id]
             if other_user in self.pending_messages:
                 self.pending_messages[other_user] += f"\n{message}"
-            elif other_user: # may be empty string if other disconnected
+            elif other_user:  # may be empty string if other disconnected
                 self.pending_messages[other_user] = message
             else:
                 return "user left", 404
