@@ -120,6 +120,7 @@ class ShareModeWeb(object):
                 return 'no active chat', 404
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
+            self.pending_messages.pop(sid, '')
             self.active_chat_user_map.update({other_user: ''})
             if sid in self.counselors_available:
                 self.counselors_available[sid] += 1
@@ -131,7 +132,7 @@ class ShareModeWeb(object):
         @self.web.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
             sid = request.form['user_id']
-            self.counselors_available.pop(sid)
+            self.counselors_available.pop(sid, '')
             return "Success"
 
         @self.web.app.route("/counselor_signin")
@@ -156,8 +157,10 @@ class ShareModeWeb(object):
             other_user = self.active_chat_user_map[user_id]
             if other_user in self.pending_messages:
                 self.pending_messages[other_user] += f"\n{message}"
-            else:
+            elif other_user: # may be empty string if other disconnected
                 self.pending_messages[other_user] = message
+            else:
+                return "user left", 404
             return "Success"
 
         @self.web.app.route("/chat_status")
