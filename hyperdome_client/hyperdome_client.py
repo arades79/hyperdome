@@ -151,7 +151,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button = QtWidgets.QPushButton()
         self.start_chat_button.setText('Start Chat')
         self.start_chat_button.setFixedWidth(100)
-        self.start_chat_button.clicked.connect(self.start_chat)
+        self.start_chat_button_connection = self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(False)
 
         self.server_dropdown = QtWidgets.QComboBox(self)
@@ -293,8 +293,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.signals.error.connect(lambda: 0)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")  # locale
-            self.start_chat_button.clicked.disconnect(self.start_chat)
-            self.start_chat_button.clicked.connect(self.disconnect_chat)
+            self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
+            self.start_chat_button_connection = self.start_chat_button.clicked.connect(self.disconnect_chat)
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
@@ -443,8 +443,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server.is_counselor:
             self.worker.start(threads.CounselorSignoutTask(self.session, self.server, self.uid))
         self.start_chat_button.setText('Start Chat')  # locale
-        self.start_chat_button.clicked.disconnect(self.disconnect_chat)
-        self.start_chat_button.clicked.connect(self.start_chat)
+        self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
+        self.start_chat_button_connection = self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(True)
         self.is_connected = False
 
