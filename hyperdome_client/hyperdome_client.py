@@ -435,6 +435,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
         self.worker.clear()
+        self.get_messages_task.signals.success.disconnect(self.on_history_added)
         if self.get_messages_task is not None:
             del self.get_messages_task
             self.get_messages_task = None
@@ -455,6 +456,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.common.log('OnionShareGui', 'closeEvent')
         self.disconnect_chat()
 
+        self.hide()
+
+        self.worker.waitForDone()
         self.worker.event(e)
 
         self.system_tray.hide()  # seemingly necessarry
