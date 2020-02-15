@@ -103,7 +103,7 @@ class ShareModeWeb(object):
         def request_counselor():
             guest_id = request.form['guest_id']
             counselors = [
-                counselor for counselor in self.counselors_available if self.counselors_available[counselor] > 0]
+                counselor for counselor, capacity in self.counselors_available.items() if capacity]
             if not counselors:
                 return ''
             chosen_counselor = random.choice(counselors)
@@ -122,9 +122,12 @@ class ShareModeWeb(object):
             self.pending_messages.pop(sid, '')
             self.active_chat_user_map.update({other_user: ''})
             if sid in self.counselors_available:
-                self.counselors_available[sid] += 1
+                counselor_id = sid
             elif other_user in self.counselors_available:
-                self.counselors_available[other_user] += 1
+                counselor_id = other_user
+            else:
+                return 'Counselor has left the chat'
+            self.counselors_available[counselor_id] += 1
             return 'Chat Ended'
 
         @self.web.app.route("/counselor_signout", methods=["POST"])
@@ -166,10 +169,7 @@ class ShareModeWeb(object):
         def chat_status():
             user_id = request.form['user_id']
             try:
-                if self.active_chat_user_map[user_id] == '':
-                    return "CHAT_OVER"
-                else:
-                    return "CHAT_ACTIVE"
+                return ("CHAT_OVER" if self.active_chat_user_map[user_id] == '' else "CHAT_ACTIVE")
             except KeyError:
                 return "NO_CHAT"
 

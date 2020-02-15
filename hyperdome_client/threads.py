@@ -296,7 +296,7 @@ COMPATIBLE_SERVERS = ['2.0']
 def probe_server(server: Server,
                  session: requests.Session):
     info = json.loads(session.get(f"{server.url}/probe").text)
-    if not info['name'] == 'hyperdome':
+    if info['name'] != 'hyperdome':
         return 'not hyperdome'
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'

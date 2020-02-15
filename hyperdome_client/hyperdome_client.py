@@ -74,7 +74,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
             'images/logo.png')))
 
-        # make dialg for error messages
+        # make dialog for error messages
         self.error_window = Alert(self.common, '', autostart=False)
 
         # initialize session variables
@@ -206,14 +206,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Update UI with messages retrieved from server.
         """
-        if not messages:
-            return
-        if self.server.is_counselor:
-            message_list = [f'guest: {message}'
-                            for message in messages.split('\n') if message]
-        else:
-            message_list = [f'counselor: {message}'
-                            for message in messages.split('\n') if message]
+        sender_name = "counselor" if self.server.is_counselor else "user"
+        message_list = [f'{sender_name}: {message}'
+                        for message in messages.split('\n') if message]
         self.chat_window.addItems(message_list)
 
     def get_uid(self):
@@ -232,11 +227,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             get_uid_task.signals.success.connect(after_id)
             get_uid_task.signals.error.connect(self.handle_error)
             self.worker.start(get_uid_task)
-        else:
-            after_id('')
+        else:  # user is a counselor which will get uid later
+            after_id('')  # use same callback without uid
 
     @QtCore.pyqtSlot(str)
     def handle_error(self, error: str):
+        """
+        take error string and assign it to the created alert window
+        changes active window with new text
+        and brings to focus if currently in the background.
+        """
         self.error_window.setText(error)
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
@@ -267,12 +267,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
         if self.is_connected:
             self.disconnect_chat()
-        if self.server_dropdown.currentIndex() == \
-           self.server_dropdown.count() - 1:
+        if (self.server_dropdown.currentIndex() ==
+                self.server_dropdown.count() - 1):
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
             self.server_add_dialog.exec_()
-        elif self.server_dropdown.currentIndex() != 0:
+        elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
 
@@ -292,9 +292,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.get_messages_task.setAutoDelete(False)
             self.get_messages_task.signals.success.connect(
                 self.on_history_added)
-            self.get_messages_task.signals.error.connect(lambda: 0)
             self.timer.start()
-            self.start_chat_button.setText("Disconnect")  # locale
+            self.start_chat_button.setText("Disconnect")
             self.start_chat_button.clicked.disconnect(
                 self.start_chat_button_connection)
             self.start_chat_button_connection = self.start_chat_button.clicked.connect(
@@ -414,7 +413,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         if self.get_messages_task is not None:
             self.worker.tryStart(self.get_messages_task)
-        # self.timer.start(1000)
 
     def copy_url(self):
         """
@@ -438,8 +436,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
         self.worker.clear()
-        self.get_messages_task.signals.success.disconnect(
-            self.on_history_added)
         if self.get_messages_task is not None:
             del self.get_messages_task
             self.get_messages_task = None
@@ -449,7 +445,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server.is_counselor:
             self.worker.start(threads.CounselorSignoutTask(
                 self.session, self.server, self.uid))
-        self.start_chat_button.setText('Start Chat')  # locale
+        self.start_chat_button.setText('Start Chat')
         self.start_chat_button.clicked.disconnect(
             self.start_chat_button_connection)
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
@@ -457,7 +453,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(True)
         self.is_connected = False
 
-    def closeEvent(self, e):  # unsure of what use the event var is
+    def closeEvent(self, event):
         """
         When the main window is closed, do some cleanup
         """
@@ -467,9 +463,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.hide()
 
         self.worker.waitForDone()
-        self.worker.event(e)
+        self.worker.event(event)
 
-        self.system_tray.hide()  # seemingly necessarry
+        self.system_tray.hide()  # seemingly necessary
 
         if self.onion:
             self.onion.cleanup()

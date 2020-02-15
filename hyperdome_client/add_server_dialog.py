@@ -146,7 +146,7 @@ class AddServerDialog(QtWidgets.QDialog):
             self.counselor_username_input.hide()
             self.counselor_password_input.hide()
 
-    def closeEvent(self, e):
+    def closeEvent(self, event):
         """
         Cleanup for when window is closed.
         """
@@ -154,4 +154,4 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_password_input.clear()
         self.server_add_text.clear()
 
-        e.accept()
+        event.accept()
