@@ -45,10 +45,11 @@ class SettingsDialog(QtWidgets.QDialog):
     """
     settings_saved = QtCore.pyqtSignal()
 
-    def __init__(self, common: Common,
-                 onion: Onion,
+    def __init__(self,
+                 common,
+                 onion,
                  qtapp: QtWidgets.QApplication,
-                 config: str = '',
+                 has_config: bool = False,
                  local_only: bool = False):
         super(SettingsDialog, self).__init__()
 
@@ -57,9 +58,9 @@ class SettingsDialog(QtWidgets.QDialog):
         self.common.log('SettingsDialog', '__init__')
 
         self.onion = onion
-        self.qtapp = qtapp
-        self.config = config
-        self.local_only = local_only
+        self.qtapp: QtWidgets.QApplication = qtapp
+        self.has_config: bool = has_config
+        self.local_only: bool = local_only
 
         self.setModal(True)
         self.setWindowTitle(strings._('gui_settings_window_title'))
@@ -443,7 +444,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def reload_settings(self):
         # Load settings, and fill them in
-        self.old_settings = Settings(self.common, self.config)
+        self.old_settings = Settings(self.common, self.has_config)
         self.old_settings.load()
 
         connection_type = self.old_settings.get('connection_type')
@@ -676,11 +677,11 @@ class SettingsDialog(QtWidgets.QDialog):
                     return True
 
                 onion.connect(custom_settings=settings,
-                              config=self.config,
+                              config=self.has_config,
                               tor_status_update_func=tor_status_update_func)
             else:
                 onion.connect(custom_settings=settings,
-                              config=self.config)
+                              config=self.has_config)
 
             # If an exception hasn't been raised yet, the Tor settings work
             Alert(self.common, strings._('settings_test_success').format(
@@ -809,7 +810,7 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Default Settings button clicked.
         """
-        settings = Settings(self.common, self.config)
+        settings = Settings(self.common, self.has_config)
         settings.clear()
         self.reload_settings()
 
@@ -823,7 +824,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Return a Settings object that's populated from the settings dialog.
         """
         self.common.log('SettingsDialog', 'settings_from_fields')
-        settings = Settings(self.common, self.config)
+        settings = Settings(self.common, self.has_config)
         settings.load()  # To get the last update timestamp
 
         # Language
