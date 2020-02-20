@@ -50,7 +50,7 @@ Flask-Bcrypt = "==0.7.1"
 flake8 = "==3.7.9"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [scripts]
 test_connection = "python dev_scripts/hyperdome_connection.py"
