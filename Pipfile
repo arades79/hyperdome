@@ -4,7 +4,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-bandit = "*"
 atomicwrites = "==1.3.0"
 attrs = "==19.3.0"
 more-itertools = "==8.0.2"
@@ -17,6 +16,7 @@ six = "==1.13.0"
 urllib3 = "==1.25.6"
 flake8 = "==3.7.9"
 autopep8 = "==1.5"
+bandit = "==1.6.2"
 
 [packages]
 altgraph = "==0.16.1"
