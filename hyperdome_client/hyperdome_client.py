@@ -27,6 +27,7 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .add_server_dialog import AddServerDialog, Server
 from . import threads
+from . import encryption
 
 import requests
 import traceback
@@ -84,6 +85,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
+        self.crypt = encryption.LockBox()
 
         # Load settings, if a custom config was passed in
         self.config = config
