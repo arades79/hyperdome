@@ -20,11 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # considering using pyca/cryptography instead
-import Crypto.Cipher.AES as Sym_enc
-import Crypto.PublicKey.ECC as Asym_enc
-import Crypto.Random as Rand
-
-import cryptography.fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.fernet import Fernet
 
 class LockBox():
     """
@@ -32,28 +32,21 @@ class LockBox():
     """
 
     def __init__(self):
-        self._key = Asym_enc.generate()
-        # TODO hard coded key is for testing ONLY
-        self._partial_secret = b'Lx\x84!PMo\x0c\xc8\x88\xb0\xae\xba\x1f\xb5\x8a'
-        self.chat_encryption = None
+        # TODO consider ephemeral/rotating keys
+        self._private_key = ec.generate_private_key(ec.SECP521R1(), default_backend())
+        self._shared_secret = None
 
-    def dec_secret(self, message):
-        if self.chat_encryption == None:
-            return
+    def get_public_key(self):
+        self._private_key.public_key()
 
-        return self.chat_encryption.decrypt(message)
+    def make_shared_secret(self, public_key):
+        shared = self._private_key.exchange(ec.ECDH(), public_key)
+        key_gen = HKDF(algorithm=hashes.SHA3_512(), length=32, salt=None, info=b'handshake', backend=default_backend())
+        self._shared_secret = Fernet(key_gen.derive(shared))
 
-    def enc_secret(self, message):
-        if self.chat_encryption == None:
-            return
+    def encrypt_message(self, message):
+        return self._shared_secret.encrypt(message)
 
-        return self.chat_encryption.encrypt(message)
-
-    def make_shared_secret(self, incoming_partial):
-        secret = self._partial_secret + incoming_partial
-        self.chat_encryption = Sym_enc.new(secret,Sym_enc.MODE_GCM)
-
-    @property
-    def pubkey(self):
-        return self._key.public_key()
+    def decrypt_message(self, message):
+        return self._shared_secret.decrypt(message)
 
