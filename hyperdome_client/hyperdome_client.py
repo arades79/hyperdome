@@ -267,6 +267,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         self.chat_window.clear()
         self.message_text_field.clear()
+        self.crypt.rotate()
         if self.is_connected:
             self.disconnect_chat()
         if (self.server_dropdown.currentIndex() ==

@@ -45,8 +45,20 @@ class LockBox():
         self._shared_secret = Fernet(key_gen.derive(shared))
 
     def encrypt_message(self, message):
-        return self._shared_secret.encrypt(message)
+        try:
+            message_bytes = message.encode()
+        except AttributeError:
+            message_bytes = message
+        finally:
+            return self._shared_secret.encrypt(message_bytes)
 
     def decrypt_message(self, message):
-        return self._shared_secret.decrypt(message)
+        try:
+            message_bytes = message.encode()
+        except AttributeError:
+            message_bytes = message
+        finally:
+            return self._shared_secret.decrypt(message_bytes).decode('utf-8')
 
+    def rotate(self):
+        self._private_key = ec.generate_private_key(ec.SECP521R1(), default_backend())
