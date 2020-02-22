@@ -131,7 +131,8 @@ class StartChatTask(QtCore.QRunnable):
     def __init__(self,
                  server: Server,
                  session: requests.Session,
-                 uid: str):
+                 uid: str,
+                 pub_key: bytes):
         super(StartChatTask, self).__init__()
         self.server = server
         self.session = session
@@ -140,7 +141,7 @@ class StartChatTask(QtCore.QRunnable):
     def run(self):
         try:
             self.signals.success.emit(start_chat(
-                self.server, self.session, self.uid))
+                self.server, self.session, self.uid, self.pub_key))
         except requests.RequestException:
             self.signals.error.emit("Couldn't start a chat session")
 
@@ -278,16 +279,16 @@ def get_messages(server: Server,
 
 def start_chat(server: Server,
                session: requests.Session,
-               uid: str):
+               uid: str,
+               pub_key: bytes):
     if server.is_counselor:
         return session.get(f"{server.url}/counselor_signin",
-                           data={"username": server.username,
-                                 "password": server.password}).text
+                           data={"pub_key": pub_key})
 
     else:
         return session.post(
             f"{server.url}/request_counselor",
-            data={"guest_id": uid}).text
+            data={"guest_id": uid, "pub_key": pub_key}).text
 
 
 COMPATIBLE_SERVERS = ['2.0']
