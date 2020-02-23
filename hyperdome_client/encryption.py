@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import typing
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_pem_public_key
+import cryptography.hazmat.primitives.serialization as serial
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.fernet import Fernet
@@ -52,7 +52,7 @@ class LockBox():
         """
         key = self._private_key.public_key()
         key_bytes = key.public_bytes(
-            Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+            serial.Encoding.PEM, serial.PublicFormat.SubjectPublicKeyInfo)
         return key_bytes
 
     def make_shared_secret(self, public_key_bytes: bstr):
@@ -63,7 +63,7 @@ class LockBox():
         """
         if isinstance(public_key_bytes, str):
             public_key_bytes = public_key_bytes.encode()
-        public_key = load_pem_public_key(public_key_bytes, default_backend())
+        public_key = serial.load_pem_public_key(public_key_bytes, default_backend())
         shared = self._private_key.exchange(ec.ECDH(), public_key)
         key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16,
                        salt=None, info=b'handshake', backend=default_backend())
@@ -87,3 +87,18 @@ class LockBox():
         self._private_key = ec.generate_private_key(
             ec.SECP521R1(), default_backend())
         self._shared_secret = None
+
+    def save_key(self, identifier, passphrase):
+        filename = f".{identifier}.pem"
+        with open(filename, 'wb') as file:
+            file.write(
+                self._private_key.private_bytes(
+                    serial.Encoding.PEM,
+                    serial.PrivateFormat.PKCS8,
+                    serial.BestAvailableEncryption(passphrase)))
+
+    def load_key(self, identifier, passphrase):
+        filename = f".{identifier}.pem"
+        with open(filename, 'rb') as file:
+            enc_key = file.read()
+            self._private_key = serial.load_pem_private_key(enc_key, passphrase, default_backend())
