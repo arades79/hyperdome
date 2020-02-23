@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # considering using pyca/cryptography instead
+import typing
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_pem_public_key
@@ -27,37 +28,62 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.fernet import Fernet
 
+bstr = typing.Union[str, bytes]
+
+
 class LockBox():
     """
-    handle key storage, encryption and decryption
+    handle key storage, generation, exchange,
+    encryption and decryption
     """
+
+    _private_key = None
+    _shared_secret = None
 
     def __init__(self):
         # TODO consider ephemeral/rotating keys
-        self._private_key = ec.generate_private_key(ec.SECP521R1(), default_backend())
-        self._shared_secret = None
+        self.rotate()
 
-    def get_public_key(self) -> bytes:
-        return self._private_key.public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    @property
+    def public_key(self) -> bytes:
+        """
+        return a PEM encoded serialized public key digest
+        of the current private key
+        """
+        key = self._private_key.public_key()
+        key_bytes = key.public_bytes(
+            Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        return key_bytes
 
-    def make_shared_secret(self, public_key_bytes: bytes):
-        assert isinstance(public_key_bytes, bytes)
+    def make_shared_secret(self, public_key_bytes: bstr):
+        """
+        ingest a PEM encoded public key and generate a symmetric key
+        created by a Diffie-Helman key exchange result being passed into
+        a key-derivation and used to create a fernet instance
+        """
+        if isinstance(public_key_bytes, str):
+            public_key_bytes = public_key_bytes.encode()
         public_key = load_pem_public_key(public_key_bytes, default_backend())
         shared = self._private_key.exchange(ec.ECDH(), public_key)
-        key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16, salt=None, info=b'handshake', backend=default_backend())
+        key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16,
+                       salt=None, info=b'handshake', backend=default_backend())
+        # TODO consider customizing symmetric encryption for larger key or authentication
         self._shared_secret = Fernet(key_gen.derive(shared))
 
-    def encrypt_message(self, message) -> bytes:
+    def encrypt_message(self, message: bstr) -> bytes:
         if isinstance(message, str):
             message = message.encode()
-        assert isinstance(message, bytes)
         return self._shared_secret.encrypt(message)
 
-    def decrypt_message(self, message) -> str:
+    def decrypt_message(self, message: bstr) -> str:
         if isinstance(message, str):
             message = message.encode()
-        assert isinstance(message, bytes)
         return self._shared_secret.decrypt(message).decode('utf-8')
 
     def rotate(self):
-        self._private_key = ec.generate_private_key(ec.SECP521R1(), default_backend())
+        """
+        set a new key pair and invalidate the current shared secret
+        """
+        self._private_key = ec.generate_private_key(
+            ec.SECP521R1(), default_backend())
+        self._shared_secret = None
