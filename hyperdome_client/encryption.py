@@ -37,8 +37,8 @@ class LockBox():
         self._private_key = ec.generate_private_key(ec.SECP521R1(), default_backend())
         self._shared_secret = None
 
-    def get_public_key(self):
-        self._private_key.public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    def get_public_key(self) -> bytes:
+        return self._private_key.public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 
     def make_shared_secret(self, public_key_bytes: bytes):
         public_key = load_pem_public_key(public_key_bytes, default_backend())
