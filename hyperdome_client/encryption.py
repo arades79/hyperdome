@@ -43,7 +43,7 @@ class LockBox():
     def make_shared_secret(self, public_key_bytes: bytes):
         public_key = load_pem_public_key(public_key_bytes, default_backend())
         shared = self._private_key.exchange(ec.ECDH(), public_key)
-        key_gen = HKDF(algorithm=hashes.SHA3_512(), length=32, salt=None, info=b'handshake', backend=default_backend())
+        key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16, salt=None, info=b'handshake', backend=default_backend())
         self._shared_secret = Fernet(key_gen.derive(shared))
 
     def encrypt_message(self, message) -> bytes:
