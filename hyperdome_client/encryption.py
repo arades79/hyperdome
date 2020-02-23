@@ -41,6 +41,7 @@ class LockBox():
         return self._private_key.public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 
     def make_shared_secret(self, public_key_bytes: bytes):
+        assert isinstance(public_key_bytes, bytes)
         public_key = load_pem_public_key(public_key_bytes, default_backend())
         shared = self._private_key.exchange(ec.ECDH(), public_key)
         key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16, salt=None, info=b'handshake', backend=default_backend())
@@ -49,15 +50,13 @@ class LockBox():
     def encrypt_message(self, message) -> bytes:
         if isinstance(message, str):
             message = message.encode()
-        elif not isinstance(message, bytes):
-            raise TypeError
+        assert isinstance(message, bytes)
         return self._shared_secret.encrypt(message)
 
     def decrypt_message(self, message) -> str:
         if isinstance(message, str):
             message = message.encode()
-        elif not isinstance(message, bytes):
-            raise TypeError
+        assert isinstance(message, bytes)
         return self._shared_secret.decrypt(message).decode('utf-8')
 
     def rotate(self):
