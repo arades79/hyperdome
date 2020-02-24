@@ -24,8 +24,10 @@ import typing
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 import cryptography.hazmat.primitives.serialization as serial
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
 from cryptography.fernet import Fernet
 
 bstr = typing.Union[str, bytes]
@@ -37,11 +39,11 @@ class LockBox():
     encryption and decryption
     """
 
-    _private_key = None
+    _chat_key = None
+    _signing_key = None
     _shared_secret = None
     _HASH = hashes.SHA3_256()
     _ENCODING = serial.Encoding.PEM
-    _CURVE = ec.SECP521R1()
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
@@ -56,7 +58,7 @@ class LockBox():
         return a PEM encoded serialized public key digest
         of the current private key
         """
-        key = self._private_key.public_key()
+        key = self._chat_key.public_key()
         key_bytes = key.public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes
@@ -70,7 +72,7 @@ class LockBox():
         if isinstance(public_key_bytes, str):
             public_key_bytes = public_key_bytes.encode()
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
-        shared = self._private_key.exchange(ec.ECDH(), public_key)
+        shared = self._chat_key.exchange(public_key)
         key_gen = HKDF(algorithm=self._HASH, length=16,
                        salt=None, info=b'handshake', backend=self._BACKEND)
         # TODO consider customizing symmetric encryption for larger key or authentication
@@ -86,27 +88,27 @@ class LockBox():
             message = message.encode()
         return self._shared_secret.decrypt(message).decode('utf-8')
 
+    def make_signing_key(self):
+        self._signing_key = Ed25519PrivateKey.generate()
+
     def sign_message(self, message: bstr) -> bytes:
         if isinstance(message, str):
             message = message.encode()
-        sig = self._private_key.sign(
-            message,
-            ec.ECDSA(self._HASH))
+        sig = self._signing_key.sign(message)
         return sig
 
     def rotate(self):
         """
         set a new key pair and invalidate the current shared secret
         """
-        self._private_key = ec.generate_private_key(
-            self._CURVE, self._BACKEND)
+        self._chat_key = X25519PrivateKey.generate()
         self._shared_secret = None
 
     def save_key(self, identifier, passphrase):
         filename = f".{identifier}.pem"
         with open(filename, 'wb') as file:
             file.write(
-                self._private_key.private_bytes(
+                self._signing_key.private_bytes(
                     self._ENCODING,
                     self._PRIVATE_FORMAT,
                     serial.BestAvailableEncryption(passphrase)))
@@ -115,4 +117,4 @@ class LockBox():
         filename = f".{identifier}.pem"
         with open(filename, 'rb') as file:
             enc_key = file.read()
-            self._private_key = serial.load_pem_private_key(enc_key, passphrase, self._BACKEND)
+            self._signing_key = serial.load_pem_private_key(enc_key, passphrase, self._BACKEND)
