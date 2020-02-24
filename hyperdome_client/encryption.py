@@ -39,6 +39,12 @@ class LockBox():
 
     _private_key = None
     _shared_secret = None
+    _HASH = hashes.SHA3_256()
+    _ENCODING = serial.Encoding.PEM
+    _CURVE = ec.SECP521R1()
+    _BACKEND = default_backend()
+    _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
+    _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
 
     def __init__(self):
         # TODO consider ephemeral/rotating keys
@@ -52,7 +58,7 @@ class LockBox():
         """
         key = self._private_key.public_key()
         key_bytes = key.public_bytes(
-            serial.Encoding.PEM, serial.PublicFormat.SubjectPublicKeyInfo)
+            self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes
 
     def make_shared_secret(self, public_key_bytes: bstr):
@@ -63,10 +69,10 @@ class LockBox():
         """
         if isinstance(public_key_bytes, str):
             public_key_bytes = public_key_bytes.encode()
-        public_key = serial.load_pem_public_key(public_key_bytes, default_backend())
+        public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._private_key.exchange(ec.ECDH(), public_key)
-        key_gen = HKDF(algorithm=hashes.SHA3_256(), length=16,
-                       salt=None, info=b'handshake', backend=default_backend())
+        key_gen = HKDF(algorithm=self._HASH, length=16,
+                       salt=None, info=b'handshake', backend=self._BACKEND)
         # TODO consider customizing symmetric encryption for larger key or authentication
         self._shared_secret = Fernet(key_gen.derive(shared))
 
@@ -85,7 +91,7 @@ class LockBox():
             message = message.encode()
         sig = self._private_key.sign(
             message,
-            ec.ECDSA(hashes.SHA3_256()))
+            ec.ECDSA(self._HASH))
         return sig
 
     def rotate(self):
@@ -93,7 +99,7 @@ class LockBox():
         set a new key pair and invalidate the current shared secret
         """
         self._private_key = ec.generate_private_key(
-            ec.SECP521R1(), default_backend())
+            self._CURVE, self._BACKEND)
         self._shared_secret = None
 
     def save_key(self, identifier, passphrase):
@@ -101,12 +107,12 @@ class LockBox():
         with open(filename, 'wb') as file:
             file.write(
                 self._private_key.private_bytes(
-                    serial.Encoding.PEM,
-                    serial.PrivateFormat.PKCS8,
+                    self._ENCODING,
+                    self._PRIVATE_FORMAT,
                     serial.BestAvailableEncryption(passphrase)))
 
     def load_key(self, identifier, passphrase):
         filename = f".{identifier}.pem"
         with open(filename, 'rb') as file:
             enc_key = file.read()
-            self._private_key = serial.load_pem_private_key(enc_key, passphrase, default_backend())
+            self._private_key = serial.load_pem_private_key(enc_key, passphrase, self._BACKEND)
