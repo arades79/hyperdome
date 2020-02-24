@@ -53,12 +53,23 @@ class LockBox():
         self.rotate()
 
     @property
-    def public_key(self) -> bytes:
+    def public_chat_key(self) -> bytes:
         """
         return a PEM encoded serialized public key digest
-        of the current private key
+        of the current private X25519 chat key
         """
         key = self._chat_key.public_key()
+        key_bytes = key.public_bytes(
+            self._ENCODING, self._PUBLIC_FORMAT)
+        return key_bytes
+
+    @property
+    def public_signing_key(self) -> bytes:
+        """
+        return a PEM encoded serialized public key digest
+        of the current private Ed25519 signing key
+        """
+        key = self._signing_key.public_key()
         key_bytes = key.public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes
