@@ -65,7 +65,7 @@ class LockBox():
             public_key_bytes = public_key_bytes.encode()
         public_key = serial.load_pem_public_key(public_key_bytes, default_backend())
         shared = self._private_key.exchange(ec.ECDH(), public_key)
-        key_gen = HKDF(algorithm=hashes.SHA3_128(), length=16,
+        key_gen = HKDF(algorithm=hashes.SHA3_256(), length=16,
                        salt=None, info=b'handshake', backend=default_backend())
         # TODO consider customizing symmetric encryption for larger key or authentication
         self._shared_secret = Fernet(key_gen.derive(shared))
@@ -79,6 +79,14 @@ class LockBox():
         if isinstance(message, str):
             message = message.encode()
         return self._shared_secret.decrypt(message).decode('utf-8')
+
+    def sign_message(self, message: bstr) -> bytes:
+        if isinstance(message, str):
+            message = message.encode()
+        sig = self._private_key.sign(
+            message,
+            ec.ECDSA(hashes.SHA3_256()))
+        return sig
 
     def rotate(self):
         """
