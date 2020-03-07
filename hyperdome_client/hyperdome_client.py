@@ -196,7 +196,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not self.is_connected and not self.uid:
             return self.handle_error("not in an active chat")
 
-        enc_message = self.crypt.encrypt_message(message)
+        enc_message = self.crypt.encrypt_outgoing_message(message)
 
         send_message = threads.SendMessageTask(
             self.server, self.session, self.uid, enc_message)
@@ -211,7 +211,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Update UI with messages retrieved from server.
         """
         sender_name = "counselor" if self.server.is_counselor else "user"
-        message_list = [f'{sender_name}: {self.crypt.decrypt(message)}'
+        message_list = [f'{sender_name}: {self.crypt.decrypt_incoming_message(message)}'
                         for message in messages.split('\n') if message]
         self.chat_window.addItems(message_list)
 
