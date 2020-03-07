@@ -48,7 +48,7 @@ class LockBox():
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _KDF = HKDF(_HASH, 32, salt=None, info='hyperdome-message', backend=_BACKEND)
+    _KDF = HKDF(_HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND)
 
     def encrypt_outgoing_message(self, message: bstr) -> bytes:
         if isinstance(message, str):

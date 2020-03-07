@@ -145,6 +145,7 @@ class ShareModeWeb(object):
         def counselor_signout():
             sid = request.form['user_id']
             self.counselors_available.pop(sid, '')
+            self.counselor_keys.pop(sid, '')
             return "Success"
 
         @self.web.app.route("/counselor_signin")

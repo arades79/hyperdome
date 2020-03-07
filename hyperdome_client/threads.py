@@ -137,6 +137,7 @@ class StartChatTask(QtCore.QRunnable):
         self.server = server
         self.session = session
         self.uid = uid
+        self.pub_key = pub_key
 
     def run(self):
         try:
@@ -301,7 +302,7 @@ def start_chat(server: Server,
                pub_key: bytes):
     if server.is_counselor:
         return session.get(f"{server.url}/counselor_signin",
-                           data={"pub_key": pub_key})
+                           data={"pub_key": pub_key}).text
 
     else:
         return session.post(
