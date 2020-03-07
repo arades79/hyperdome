@@ -24,8 +24,8 @@ import typing
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 import cryptography.hazmat.primitives.serialization as serial
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from cryptography.fernet import Fernet
@@ -41,40 +41,62 @@ class LockBox():
 
     _chat_key = None
     _signing_key = None
-    _shared_secret = None
+    _send_ratchet_key= None
+    _recieve_ratchet_key = None
     _HASH = hashes.SHA3_256()
     _ENCODING = serial.Encoding.PEM
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
+    _KDF = HKDF(_HASH, 32, salt=None, info='hyperdome-message', backend=_BACKEND)
 
-    def __init__(self):
-        # TODO consider ephemeral/rotating keys
-        self.rotate()
+    def encrypt_outgoing_message(self, message: bstr) -> bytes:
+        if isinstance(message, str):
+            message = message.encode()
+
+        new_base_key = self._KDF.derive(self._send_ratchet_key)
+        self._send_ratchet_key = new_base_key[:128]
+        ciphertext = Fernet(new_base_key[128:]).encrypt(message)
+        return ciphertext
+
+
+    def decrypt_incoming_message(self, message: bstr) -> bytes:
+        if isinstance(message, str):
+            message = message.encode()
+        if not message:
+            raise ValueError
+
+        new_base_key = self._KDF.derive(self._recieve_ratchet_key)
+        self._send_ratchet_key = new_base_key[:128]
+        plaintext = Fernet(new_base_key[128:]).decrypt(message)
+        return plaintext
 
     @property
     def public_chat_key(self) -> bytes:
         """
         return a PEM encoded serialized public key digest
-        of the current private X25519 chat key
+        of a new ephemeral X448 key
         """
-        key = self._chat_key.public_key()
-        key_bytes = key.public_bytes(
+        self._send_ratchet_key = None
+        self._recieve_ratchet_key = None
+
+        self._chat_key = X448PrivateKey.generate()
+        pub_key_bytes = self._chat_key.public_key().public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes
+        return pub_key_bytes
 
     @property
     def public_signing_key(self) -> bytes:
         """
         return a PEM encoded serialized public key digest
-        of the current private Ed25519 signing key
+        of the ed448 signing key
         """
         key = self._signing_key.public_key()
         key_bytes = key.public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes
 
-    def make_shared_secret(self, public_key_bytes: bstr):
+    def perform_key_exchange(self, public_key_bytes: bstr, chirality: bool):
         """
         ingest a PEM encoded public key and generate a symmetric key
         created by a Diffie-Helman key exchange result being passed into
@@ -84,23 +106,19 @@ class LockBox():
             public_key_bytes = public_key_bytes.encode()
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._chat_key.exchange(public_key)
-        key_gen = HKDF(algorithm=self._HASH, length=16,
-                       salt=None, info=b'handshake', backend=self._BACKEND)
         # TODO consider customizing symmetric encryption for larger key or authentication
-        self._shared_secret = Fernet(key_gen.derive(shared))
-
-    def encrypt_message(self, message: bstr) -> bytes:
-        if isinstance(message, str):
-            message = message.encode()
-        return self._shared_secret.encrypt(message)
-
-    def decrypt_message(self, message: bstr) -> str:
-        if isinstance(message, str):
-            message = message.encode()
-        return self._shared_secret.decrypt(message).decode('utf-8')
+        new_chat_key = self._KDF.derive(shared)
+        if chirality:
+            send_slice = slice(None, 128)
+            recieve_slice = slice(128, None)
+        else:
+            send_slice = slice(128, None)
+            recieve_slice = slice(None, 128)
+        self._send_ratchet_key = new_chat_key[send_slice]
+        self._recieve_ratchet_key = new_chat_key[recieve_slice]
 
     def make_signing_key(self):
-        self._signing_key = Ed25519PrivateKey.generate()
+        self._signing_key = Ed448PrivateKey.generate()
 
     def sign_message(self, message: bstr) -> bytes:
         if isinstance(message, str):
@@ -108,12 +126,6 @@ class LockBox():
         sig = self._signing_key.sign(message)
         return sig
 
-    def rotate(self):
-        """
-        set a new key pair and invalidate the current shared secret
-        """
-        self._chat_key = X25519PrivateKey.generate()
-        self._shared_secret = None
 
     def save_key(self, identifier, passphrase):
         filename = f".{identifier}.pem"
