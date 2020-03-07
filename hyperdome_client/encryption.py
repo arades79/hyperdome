@@ -50,17 +50,17 @@ class LockBox():
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
     _KDF = HKDF(_HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND)
 
-    def encrypt_outgoing_message(self, message: bstr) -> bytes:
+    def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
             message = message.encode()
 
         new_base_key = self._KDF.derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:128]
         ciphertext = Fernet(new_base_key[128:]).encrypt(message)
-        return ciphertext
+        return ciphertext.decode('utf-8')
 
 
-    def decrypt_incoming_message(self, message: bstr) -> bytes:
+    def decrypt_incoming_message(self, message: bstr) -> str:
         if isinstance(message, str):
             message = message.encode()
         if not message:
@@ -69,10 +69,10 @@ class LockBox():
         new_base_key = self._KDF.derive(self._recieve_ratchet_key)
         self._send_ratchet_key = new_base_key[:128]
         plaintext = Fernet(new_base_key[128:]).decrypt(message)
-        return plaintext
+        return plaintext.decode('utf-8')
 
     @property
-    def public_chat_key(self) -> bytes:
+    def public_chat_key(self) -> str:
         """
         return a PEM encoded serialized public key digest
         of a new ephemeral X448 key
@@ -83,10 +83,10 @@ class LockBox():
         self._chat_key = X448PrivateKey.generate()
         pub_key_bytes = self._chat_key.public_key().public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
-        return pub_key_bytes
+        return pub_key_bytes.decode('utf-8')
 
     @property
-    def public_signing_key(self) -> bytes:
+    def public_signing_key(self) -> str:
         """
         return a PEM encoded serialized public key digest
         of the ed448 signing key
@@ -94,7 +94,7 @@ class LockBox():
         key = self._signing_key.public_key()
         key_bytes = key.public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes
+        return key_bytes.decode('utf-8')
 
     def perform_key_exchange(self, public_key_bytes: bstr, chirality: bool):
         """
@@ -120,11 +120,11 @@ class LockBox():
     def make_signing_key(self):
         self._signing_key = Ed448PrivateKey.generate()
 
-    def sign_message(self, message: bstr) -> bytes:
+    def sign_message(self, message: bstr) -> str:
         if isinstance(message, str):
             message = message.encode()
         sig = self._signing_key.sign(message)
-        return sig
+        return sig.decode('utf-8')
 
 
     def save_key(self, identifier, passphrase):
