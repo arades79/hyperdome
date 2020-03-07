@@ -49,7 +49,8 @@ class LockBox():
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _KDF = functools.partial(HKDF, _HASH, 64, salt=None, info=b'hyperdome-message', backend=_BACKEND)
+    _RATCHET_KDF = functools.partial(HKDF, _HASH, 64, salt=None, info=b'ratchet increment', backend=_BACKEND)
+    _KEY_KDF = functools.partial(functools.partial(HKDF, _HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND))
 
     def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
@@ -57,9 +58,10 @@ class LockBox():
         if not message:
             raise ValueError("message must not be 'None' or empty")
 
-        new_base_key = self._KDF().derive(self._send_ratchet_key)
-        self._send_ratchet_key = new_base_key[:16]
-        ciphertext = Fernet(new_base_key[16:]).encrypt(message)
+        new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
+        print(f"{len(new_base_key)=}\t{len(new_base_key[:32])=}{len(new_base_key[32:])=}")
+        self._send_ratchet_key = new_base_key[:32]
+        ciphertext = Fernet(self._KEY_KDF().derive(new_base_key[32:])).decrypt(message)
         return ciphertext.decode('utf-8')
 
 
@@ -69,9 +71,10 @@ class LockBox():
         if not message:
             raise ValueError("message must not be 'None' or empty")
 
-        new_base_key = self._KDF().derive(self._recieve_ratchet_key)
+        new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
-        plaintext = Fernet(new_base_key[32:]).decrypt(message)
+
+        plaintext = Fernet(self._KEY_KDF().derive(new_base_key[32:])).decrypt(message)
         return plaintext.decode('utf-8')
 
     @property
