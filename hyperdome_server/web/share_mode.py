@@ -104,7 +104,7 @@ class ShareModeWeb(object):
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
             guest_id = request.form['guest_id']
-            guest_key = request.form['public_key']
+            guest_key = request.form['pub_key']
             counselors = [
                 counselor for counselor, capacity in self.counselors_available.items() if capacity]
             if not counselors:

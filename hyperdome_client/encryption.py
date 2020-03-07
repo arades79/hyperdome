@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # considering using pyca/cryptography instead
 import typing
+import functools
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 import cryptography.hazmat.primitives.serialization as serial
@@ -48,15 +49,17 @@ class LockBox():
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _KDF = HKDF(_HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND)
+    _KDF = functools.partial(HKDF, _HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND)
 
     def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
             message = message.encode()
+        if not message:
+            raise ValueError("message must not be 'None' or empty")
 
-        new_base_key = self._KDF.derive(self._send_ratchet_key)
-        self._send_ratchet_key = new_base_key[:128]
-        ciphertext = Fernet(new_base_key[128:]).encrypt(message)
+        new_base_key = self._KDF().derive(self._send_ratchet_key)
+        self._send_ratchet_key = new_base_key[:16]
+        ciphertext = Fernet(new_base_key[16:]).encrypt(message)
         return ciphertext.decode('utf-8')
 
 
@@ -64,11 +67,11 @@ class LockBox():
         if isinstance(message, str):
             message = message.encode()
         if not message:
-            raise ValueError
+            raise ValueError("message must not be 'None' or empty")
 
-        new_base_key = self._KDF.derive(self._recieve_ratchet_key)
-        self._send_ratchet_key = new_base_key[:128]
-        plaintext = Fernet(new_base_key[128:]).decrypt(message)
+        new_base_key = self._KDF().derive(self._recieve_ratchet_key)
+        self._send_ratchet_key = new_base_key[:16]
+        plaintext = Fernet(new_base_key[16:]).decrypt(message)
         return plaintext.decode('utf-8')
 
     @property
@@ -107,13 +110,13 @@ class LockBox():
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._chat_key.exchange(public_key)
         # TODO consider customizing symmetric encryption for larger key or authentication
-        new_chat_key = self._KDF.derive(shared)
+        new_chat_key = self._KDF().derive(shared)
         if chirality:
-            send_slice = slice(None, 128)
-            recieve_slice = slice(128, None)
+            send_slice = slice(None, 16)
+            recieve_slice = slice(16, None)
         else:
-            send_slice = slice(128, None)
-            recieve_slice = slice(None, 128)
+            send_slice = slice(16, None)
+            recieve_slice = slice(None, 16)
         self._send_ratchet_key = new_chat_key[send_slice]
         self._recieve_ratchet_key = new_chat_key[recieve_slice]
 

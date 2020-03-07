@@ -294,7 +294,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 def counselor_got_guest(guest_key: str):
                     if not guest_key:
                         return
-                    self.crypt.perform_key_exchange(guest_key)
+                    self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
                     self.poll_guest_key_task = None
                     self.get_messages_task = threads.GetMessagesTask(self.session,
                                                                      self.server,
@@ -312,6 +312,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                                                                # TODO: there should be a connection status enum for better state understanding
                                                                )
             else:
+                self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
                 self.get_messages_task = threads.GetMessagesTask(self.session,
                                                                  self.server,
                                                                  self.uid)

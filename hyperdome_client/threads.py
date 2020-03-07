@@ -277,7 +277,7 @@ def get_uid(server: Server,
     """
     if server.is_counselor:
         uid = session.post(f"{server.url}/counselor_signin",
-                           data={"username": server.username,
+                           files={"username": server.username,
                                  "password": server.password}).text
     else:
         uid = session.get(
