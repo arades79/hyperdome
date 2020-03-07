@@ -44,12 +44,12 @@ class LockBox():
     _signing_key = None
     _send_ratchet_key= None
     _recieve_ratchet_key = None
-    _HASH = hashes.SHA3_256()
+    _HASH = hashes.SHA3_512()
     _ENCODING = serial.Encoding.PEM
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _KDF = functools.partial(HKDF, _HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND)
+    _KDF = functools.partial(HKDF, _HASH, 64, salt=None, info=b'hyperdome-message', backend=_BACKEND)
 
     def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
@@ -70,8 +70,8 @@ class LockBox():
             raise ValueError("message must not be 'None' or empty")
 
         new_base_key = self._KDF().derive(self._recieve_ratchet_key)
-        self._send_ratchet_key = new_base_key[:16]
-        plaintext = Fernet(new_base_key[16:]).decrypt(message)
+        self._send_ratchet_key = new_base_key[:32]
+        plaintext = Fernet(new_base_key[32:]).decrypt(message)
         return plaintext.decode('utf-8')
 
     @property
@@ -112,11 +112,11 @@ class LockBox():
         # TODO consider customizing symmetric encryption for larger key or authentication
         new_chat_key = self._KDF().derive(shared)
         if chirality:
-            send_slice = slice(None, 16)
-            recieve_slice = slice(16, None)
+            send_slice = slice(None, 32)
+            recieve_slice = slice(32, None)
         else:
             send_slice = slice(16, None)
-            recieve_slice = slice(None, 16)
+            recieve_slice = slice(None, 32)
         self._send_ratchet_key = new_chat_key[send_slice]
         self._recieve_ratchet_key = new_chat_key[recieve_slice]
 
