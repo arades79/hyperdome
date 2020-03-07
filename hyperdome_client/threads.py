@@ -32,7 +32,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorTooOld)
 from werkzeug.exceptions import MethodNotAllowed
 import json
-
+import functools
 
 class OnionThread(QtCore.QThread):
     """
@@ -236,6 +236,24 @@ class CounselorSignoutTask(QtCore.QRunnable):
         except:
             self.signals.error.emit("you're stuck here now")
 
+class PollForConnectedGuestTask(QtCore.QRunnable):
+    """
+    ask server if a guest has requested to connect yet
+    and return the public key when they have
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(PollForConnectedGuestTask, self).__init__()
+        self.task = functools.partial(get_guest_pub_key, server, session, uid)
+
+    def run(self):
+        try:
+            self.signals.success.emit(self.task())
+        except:
+            self.signals.error.emit("problem getting guest pubkey")
+
+
 
 def send_message(server: Server,
                  session: requests.Session,
@@ -302,3 +320,10 @@ def probe_server(server: Server,
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'
     return ''
+
+def get_guest_pub_key(server: Server,
+               session: requests.Session,
+               uid: str):
+    return session.get(
+        f"{server.url}/poll_connected_guest",
+        data={"counselor_id": uid}).text
