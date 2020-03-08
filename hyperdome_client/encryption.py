@@ -60,11 +60,6 @@ class LockBox():
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        #
-        # DELETE THIS
-        print(f"{fernet_key=}")
-        # DELETE THIS
-        #
         ciphertext = Fernet(fernet_key).encrypt(message)
         return ciphertext.decode('utf-8')
 
@@ -78,11 +73,6 @@ class LockBox():
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._recieve_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        #
-        # DELETE THIS
-        print(f"{fernet_key=}")
-        # DELETE THIS
-        #
         plaintext = Fernet(fernet_key).decrypt(message)
         return plaintext.decode('utf-8')
 
