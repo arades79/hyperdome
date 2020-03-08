@@ -32,7 +32,7 @@ from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
                                     TorTooOld)
 from werkzeug.exceptions import MethodNotAllowed
 import json
-
+import functools
 
 class OnionThread(QtCore.QThread):
     """
@@ -131,16 +131,18 @@ class StartChatTask(QtCore.QRunnable):
     def __init__(self,
                  server: Server,
                  session: requests.Session,
-                 uid: str):
+                 uid: str,
+                 pub_key: bytes):
         super(StartChatTask, self).__init__()
         self.server = server
         self.session = session
         self.uid = uid
+        self.pub_key = pub_key
 
     def run(self):
         try:
             self.signals.success.emit(start_chat(
-                self.server, self.session, self.uid))
+                self.server, self.session, self.uid, self.pub_key))
         except requests.RequestException:
             self.signals.error.emit("Couldn't start a chat session")
 
@@ -235,6 +237,24 @@ class CounselorSignoutTask(QtCore.QRunnable):
         except:
             self.signals.error.emit("you're stuck here now")
 
+class PollForConnectedGuestTask(QtCore.QRunnable):
+    """
+    ask server if a guest has requested to connect yet
+    and return the public key when they have
+    """
+    signals = TaskSignals()
+
+    def __init__(self, session: requests.Session, server: Server, uid: str):
+        super(PollForConnectedGuestTask, self).__init__()
+        self.task = functools.partial(get_guest_pub_key, server, session, uid)
+
+    def run(self):
+        try:
+            self.signals.success.emit(self.task())
+        except:
+            self.signals.error.emit("problem getting guest pubkey")
+
+
 
 def send_message(server: Server,
                  session: requests.Session,
@@ -257,7 +277,7 @@ def get_uid(server: Server,
     """
     if server.is_counselor:
         uid = session.post(f"{server.url}/counselor_signin",
-                           data={"username": server.username,
+                           files={"username": server.username,
                                  "password": server.password}).text
     else:
         uid = session.get(
@@ -278,16 +298,16 @@ def get_messages(server: Server,
 
 def start_chat(server: Server,
                session: requests.Session,
-               uid: str):
+               uid: str,
+               pub_key: str):
     if server.is_counselor:
         return session.get(f"{server.url}/counselor_signin",
-                           data={"username": server.username,
-                                 "password": server.password}).text
+                           data={"pub_key": pub_key}).text
 
     else:
         return session.post(
             f"{server.url}/request_counselor",
-            data={"guest_id": uid}).text
+            data={"guest_id": uid, "pub_key": pub_key}).text
 
 
 COMPATIBLE_SERVERS = ['2.0']
@@ -301,3 +321,10 @@ def probe_server(server: Server,
     if info['version'] not in COMPATIBLE_SERVERS:
         return 'bad version'
     return ''
+
+def get_guest_pub_key(server: Server,
+               session: requests.Session,
+               uid: str):
+    return session.get(
+        f"{server.url}/poll_connected_guest",
+        data={"counselor_id": uid}).text

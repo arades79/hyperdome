@@ -27,6 +27,7 @@ from .settings_dialog import SettingsDialog
 from .widgets import Alert
 from .add_server_dialog import AddServerDialog, Server
 from . import threads
+from . import encryption
 
 import requests
 import traceback
@@ -62,6 +63,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
         self.probe_server_task: threads.ProbeServerTask = None
+        self.poll_guest_key_task: threads.PollForConnectedGuestTask = None
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._timer_callback)
@@ -84,6 +86,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
+        self.crypt = encryption.LockBox()
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -194,8 +197,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not self.is_connected and not self.uid:
             return self.handle_error("not in an active chat")
 
+        enc_message = self.crypt.encrypt_outgoing_message(message)
+
         send_message = threads.SendMessageTask(
-            self.server, self.session, self.uid, message)
+            self.server, self.session, self.uid, enc_message)
         send_message.signals.error.connect(self.handle_error)
 
         self.worker.start(send_message)
@@ -207,7 +212,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Update UI with messages retrieved from server.
         """
         sender_name = "counselor" if self.server.is_counselor else "user"
-        message_list = [f'{sender_name}: {message}'
+        message_list = [f'{sender_name}: {self.crypt.decrypt_incoming_message(message)}'
                         for message in messages.split('\n') if message]
         self.chat_window.addItems(message_list)
 
@@ -285,13 +290,35 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 return
             if self.server.is_counselor:
                 self.uid = counselor
-            self.is_connected = True
-            self.get_messages_task = threads.GetMessagesTask(self.session,
-                                                             self.server,
-                                                             self.uid)
-            self.get_messages_task.setAutoDelete(False)
-            self.get_messages_task.signals.success.connect(
-                self.on_history_added)
+                @QtCore.pyqtSlot(str)
+                def counselor_got_guest(guest_key: str):
+                    if not guest_key:
+                        return
+                    self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
+                    self.poll_guest_key_task = None
+                    self.get_messages_task = threads.GetMessagesTask(self.session,
+                                                                     self.server,
+                                                                     self.uid)
+                    self.get_messages_task.setAutoDelete(False)
+                    self.get_messages_task.signals.success.connect(
+                        self.on_history_added)
+                self.poll_guest_key_task = threads.PollForConnectedGuestTask(
+                    self.session, self.server, self.uid)
+                self.poll_guest_key_task.setAutoDelete(False)
+                self.poll_guest_key_task.signals.success.connect(
+                    counselor_got_guest)
+                self.poll_guest_key_task.signals.error.connect(self.handle_error
+
+                                                               # TODO: there should be a connection status enum for better state understanding
+                                                               )
+            else:
+                self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
+                self.get_messages_task = threads.GetMessagesTask(self.session,
+                                                                 self.server,
+                                                                 self.uid)
+                self.get_messages_task.setAutoDelete(False)
+                self.get_messages_task.signals.success.connect(
+                    self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
             self.start_chat_button.clicked.disconnect(
@@ -302,7 +329,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.start_chat_button.setEnabled(False)
         start_chat_task = threads.StartChatTask(
-            self.server, self.session, self.uid)
+            self.server, self.session, self.uid, self.crypt.public_chat_key)
         start_chat_task.signals.success.connect(after_start)
         start_chat_task.signals.error.connect(self.handle_error)
         self.worker.start(start_chat_task)
@@ -413,6 +440,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         if self.get_messages_task is not None:
             self.worker.tryStart(self.get_messages_task)
+        elif self.poll_guest_key_task is not None:
+            self.worker.tryStart(self.poll_guest_key_task)
 
     def copy_url(self):
         """

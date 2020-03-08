@@ -77,6 +77,8 @@ class ShareModeWeb(object):
         self.counselors_available = dict()
         self.active_chat_user_map = dict()
         self.pending_messages = dict()
+        self.guest_keys = dict()
+        self.counselor_keys = dict()
         self.user_class = get_user_class_from_db_and_bcrypt(self.db,
                                                             self.bcrypt)
 
@@ -102,6 +104,7 @@ class ShareModeWeb(object):
         @self.web.app.route("/request_counselor", methods=['POST'])
         def request_counselor():
             guest_id = request.form['guest_id']
+            guest_key = request.form['pub_key']
             counselors = [
                 counselor for counselor, capacity in self.counselors_available.items() if capacity]
             if not counselors:
@@ -110,7 +113,15 @@ class ShareModeWeb(object):
             self.counselors_available[chosen_counselor] -= 1
             self.active_chat_user_map[guest_id] = chosen_counselor
             self.active_chat_user_map[chosen_counselor] = guest_id
-            return 'Success'
+            self.guest_keys[chosen_counselor] = guest_key
+            counselor_key = self.counselor_keys.pop(chosen_counselor)
+            return counselor_key
+
+        @self.web.app.route("/poll_connected_guest", methods=['GET'])
+        def poll_connected_guest():
+            counselor_id = request.form['counselor_id']
+            guest_key = self.guest_keys.pop(counselor_id, '')
+            return guest_key
 
         @self.web.app.route("/counseling_complete", methods=['POST'])
         def counseling_complete():
@@ -134,15 +145,18 @@ class ShareModeWeb(object):
         def counselor_signout():
             sid = request.form['user_id']
             self.counselors_available.pop(sid, '')
+            self.counselor_keys.pop(sid, '')
             return "Success"
 
         @self.web.app.route("/counselor_signin")
         def counselor_signin():
+            counselor_key = request.form['pub_key']
             # TODO authenticate
             # user = load_user(request.form['username'])
             sid = binascii.b2a_hex(os.urandom(15)).decode('utf-8')
             # will use capacity variable for this later
             self.counselors_available[sid] = 1
+            self.counselor_keys[sid] = counselor_key
             return sid
 
         @self.web.app.route("/generate_guest_id")
