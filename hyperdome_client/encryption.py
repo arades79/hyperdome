@@ -28,7 +28,7 @@ import cryptography.hazmat.primitives.serialization as serial
 from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-
+import base64
 from cryptography.fernet import Fernet
 
 bstr = typing.Union[str, bytes]
@@ -50,7 +50,6 @@ class LockBox():
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
     _RATCHET_KDF = functools.partial(HKDF, _HASH, 64, salt=None, info=b'ratchet increment', backend=_BACKEND)
-    _KEY_KDF = functools.partial(functools.partial(HKDF, _HASH, 32, salt=None, info=b'hyperdome-message', backend=_BACKEND))
 
     def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
@@ -59,9 +58,14 @@ class LockBox():
             raise ValueError("message must not be 'None' or empty")
 
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
-        print(f"{len(new_base_key)=}\t{len(new_base_key[:32])=}{len(new_base_key[32:])=}")
         self._send_ratchet_key = new_base_key[:32]
-        ciphertext = Fernet(self._KEY_KDF().derive(new_base_key[32:])).decrypt(message)
+        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
+        #
+        # DELETE THIS
+        print(f"{fernet_key=}")
+        # DELETE THIS
+        #
+        ciphertext = Fernet(fernet_key).encrypt(message)
         return ciphertext.decode('utf-8')
 
 
@@ -72,9 +76,14 @@ class LockBox():
             raise ValueError("message must not be 'None' or empty")
 
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
-        self._send_ratchet_key = new_base_key[:32]
-
-        plaintext = Fernet(self._KEY_KDF().derive(new_base_key[32:])).decrypt(message)
+        self._recieve_ratchet_key = new_base_key[:32]
+        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
+        #
+        # DELETE THIS
+        print(f"{fernet_key=}")
+        # DELETE THIS
+        #
+        plaintext = Fernet(fernet_key).decrypt(message)
         return plaintext.decode('utf-8')
 
     @property
@@ -113,12 +122,12 @@ class LockBox():
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._chat_key.exchange(public_key)
         # TODO consider customizing symmetric encryption for larger key or authentication
-        new_chat_key = self._KDF().derive(shared)
+        new_chat_key = self._RATCHET_KDF().derive(shared)
         if chirality:
             send_slice = slice(None, 32)
             recieve_slice = slice(32, None)
         else:
-            send_slice = slice(16, None)
+            send_slice = slice(32, None)
             recieve_slice = slice(None, 32)
         self._send_ratchet_key = new_chat_key[send_slice]
         self._recieve_ratchet_key = new_chat_key[recieve_slice]
