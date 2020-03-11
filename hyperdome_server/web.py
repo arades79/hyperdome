@@ -32,9 +32,6 @@ import json
 import flask
 from flask import Flask, request, render_template, abort, make_response
 
-from .. import strings
-
-from .share_mode import ShareModeWeb
 
 
 # Stub out flask's show_server_banner function, to avoiding showing
@@ -266,7 +263,6 @@ class Web(object):
             if self.error404_count == 20:
                 self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
                 self.force_shutdown()
-                print(strings._('error_rate_limit'))
 
         r = make_response(render_template('404.html'), 404)
         return self.add_security_headers(r)
