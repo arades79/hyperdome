@@ -44,14 +44,14 @@ class Common(object):
 
         # The platform OnionShare is running on
         self.platform = platform.system()
-        if self.platform.endswith('BSD'):
-            self.platform = 'BSD'
+        if self.platform.endswith("BSD"):
+            self.platform = "BSD"
 
         # The current version of OnionShare
-        with open(self.get_resource_path('version.txt')) as f:
+        with open(self.get_resource_path("version.txt")) as f:
             self.version = f.read().strip()
 
-    def load_settings(self, config=''):
+    def load_settings(self, config=""):
         """
         Loading settings, optionally from a custom config json file.
         """
@@ -67,7 +67,7 @@ class Common(object):
 
             final_msg = "[{}] {}.{}".format(timestamp, module, func)
             if msg:
-                final_msg = '{}: {}'.format(final_msg, msg)
+                final_msg = "{}: {}".format(final_msg, msg)
             print(final_msg)
 
     def get_resource_path(self, filename):
@@ -77,35 +77,41 @@ class Common(object):
         """
         # On Windows, and in Windows dev mode, switch slashes in incoming
         # filename to backslackes
-        if self.platform == 'Windows':
-            filename = filename.replace('/', '\\')
+        if self.platform == "Windows":
+            filename = filename.replace("/", "\\")
 
-        if getattr(sys, 'onionshare_dev_mode', False):
+        if getattr(sys, "onionshare_dev_mode", False):
             # Look for resources directory relative to python file
             prefix = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(
-                    inspect.getfile(inspect.currentframe())))),
-                'share')
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.abspath(inspect.getfile(inspect.currentframe()))
+                    )
+                ),
+                "share",
+            )
             if not os.path.exists(prefix):
                 # While running tests during stdeb bdist_deb, look 3
                 # directories up for the share folder
                 prefix = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.dirname(
-                        os.path.dirname(prefix)))),
-                    'share')
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(os.path.dirname(prefix)))
+                    ),
+                    "share",
+                )
 
-        elif self.platform == 'BSD' or self.platform == 'Linux':
+        elif self.platform == "BSD" or self.platform == "Linux":
             # Assume OnionShare is installed systemwide in Linux, since we're
             # not running in dev mode
-            prefix = os.path.join(sys.prefix, 'share/onionshare')
+            prefix = os.path.join(sys.prefix, "share/onionshare")
 
-        elif getattr(sys, 'frozen', False):
+        elif getattr(sys, "frozen", False):
             # Check if app is "frozen"
             # https://pythonhosted.org/PyInstaller/#run-time-information
-            if self.platform == 'Darwin':
-                prefix = os.path.join(sys._MEIPASS, 'share')
-            elif self.platform == 'Windows':
-                prefix = os.path.join(os.path.dirname(sys.executable), 'share')
+            if self.platform == "Darwin":
+                prefix = os.path.join(sys._MEIPASS, "share")
+            elif self.platform == "Windows":
+                prefix = os.path.join(os.path.dirname(sys.executable), "share")
             else:
                 raise SystemError
         else:
@@ -114,64 +120,72 @@ class Common(object):
         return os.path.join(prefix, filename)
 
     def get_tor_paths(self):
-        if self.platform == 'Linux':
-            tor_path = '/usr/bin/tor'
-            tor_geo_ip_file_path = '/usr/share/tor/geoip'
-            tor_geo_ipv6_file_path = '/usr/share/tor/geoip6'
-            obfs4proxy_file_path = '/usr/bin/obfs4proxy'
-        elif self.platform == 'Windows':
+        if self.platform == "Linux":
+            tor_path = "/usr/bin/tor"
+            tor_geo_ip_file_path = "/usr/share/tor/geoip"
+            tor_geo_ipv6_file_path = "/usr/share/tor/geoip6"
+            obfs4proxy_file_path = "/usr/bin/obfs4proxy"
+        elif self.platform == "Windows":
             base_path = os.path.join(
-                os.path.dirname(os.path.dirname(self.get_resource_path(''))),
-                'tor')
-            tor_path = os.path.join(os.path.join(base_path, 'Tor'), 'tor.exe')
+                os.path.dirname(os.path.dirname(self.get_resource_path(""))), "tor"
+            )
+            tor_path = os.path.join(os.path.join(base_path, "Tor"), "tor.exe")
             obfs4proxy_file_path = os.path.join(
-                os.path.join(base_path, 'Tor'), 'obfs4proxy.exe')
-            tor_geo_ip_file_path = os.path.join(os.path.join(
-                os.path.join(base_path, 'Data'), 'Tor'), 'geoip')
-            tor_geo_ipv6_file_path = os.path.join(os.path.join(
-                os.path.join(base_path, 'Data'), 'Tor'), 'geoip6')
-        elif self.platform == 'Darwin':
-            base_path = os.path.dirname(os.path.dirname(os.path.dirname(
-                self.get_resource_path(''))))
-            tor_path = os.path.join(base_path, 'Resources', 'Tor', 'tor')
+                os.path.join(base_path, "Tor"), "obfs4proxy.exe"
+            )
             tor_geo_ip_file_path = os.path.join(
-                base_path, 'Resources', 'Tor', 'geoip')
+                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip"
+            )
             tor_geo_ipv6_file_path = os.path.join(
-                base_path, 'Resources', 'Tor', 'geoip6')
+                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip6"
+            )
+        elif self.platform == "Darwin":
+            base_path = os.path.dirname(
+                os.path.dirname(os.path.dirname(self.get_resource_path("")))
+            )
+            tor_path = os.path.join(base_path, "Resources", "Tor", "tor")
+            tor_geo_ip_file_path = os.path.join(base_path, "Resources", "Tor", "geoip")
+            tor_geo_ipv6_file_path = os.path.join(
+                base_path, "Resources", "Tor", "geoip6"
+            )
             obfs4proxy_file_path = os.path.join(
-                base_path, 'Resources', 'Tor', 'obfs4proxy')
-        elif self.platform == 'BSD':
-            tor_path = '/usr/local/bin/tor'
-            tor_geo_ip_file_path = '/usr/local/share/tor/geoip'
-            tor_geo_ipv6_file_path = '/usr/local/share/tor/geoip6'
-            obfs4proxy_file_path = '/usr/local/bin/obfs4proxy'
+                base_path, "Resources", "Tor", "obfs4proxy"
+            )
+        elif self.platform == "BSD":
+            tor_path = "/usr/local/bin/tor"
+            tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
+            tor_geo_ipv6_file_path = "/usr/local/share/tor/geoip6"
+            obfs4proxy_file_path = "/usr/local/bin/obfs4proxy"
 
-        return (tor_path, tor_geo_ip_file_path, tor_geo_ipv6_file_path,
-                obfs4proxy_file_path)
+        return (
+            tor_path,
+            tor_geo_ip_file_path,
+            tor_geo_ipv6_file_path,
+            obfs4proxy_file_path,
+        )
 
     def build_data_dir(self):
         """
         Returns the path of the OnionShare data directory.
         """
-        if self.platform == 'Windows':
-            if 'APPDATA' in os.environ:
-                appdata = os.environ['APPDATA']
-                onionshare_data_dir = '{}\\OnionShare'.format(appdata)
+        if self.platform == "Windows":
+            if "APPDATA" in os.environ:
+                appdata = os.environ["APPDATA"]
+                onionshare_data_dir = "{}\\OnionShare".format(appdata)
             else:
                 # If for some reason we don't have the 'APPDATA' environment
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
-                onionshare_data_dir = os.path.expanduser(
-                    '~/.config/onionshare')
-        elif self.platform == 'Darwin':
+                onionshare_data_dir = os.path.expanduser("~/.config/onionshare")
+        elif self.platform == "Darwin":
             onionshare_data_dir = os.path.expanduser(
-                '~/Library/Application Support/OnionShare')
+                "~/Library/Application Support/OnionShare"
+            )
         else:
-            onionshare_data_dir = os.path.expanduser('~/.config/onionshare')
+            onionshare_data_dir = os.path.expanduser("~/.config/onionshare")
 
         os.makedirs(onionshare_data_dir, 0o700, True)
         return onionshare_data_dir
-
 
     @staticmethod
     def random_string(num_bytes, output_len=None):
@@ -180,9 +194,8 @@ class Common(object):
         """
         b = os.urandom(num_bytes)
         h = hashlib.sha256(b).digest()[:16]
-        s = base64.b32encode(h).lower().replace(b'=', b'').decode('utf-8')
+        s = base64.b32encode(h).lower().replace(b"=", b"").decode("utf-8")
         return s[:output_len] if output_len else s
-
 
     @staticmethod
     def get_available_port(min_port, max_port):
@@ -192,8 +205,7 @@ class Common(object):
         with socket.socket() as tmpsock:
             while True:
                 try:
-                    tmpsock.bind(("127.0.0.1", random.randint(min_port,
-                                                              max_port)))
+                    tmpsock.bind(("127.0.0.1", random.randint(min_port, max_port)))
                     break
                 except OSError:
                     pass
@@ -215,8 +227,8 @@ class ShutdownTimer(threading.Thread):
         self.time = time
 
     def run(self):
-        self.common.log('Shutdown Timer',
-                        'Server will shut down after {} seconds'.format(
-                            self.time))
+        self.common.log(
+            "Shutdown Timer", "Server will shut down after {} seconds".format(self.time)
+        )
         time.sleep(self.time)
         return 1

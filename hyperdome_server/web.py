@@ -33,7 +33,6 @@ import flask
 from flask import Flask, request, render_template, abort, make_response
 
 
-
 # Stub out flask's show_server_banner function, to avoiding showing
 # warnings that are not applicable to OnionShare
 def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
@@ -47,6 +46,7 @@ class Web(object):
     """
     The Web object is the OnionShare web server, powered by flask
     """
+
     REQUEST_LOAD = 0
     REQUEST_STARTED = 1
     REQUEST_PROGRESS = 2
@@ -61,19 +61,19 @@ class Web(object):
 
     def __init__(self, common, is_gui):
         self.common = common
-        self.common.log('Web', '__init__', f'is_gui={is_gui}')
+        self.common.log("Web", "__init__", f"is_gui={is_gui}")
 
         # The flask app
-        self.app = Flask(__name__,
-                         static_folder=self.common.get_resource_path('static'),
-                         template_folder=self.common.get_resource_path(
-                             'templates'))
+        self.app = Flask(
+            __name__,
+            static_folder=self.common.get_resource_path("static"),
+            template_folder=self.common.get_resource_path("templates"),
+        )
         self.app.secret_key = self.common.random_string(8)
 
         # Debug mode?
         if self.common.debug:
             self.debug_mode()
-
 
         # If the user stops the server while a transfer is in progress, it
         # should immediately stop the transfer. In order to make it
@@ -81,16 +81,18 @@ class Web(object):
         # then the user stopped the server.
         self.stop_q = queue.Queue()
 
-
         self.security_headers = [
-            ('Content-Security-Policy',
-             'default-src \'self\'; style-src \'self\'; '
-             'script-src \'self\'; img-src \'self\' data:;'),
-            ('X-Frame-Options', 'DENY'),
-            ('X-Xss-Protection', '1; mode=block'),
-            ('X-Content-Type-Options', 'nosniff'),
-            ('Referrer-Policy', 'no-referrer'),
-            ('Server', 'Hyperdome')]
+            (
+                "Content-Security-Policy",
+                "default-src 'self'; style-src 'self'; "
+                "script-src 'self'; img-src 'self' data:;",
+            ),
+            ("X-Frame-Options", "DENY"),
+            ("X-Xss-Protection", "1; mode=block"),
+            ("X-Content-Type-Options", "nosniff"),
+            ("Referrer-Policy", "no-referrer"),
+            ("Server", "Hyperdome"),
+        ]
 
         self.q = queue.Queue()
         self.slug = None
@@ -116,14 +118,17 @@ class Web(object):
         self.counselor_keys = dict()
 
         #
-        self.info = {'name': 'hyperdome',
-                     'version': self.common.version,
-                     'online': str(len(self.counselors_available))}
+        self.info = {
+            "name": "hyperdome",
+            "version": self.common.version,
+            "online": str(len(self.counselors_available)),
+        }
 
     def define_common_routes(self):
         """
         Common web app routes between sending and receiving
         """
+
         @self.app.errorhandler(404)
         def page_not_found(e):
             """
@@ -146,30 +151,31 @@ class Web(object):
             Display instructions for disabling Tor Browser's
             NoScript XSS setting
             """
-            r = make_response(render_template('receive_noscript_xss.html'))
+            r = make_response(render_template("receive_noscript_xss.html"))
             return self.add_security_headers(r)
 
         @self.app.errorhandler(Exception)
         def unhandled_exception(e):
-            e_str = ''.join(traceback.format_exception(type(e),
-                                                       e,
-                                                       e.__traceback__))
+            e_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             print(e_str)
             return "Exception raised", 500
 
         @self.app.route("/probe")
         def probe():
-            self.info['online'] = str(len(self.counselors_available))
+            self.info["online"] = str(len(self.counselors_available))
             return json.dumps(self.info)
 
-        @self.app.route("/request_counselor", methods=['POST'])
+        @self.app.route("/request_counselor", methods=["POST"])
         def request_counselor():
-            guest_id = request.form['guest_id']
-            guest_key = request.form['pub_key']
+            guest_id = request.form["guest_id"]
+            guest_key = request.form["pub_key"]
             counselors = [
-                counselor for counselor, capacity in self.counselors_available.items() if capacity]
+                counselor
+                for counselor, capacity in self.counselors_available.items()
+                if capacity
+            ]
             if not counselors:
-                return ''
+                return ""
             chosen_counselor = random.choice(counselors)
             self.counselors_available[chosen_counselor] -= 1
             self.active_chat_user_map[guest_id] = chosen_counselor
@@ -178,40 +184,40 @@ class Web(object):
             counselor_key = self.counselor_keys.pop(chosen_counselor)
             return counselor_key
 
-        @self.app.route("/poll_connected_guest", methods=['GET'])
+        @self.app.route("/poll_connected_guest", methods=["GET"])
         def poll_connected_guest():
-            counselor_id = request.form['counselor_id']
-            guest_key = self.guest_keys.pop(counselor_id, '')
+            counselor_id = request.form["counselor_id"]
+            guest_key = self.guest_keys.pop(counselor_id, "")
             return guest_key
 
-        @self.app.route("/counseling_complete", methods=['POST'])
+        @self.app.route("/counseling_complete", methods=["POST"])
         def counseling_complete():
-            sid = request.form['user_id']
+            sid = request.form["user_id"]
             if sid not in self.active_chat_user_map:
-                return 'no active chat', 404
+                return "no active chat", 404
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
-            self.pending_messages.pop(sid, '')
-            self.active_chat_user_map.update({other_user: ''})
+            self.pending_messages.pop(sid, "")
+            self.active_chat_user_map.update({other_user: ""})
             if sid in self.counselors_available:
                 counselor_id = sid
             elif other_user in self.counselors_available:
                 counselor_id = other_user
             else:
-                return 'Counselor has left the chat'
+                return "Counselor has left the chat"
             self.counselors_available[counselor_id] += 1
-            return 'Chat Ended'
+            return "Chat Ended"
 
         @self.app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
-            sid = request.form['user_id']
-            self.counselors_available.pop(sid, '')
-            self.counselor_keys.pop(sid, '')
+            sid = request.form["user_id"]
+            self.counselors_available.pop(sid, "")
+            self.counselor_keys.pop(sid, "")
             return "Success"
 
         @self.app.route("/counselor_signin")
         def counselor_signin():
-            counselor_key = request.form['pub_key']
+            counselor_key = request.form["pub_key"]
             # TODO authenticate
             # user = load_user(request.form['username'])
             sid = self.common.random_string(16)
@@ -225,10 +231,10 @@ class Web(object):
             # TODO check for collisions
             return self.common.random_string(16)
 
-        @self.app.route("/send_message", methods=['POST'])
+        @self.app.route("/send_message", methods=["POST"])
         def message_from_user():
-            message = request.form['message']
-            user_id = request.form['user_id']
+            message = request.form["message"]
+            user_id = request.form["user_id"]
             if user_id not in self.active_chat_user_map:
                 return "no chat", 404
             other_user = self.active_chat_user_map[user_id]
@@ -242,20 +248,24 @@ class Web(object):
 
         @self.app.route("/chat_status")
         def chat_status():
-            user_id = request.form['user_id']
+            user_id = request.form["user_id"]
             try:
-                return ("CHAT_OVER" if self.active_chat_user_map[user_id] == '' else "CHAT_ACTIVE")
+                return (
+                    "CHAT_OVER"
+                    if self.active_chat_user_map[user_id] == ""
+                    else "CHAT_ACTIVE"
+                )
             except KeyError:
                 return "NO_CHAT"
 
-        @self.app.route("/collect_messages", methods=['GET'])
+        @self.app.route("/collect_messages", methods=["GET"])
         def collect_messages():
-            guest_id = request.form['user_id']
+            guest_id = request.form["user_id"]
             return self.pending_messages.pop(guest_id, "")
 
     def error404(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
-        if request.path != '/favicon.ico':
+        if request.path != "/favicon.ico":
             self.error404_count += 1
 
             # In receive mode, with public mode enabled, skip rate limiting
@@ -264,13 +274,13 @@ class Web(object):
                 self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
                 self.force_shutdown()
 
-        r = make_response(render_template('404.html'), 404)
+        r = make_response(render_template("404.html"), 404)
         return self.add_security_headers(r)
 
     def error403(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
 
-        r = make_response(render_template('403.html'), 403)
+        r = make_response(render_template("403.html"), 403)
         return self.add_security_headers(r)
 
     def add_security_headers(self, r):
@@ -282,45 +292,50 @@ class Web(object):
         return r
 
     def _safe_select_jinja_autoescape(self, filename):
-        return filename is None or filename.endswith(('.html', '.htm', '.xml',
-                                                      '.xhtml'))
+        return filename is None or filename.endswith(
+            (".html", ".htm", ".xml", ".xhtml")
+        )
 
     def add_request(self, request_type, path, data=None):
         """
         Add a request to the queue, to communicate with the GUI.
         """
-        self.q.put({'type': request_type,
-                    'path': path,
-                    'data': data})
+        self.q.put({"type": request_type, "path": path, "data": data})
 
     def generate_slug(self, persistent_slug=None):
-        self.common.log('Web', 'generate_slug',
-                        'persistent_slug={}'.format(persistent_slug))
-        if persistent_slug is not None and persistent_slug != '':
+        self.common.log(
+            "Web", "generate_slug", "persistent_slug={}".format(persistent_slug)
+        )
+        if persistent_slug is not None and persistent_slug != "":
             self.slug = persistent_slug
-            self.common.log('Web', 'generate_slug',
-                            'persistent_slug sent, so slug is: "{}"'.format(
-                                self.slug))
+            self.common.log(
+                "Web",
+                "generate_slug",
+                'persistent_slug sent, so slug is: "{}"'.format(self.slug),
+            )
         else:
             self.slug = self.common.build_slug()
-            self.common.log('Web', 'generate_slug',
-                            'built random slug: "{}"'.format(
-                                self.slug))
+            self.common.log(
+                "Web", "generate_slug", 'built random slug: "{}"'.format(self.slug)
+            )
 
     def debug_mode(self):
         """
         Turn on debugging mode, which will log flask errors to a debug file.
         """
-        flask_debug_filename = os.path.join(self.common.build_data_dir(),
-                                            'flask_debug.log')
+        flask_debug_filename = os.path.join(
+            self.common.build_data_dir(), "flask_debug.log"
+        )
         log_handler = logging.FileHandler(flask_debug_filename)
         log_handler.setLevel(logging.WARNING)
         self.app.logger.addHandler(log_handler)
 
     def check_shutdown_slug_candidate(self, slug_candidate):
-        self.common.log('Web',
-                        'check_shutdown_slug_candidate: slug_candidate='
-                        '{}'.format(slug_candidate))
+        self.common.log(
+            "Web",
+            "check_shutdown_slug_candidate: slug_candidate="
+            "{}".format(slug_candidate),
+        )
         if not hmac.compare_digest(self.shutdown_slug, slug_candidate):
             abort(404)
 
@@ -329,9 +344,9 @@ class Web(object):
         Stop the flask web server, from the context of the flask app.
         """
         # Shutdown the flask service
-        func = request.environ.get('werkzeug.server.shutdown')
+        func = request.environ.get("werkzeug.server.shutdown")
         if func is None:
-            raise RuntimeError('Not running with the Werkzeug Server')
+            raise RuntimeError("Not running with the Werkzeug Server")
         func()
         self.running = False
 
@@ -339,8 +354,7 @@ class Web(object):
         """
         Start the flask web server.
         """
-        self.common.log('Web', 'start',
-                        f'port={port}, stay_open={stay_open}')
+        self.common.log("Web", "start", f"port={port}, stay_open={stay_open}")
 
         self.stay_open = stay_open
 
@@ -352,9 +366,11 @@ class Web(object):
                 pass
 
         # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (#220)
-        host = ('0.0.0.0'
-                if os.path.exists('/usr/share/anon-ws-base-files/workstation')
-                else '127.0.0.1')
+        host = (
+            "0.0.0.0"
+            if os.path.exists("/usr/share/anon-ws-base-files/workstation")
+            else "127.0.0.1"
+        )
 
         self.running = True
         self.app.run(host=host, port=port, threaded=True)
@@ -363,24 +379,28 @@ class Web(object):
         """
         Stop the flask web server by loading /shutdown.
         """
-        self.common.log('Web', 'stop', 'stopping server')
+        self.common.log("Web", "stop", "stopping server")
 
         # Let the mode know that the user stopped the server
         self.stop_q.put(True)
 
         # Reset any slug that was in use
-        self.slug = ''
+        self.slug = ""
 
         # To stop flask, load http://127.0.0.1:<port>/<shutdown_slug>/shutdown
         if self.running:
             try:
                 s = socket.socket()
-                s.connect(('127.0.0.1', port))
-                s.sendall('GET /{0:s}/shutdown HTTP/1.1\r\n\r\n'.format(
-                    self.shutdown_slug))
+                s.connect(("127.0.0.1", port))
+                s.sendall(
+                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(self.shutdown_slug)
+                )
             except TypeError:
                 try:
-                    urlopen('http://127.0.0.1:{0:d}/{1:s}/shutdown'.format(
-                        port, self.shutdown_slug)).read()
+                    urlopen(
+                        "http://127.0.0.1:{0:d}/{1:s}/shutdown".format(
+                            port, self.shutdown_slug
+                        )
+                    ).read()
                 except TypeError:
                     pass

@@ -33,68 +33,80 @@ def file_list(path):
     return files
 
 
-version = open('share/version.txt').read().strip()
-description = (
-    """TODO put Hyperdome description here"""
+version = open("share/version.txt").read().strip()
+description = """TODO put Hyperdome description here"""
+long_description = (
+    description + "\n\n" + ("""TODO put long Hyperdome description here""")
 )
-long_description = description + "\n\n" + (
-    """TODO put long Hyperdome description here"""
-)
-author = 'Micah Lee'
-author_email = 'micah@micahflee.com'
-url = 'https://github.com/micahflee/onionshare'
-license = 'GPL v3'
-keywords = 'onion, share, onionshare, tor, anonymous, web server'
+author = "Micah Lee"
+author_email = "micah@micahflee.com"
+url = "https://github.com/micahflee/onionshare"
+license = "GPL v3"
+keywords = "onion, share, onionshare, tor, anonymous, web server"
 classifiers = [
-        "Programming Language :: Python :: 3",
-        "Framework :: Flask",
-        "Topic :: Communications :: File Sharing",
-        "Topic :: Security :: Cryptography",
-        "License :: OSI Approved :: GNU General Public License v3 or later",
-        "Intended Audience :: End Users/Desktop",
-        "Operating System :: OS Independent",
-        "Environment :: Web Environment"
-    ]
+    "Programming Language :: Python :: 3",
+    "Framework :: Flask",
+    "Topic :: Communications :: File Sharing",
+    "Topic :: Security :: Cryptography",
+    "License :: OSI Approved :: GNU General Public License v3 or later",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Environment :: Web Environment",
+]
 data_files = [
-        (os.path.join(sys.prefix, 'share/applications'),
-         ['install/onionshare.desktop']),
-        (os.path.join(sys.prefix, 'share/metainfo'),
-         ['install/onionshare.appdata.xml']),
-        (os.path.join(sys.prefix, 'share/pixmaps'),
-         ['install/onionshare80.xpm']),
-        (os.path.join(sys.prefix, 'share/onionshare'),
-         file_list('share')),
-        (os.path.join(sys.prefix, 'share/onionshare/images'),
-         file_list('share/images')),
-        (os.path.join(sys.prefix, 'share/onionshare/locale'),
-         file_list('share/locale')),
-        (os.path.join(sys.prefix, 'share/onionshare/templates'),
-         file_list('share/templates')),
-        (os.path.join(sys.prefix, 'share/onionshare/static/css'),
-         file_list('share/static/css')),
-        (os.path.join(sys.prefix, 'share/onionshare/static/img'),
-         file_list('share/static/img')),
-        (os.path.join(sys.prefix, 'share/onionshare/static/js'),
-         file_list('share/static/js'))
-    ]
-if platform.system() != 'OpenBSD':
-    data_files.append(('/usr/share/nautilus-python/extensions/',
-                       ['install/scripts/onionshare-nautilus.py']))
+    (os.path.join(sys.prefix, "share/applications"), ["install/onionshare.desktop"]),
+    (os.path.join(sys.prefix, "share/metainfo"), ["install/onionshare.appdata.xml"]),
+    (os.path.join(sys.prefix, "share/pixmaps"), ["install/onionshare80.xpm"]),
+    (os.path.join(sys.prefix, "share/onionshare"), file_list("share")),
+    (os.path.join(sys.prefix, "share/onionshare/images"), file_list("share/images")),
+    (os.path.join(sys.prefix, "share/onionshare/locale"), file_list("share/locale")),
+    (
+        os.path.join(sys.prefix, "share/onionshare/templates"),
+        file_list("share/templates"),
+    ),
+    (
+        os.path.join(sys.prefix, "share/onionshare/static/css"),
+        file_list("share/static/css"),
+    ),
+    (
+        os.path.join(sys.prefix, "share/onionshare/static/img"),
+        file_list("share/static/img"),
+    ),
+    (
+        os.path.join(sys.prefix, "share/onionshare/static/js"),
+        file_list("share/static/js"),
+    ),
+]
+if platform.system() != "OpenBSD":
+    data_files.append(
+        (
+            "/usr/share/nautilus-python/extensions/",
+            ["install/scripts/onionshare-nautilus.py"],
+        )
+    )
 
 setup(
-    name='onionshare', version=version,
-    description=description, long_description=long_description,
-    author=author, author_email=author_email, maintainer=author,
-    maintainer_email=author_email, url=url, license=license,
-    keywords=keywords, classifiers=classifiers,
-    packages=['onionshare',
-              'onionshare.web',
-              'onionshare_gui',
-              'onionshare_gui.mode',
-              'onionshare_gui.mode.share_mode',
-              'onionshare_gui.mode.receive_mode'
-              ],
+    name="onionshare",
+    version=version,
+    description=description,
+    long_description=long_description,
+    author=author,
+    author_email=author_email,
+    maintainer=author,
+    maintainer_email=author_email,
+    url=url,
+    license=license,
+    keywords=keywords,
+    classifiers=classifiers,
+    packages=[
+        "onionshare",
+        "onionshare.web",
+        "onionshare_gui",
+        "onionshare_gui.mode",
+        "onionshare_gui.mode.share_mode",
+        "onionshare_gui.mode.receive_mode",
+    ],
     include_package_data=True,
-    scripts=['install/scripts/onionshare', 'install/scripts/onionshare-gui'],
-    data_files=data_files
+    scripts=["install/scripts/onionshare", "install/scripts/onionshare-gui"],
+    data_files=data_files,
 )

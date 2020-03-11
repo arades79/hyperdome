@@ -26,13 +26,7 @@ class Server(object):
     Holder class for server connection details
     """
 
-    def __init__(
-            self,
-            url='',
-            nick='',
-            uname='',
-            passwd='',
-            is_counselor=False):
+    def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
         self.url = url
         self._check_url()
         self.nick = nick
@@ -44,9 +38,8 @@ class Server(object):
         """
         Ensure URL is properly formatted
         """
-        if not self.url.startswith(
-                'http://') and not self.url.startswith('https://'):
-            self.url = 'http://' + self.url
+        if not self.url.startswith("http://") and not self.url.startswith("https://"):
+            self.url = "http://" + self.url
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -59,47 +52,44 @@ class AddServerDialog(QtWidgets.QDialog):
 
         self.is_counselor = False
 
-        self.setWindowTitle('Add Hyperdome Server')
-        self.setWindowIcon(
-            QtGui.QIcon(
-                common.get_resource_path('images/logo.png')))
+        self.setWindowTitle("Add Hyperdome Server")
+        self.setWindowIcon(QtGui.QIcon(common.get_resource_path("images/logo.png")))
 
-        self.add_server_button = QtWidgets.QPushButton('Add Server')
+        self.add_server_button = QtWidgets.QPushButton("Add Server")
         self.add_server_button.clicked.connect(
-            lambda: add_server_action(
-                self._make_server_from_fields()))
+            lambda: add_server_action(self._make_server_from_fields())
+        )
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
-        self.server_add_text.setPlaceholderText('Server URL:')
+        self.server_add_text.setPlaceholderText("Server URL:")
 
         self.server_nick_text = QtWidgets.QLineEdit()
         self.server_nick_text.setFixedWidth(400)
-        self.server_nick_text.setPlaceholderText('Nickname:')
+        self.server_nick_text.setPlaceholderText("Nickname:")
 
         self.counselor_radio = QtWidgets.QRadioButton()
-        self.counselor_radio.setText('Counselor')
+        self.counselor_radio.setText("Counselor")
         self.counselor_radio.toggled.connect(
-            lambda: self.radio_switch(self.counselor_radio))
+            lambda: self.radio_switch(self.counselor_radio)
+        )
 
         self.guest_radio = QtWidgets.QRadioButton()
-        self.guest_radio.setText('Guest')
+        self.guest_radio.setText("Guest")
         self.guest_radio.setChecked(True)
-        self.guest_radio.toggled.connect(
-            lambda: self.radio_switch(
-                self.guest_radio))
+        self.guest_radio.toggled.connect(lambda: self.radio_switch(self.guest_radio))
 
         self.radio_buttons = QtWidgets.QHBoxLayout()
         self.radio_buttons.addWidget(self.counselor_radio)
         self.radio_buttons.addWidget(self.guest_radio)
 
         self.counselor_username_input = QtWidgets.QLineEdit()
-        self.counselor_username_input.setPlaceholderText('Username:')
+        self.counselor_username_input.setPlaceholderText("Username:")
         self.counselor_username_input.setFixedWidth(200)
         self.counselor_username_input.hide()
 
         self.counselor_password_input = QtWidgets.QLineEdit()
-        self.counselor_password_input.setPlaceholderText('Password:')
+        self.counselor_password_input.setPlaceholderText("Password:")
         self.counselor_password_input.setFixedWidth(200)
         self.counselor_password_input.hide()
 
@@ -127,17 +117,14 @@ class AddServerDialog(QtWidgets.QDialog):
         is_counselor = self.is_counselor
 
         return Server(
-            url=url,
-            nick=nick,
-            uname=uname,
-            passwd=passwd,
-            is_counselor=is_counselor)
+            url=url, nick=nick, uname=uname, passwd=passwd, is_counselor=is_counselor
+        )
 
     def radio_switch(self, radio_switch):
         """
         Show or hide crediential fields based on user type selected.
         """
-        if radio_switch.text() == 'Counselor':
+        if radio_switch.text() == "Counselor":
             self.is_counselor = True
             self.counselor_username_input.show()
             self.counselor_password_input.show()

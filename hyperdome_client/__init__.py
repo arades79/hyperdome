@@ -38,15 +38,17 @@ class Application(QtWidgets.QApplication):
     """
 
     def __init__(self, common):
-        if common.platform == 'Linux' or common.platform == 'BSD':
+        if common.platform == "Linux" or common.platform == "BSD":
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        if (event.type() == QtCore.QEvent.KeyPress and
-            event.key() == QtCore.Qt.Key_Q and
-                event.modifiers() == QtCore.Qt.ControlModifier):
+        if (
+            event.type() == QtCore.QEvent.KeyPress
+            and event.key() == QtCore.Qt.Key_Q
+            and event.modifiers() == QtCore.Qt.ControlModifier
+        ):
             self.quit()
         return False
 
@@ -68,7 +70,7 @@ def main():
     strings.load_strings(common)
 
     # Display OnionShare banner
-    print(strings._('version_string').format(common.version))
+    print(strings._("version_string").format(common.version))
 
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/
@@ -79,20 +81,20 @@ def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser(
-        formatter_class=lambda prog: argparse.HelpFormatter(
-            prog, max_help_position=48))
-    parser.add_argument('--local-only',
-                        action='store_true',
-                        dest='local_only',
-                        help=strings._("help_local_only"))
-    parser.add_argument('--debug',
-                        action='store_true',
-                        dest='debug',
-                        help=strings._("help_debug"))
-    parser.add_argument('--config',
-                        metavar='config',
-                        default=False,
-                        help=strings._('help_config'))
+        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=48)
+    )
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        dest="local_only",
+        help=strings._("help_local_only"),
+    )
+    parser.add_argument(
+        "--debug", action="store_true", dest="debug", help=strings._("help_debug")
+    )
+    parser.add_argument(
+        "--config", metavar="config", default=False, help=strings._("help_config")
+    )
     args = parser.parse_args()
 
     config = args.config
@@ -117,11 +119,12 @@ def main():
     def shutdown():
         onion.cleanup()
         app.cleanup()
+
     qtapp.aboutToQuit.connect(shutdown)
 
     # All done
     sys.exit(qtapp.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -49,29 +49,43 @@ def main(cwd=None):
     strings.load_strings(common)
 
     # Display OnionShare banner
-    print(strings._('version_string').format(common.version))
+    print(strings._("version_string").format(common.version))
 
     # OnionShare CLI in OSX needs to change current working directory (#132)
-    if common.platform == 'Darwin' and cwd:
+    if common.platform == "Darwin" and cwd:
         os.chdir(cwd)
 
     # Parse arguments
     parser = argparse.ArgumentParser(
-        formatter_class=lambda prog: argparse.HelpFormatter(
-            prog, max_help_position=28))
-    parser.add_argument('--local-only', action='store_true', dest='local_only',
-                        help=strings._("help_local_only"))
-    parser.add_argument('--shutdown-timeout', metavar='<int>',
-                        dest='shutdown_timeout', default=0,
-                        help=strings._("help_shutdown_timeout"))
-    parser.add_argument('--connect-timeout', metavar='<int>',
-                        dest='connect_timeout', default=120,
-                        help=strings._("help_connect_timeout"))
+        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=28)
+    )
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        dest="local_only",
+        help=strings._("help_local_only"),
+    )
+    parser.add_argument(
+        "--shutdown-timeout",
+        metavar="<int>",
+        dest="shutdown_timeout",
+        default=0,
+        help=strings._("help_shutdown_timeout"),
+    )
+    parser.add_argument(
+        "--connect-timeout",
+        metavar="<int>",
+        dest="connect_timeout",
+        default=120,
+        help=strings._("help_connect_timeout"),
+    )
 
-    parser.add_argument('--config', metavar='config', default=False,
-                        help=strings._('help_config'))
-    parser.add_argument('--debug', action='store_true', dest='debug',
-                        help=strings._("help_debug"))
+    parser.add_argument(
+        "--config", metavar="config", default=False, help=strings._("help_config")
+    )
+    parser.add_argument(
+        "--debug", action="store_true", dest="debug", help=strings._("help_debug")
+    )
     args = parser.parse_args()
 
     local_only = bool(args.local_only)
@@ -95,8 +109,9 @@ def main(cwd=None):
     # Start the Onion object
     onion = Onion(common)
     try:
-        onion.connect(custom_settings=False, config=config,
-                      connect_timeout=connect_timeout)
+        onion.connect(
+            custom_settings=False, config=config, connect_timeout=connect_timeout
+        )
     except KeyboardInterrupt:
         print("")
         sys.exit()
@@ -130,8 +145,8 @@ def main(cwd=None):
         if app.shutdown_timeout > 0:
             app.shutdown_timer.start()
 
-        print('')
-        url = f'http://{app.onion_host}'
+        print("")
+        url = f"http://{app.onion_host}"
         print(strings._("give_this_url"))
         print("Do not copy the slug (part after last /) for now")
         print(url)
@@ -158,5 +173,5 @@ def main(cwd=None):
         onion.cleanup()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

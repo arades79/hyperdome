@@ -23,37 +23,45 @@ import requests
 from PyQt5 import QtCore
 
 from .add_server_dialog import Server
-from hyperdome_server.onion import (BundledTorTimeout, TorErrorProtocolError,
-                                    TorErrorAuthError,
-                                    TorErrorUnreadableCookieFile,
-                                    TorErrorMissingPassword,
-                                    TorErrorSocketFile, TorErrorSocketPort,
-                                    TorErrorAutomatic, TorErrorInvalidSetting,
-                                    TorTooOld)
+from hyperdome_server.onion import (
+    BundledTorTimeout,
+    TorErrorProtocolError,
+    TorErrorAuthError,
+    TorErrorUnreadableCookieFile,
+    TorErrorMissingPassword,
+    TorErrorSocketFile,
+    TorErrorSocketPort,
+    TorErrorAutomatic,
+    TorErrorInvalidSetting,
+    TorTooOld,
+)
 from werkzeug.exceptions import MethodNotAllowed
 import json
 import functools
+
 
 class OnionThread(QtCore.QThread):
     """
     Starts the onion service, and waits for it to finish
     """
+
     success = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
     def __init__(self, mode):
         super(OnionThread, self).__init__()
         self.mode = mode
-        self.mode.common.log('OnionThread', '__init__')
+        self.mode.common.log("OnionThread", "__init__")
 
         # allow this thread to be terminated
         self.setTerminationEnabled()
 
     def run(self):
-        self.mode.common.log('OnionThread', 'run')
+        self.mode.common.log("OnionThread", "run")
 
         self.mode.app.stay_open = not self.mode.common.settings.get(
-            'close_after_first_download')
+            "close_after_first_download"
+        )
 
         # wait for modules in thread to load, preventing a thread-related
         # cx_Freeze crash
@@ -63,11 +71,19 @@ class OnionThread(QtCore.QThread):
             self.mode.app.start_onion_service()
             self.success.emit()
 
-        except (TorTooOld, TorErrorInvalidSetting, TorErrorAutomatic,
-                TorErrorSocketPort, TorErrorSocketFile,
-                TorErrorMissingPassword, TorErrorUnreadableCookieFile,
-                TorErrorAuthError, TorErrorProtocolError, BundledTorTimeout,
-                OSError) as e:
+        except (
+            TorTooOld,
+            TorErrorInvalidSetting,
+            TorErrorAutomatic,
+            TorErrorSocketPort,
+            TorErrorSocketFile,
+            TorErrorMissingPassword,
+            TorErrorUnreadableCookieFile,
+            TorErrorAuthError,
+            TorErrorProtocolError,
+            BundledTorTimeout,
+            OSError,
+        ) as e:
             self.error.emit(e.args[0])
             return
 
@@ -81,13 +97,12 @@ class SendMessageTask(QtCore.QRunnable):
     """
     send client message to server
     """
+
     signals = TaskSignals()
 
-    def __init__(self,
-                 server: Server,
-                 session: requests.Session,
-                 uid: str,
-                 message: str):
+    def __init__(
+        self, server: Server, session: requests.Session, uid: str, message: str
+    ):
         super(SendMessageTask, self).__init__()
         self.server = server
         self.session = session
@@ -105,11 +120,10 @@ class GetUidTask(QtCore.QRunnable):
     """
     Get a UID from the server
     """
+
     signals = TaskSignals()
 
-    def __init__(self,
-                 server: Server,
-                 session: requests.Session):
+    def __init__(self, server: Server, session: requests.Session):
         super(GetUidTask, self).__init__()
         self.server = server
         self.session = session
@@ -126,13 +140,12 @@ class StartChatTask(QtCore.QRunnable):
     """
     Signin counselor, or request counselor session if user
     """
+
     signals = TaskSignals()
 
-    def __init__(self,
-                 server: Server,
-                 session: requests.Session,
-                 uid: str,
-                 pub_key: bytes):
+    def __init__(
+        self, server: Server, session: requests.Session, uid: str, pub_key: bytes
+    ):
         super(StartChatTask, self).__init__()
         self.server = server
         self.session = session
@@ -141,8 +154,9 @@ class StartChatTask(QtCore.QRunnable):
 
     def run(self):
         try:
-            self.signals.success.emit(start_chat(
-                self.server, self.session, self.uid, self.pub_key))
+            self.signals.success.emit(
+                start_chat(self.server, self.session, self.uid, self.pub_key)
+            )
         except requests.RequestException:
             self.signals.error.emit("Couldn't start a chat session")
 
@@ -151,6 +165,7 @@ class GetMessagesTask(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
     """
+
     signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
@@ -176,6 +191,7 @@ class ProbeServerTask(QtCore.QRunnable):
     probe server for confirmation of hyperdome api
     and api version compatibility
     """
+
     signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server):
@@ -189,9 +205,9 @@ class ProbeServerTask(QtCore.QRunnable):
             if status:
                 raise Exception()
 
-            self.signals.success.emit('good')
+            self.signals.success.emit("good")
         except:
-            self.signals.error.emit('server incompatible')
+            self.signals.error.emit("server incompatible")
 
 
 class EndChatTask(QtCore.QRunnable):
@@ -199,6 +215,7 @@ class EndChatTask(QtCore.QRunnable):
     inform the server that the current chat session is concluded,
     freeing up the counselor for a new guest, and disconnecting the guest
     """
+
     signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
@@ -209,9 +226,10 @@ class EndChatTask(QtCore.QRunnable):
 
     def run(self):
         try:
-            self.session.post(f"{self.server.url}/counseling_complete",
-                              data={'user_id': self.uid})
-            self.signals.success.emit('good')
+            self.session.post(
+                f"{self.server.url}/counseling_complete", data={"user_id": self.uid}
+            )
+            self.signals.success.emit("good")
         except:
             self.signals.error.emit("you're stuck here now")
 
@@ -221,6 +239,7 @@ class CounselorSignoutTask(QtCore.QRunnable):
     deregister counselor identified from active list,
     stopping them from receiving additional guests
     """
+
     signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
@@ -231,17 +250,20 @@ class CounselorSignoutTask(QtCore.QRunnable):
 
     def run(self):
         try:
-            self.session.post(f"{self.server.url}/counselor_signout",
-                              data={"user_id": self.uid})
-            self.signals.success.emit('good')
+            self.session.post(
+                f"{self.server.url}/counselor_signout", data={"user_id": self.uid}
+            )
+            self.signals.success.emit("good")
         except:
             self.signals.error.emit("you're stuck here now")
+
 
 class PollForConnectedGuestTask(QtCore.QRunnable):
     """
     ask server if a guest has requested to connect yet
     and return the public key when they have
     """
+
     signals = TaskSignals()
 
     def __init__(self, session: requests.Session, server: Server, uid: str):
@@ -255,76 +277,62 @@ class PollForConnectedGuestTask(QtCore.QRunnable):
             self.signals.error.emit("problem getting guest pubkey")
 
 
-
-def send_message(server: Server,
-                 session: requests.Session,
-                 uid: str,
-                 message: str):
+def send_message(server: Server, session: requests.Session, uid: str, message: str):
     """
     Send message to server provided using session for given user
     """
     session.post(
-        f'{server.url}/send_message',
-        data={
-            'message': message,
-            'user_id': uid})
+        f"{server.url}/send_message", data={"message": message, "user_id": uid}
+    )
 
 
-def get_uid(server: Server,
-            session: requests.Session):
+def get_uid(server: Server, session: requests.Session):
     """
     Ask server for a new UID for a new user session
     """
     if server.is_counselor:
-        uid = session.post(f"{server.url}/counselor_signin",
-                           files={"username": server.username,
-                                 "password": server.password}).text
+        uid = session.post(
+            f"{server.url}/counselor_signin",
+            files={"username": server.username, "password": server.password},
+        ).text
     else:
-        uid = session.get(
-            f'{server.url}/generate_guest_id').text
+        uid = session.get(f"{server.url}/generate_guest_id").text
     return uid
 
 
-def get_messages(server: Server,
-                 session: requests.Session,
-                 uid: str):
+def get_messages(server: Server, session: requests.Session, uid: str):
     """
     collect new messages waiting on server for active session
     """
-    return session.get(
-        f"{server.url}/collect_messages",
-        data={"user_id": uid}).text
+    return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).text
 
 
-def start_chat(server: Server,
-               session: requests.Session,
-               uid: str,
-               pub_key: str):
+def start_chat(server: Server, session: requests.Session, uid: str, pub_key: str):
     if server.is_counselor:
-        return session.get(f"{server.url}/counselor_signin",
-                           data={"pub_key": pub_key}).text
+        return session.get(
+            f"{server.url}/counselor_signin", data={"pub_key": pub_key}
+        ).text
 
     else:
         return session.post(
             f"{server.url}/request_counselor",
-            data={"guest_id": uid, "pub_key": pub_key}).text
+            data={"guest_id": uid, "pub_key": pub_key},
+        ).text
 
 
-COMPATIBLE_SERVERS = ['2.0']
+COMPATIBLE_SERVERS = ["2.0"]
 
 
-def probe_server(server: Server,
-                 session: requests.Session):
+def probe_server(server: Server, session: requests.Session):
     info = json.loads(session.get(f"{server.url}/probe").text)
-    if info['name'] != 'hyperdome':
-        return 'not hyperdome'
-    if info['version'] not in COMPATIBLE_SERVERS:
-        return 'bad version'
-    return ''
+    if info["name"] != "hyperdome":
+        return "not hyperdome"
+    if info["version"] not in COMPATIBLE_SERVERS:
+        return "bad version"
+    return ""
 
-def get_guest_pub_key(server: Server,
-               session: requests.Session,
-               uid: str):
+
+def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
     return session.get(
-        f"{server.url}/poll_connected_guest",
-        data={"counselor_id": uid}).text
+        f"{server.url}/poll_connected_guest", data={"counselor_id": uid}
+    ).text
