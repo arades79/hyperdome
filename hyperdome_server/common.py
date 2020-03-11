@@ -443,48 +443,6 @@ class Common(object):
         s = base64.b32encode(h).lower().replace(b'=', b'').decode('utf-8')
         return s[:output_len] if output_len else s
 
-    @staticmethod
-    def human_readable_filesize(b):
-        """
-        Returns filesize in a human readable format.
-        """
-        thresh = 1024.0
-        if b < thresh:
-            return '{:.1f} B'.format(b)
-        units = ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
-        u = 0
-        b /= thresh
-        while b >= thresh:
-            b /= thresh
-            u += 1
-        return '{:.1f} {}'.format(b, units[u])
-
-    @staticmethod
-    def format_seconds(seconds):
-        """Return a human-readable string of the format 1d2h3m4s"""
-        days, seconds = divmod(seconds, 86400)
-        hours, seconds = divmod(seconds, 3600)
-        minutes, seconds = divmod(seconds, 60)
-
-        human_readable = []
-        if days:
-            human_readable.append("{:.0f}d".format(days))
-        if hours:
-            human_readable.append("{:.0f}h".format(hours))
-        if minutes:
-            human_readable.append("{:.0f}m".format(minutes))
-        if seconds or not human_readable:
-            human_readable.append("{:.0f}s".format(seconds))
-        return ''.join(human_readable)
-
-    @staticmethod
-    def estimated_time_remaining(bytes_downloaded, total_bytes, started):
-        now = time.time()
-        time_elapsed = now - started  # in seconds
-        download_rate = bytes_downloaded / time_elapsed
-        remaining_bytes = total_bytes - bytes_downloaded
-        eta = remaining_bytes / download_rate
-        return Common.format_seconds(eta)
 
     @staticmethod
     def get_available_port(min_port, max_port):
@@ -501,20 +459,6 @@ class Common(object):
                     pass
             _, port = tmpsock.getsockname()
         return port
-
-    @staticmethod
-    def dir_size(start_path):
-        """
-        Calculates the total size, in bytes, of all of the files
-        in a directory.
-        """
-        total_size = 0
-        for dirpath, dirnames, filenames in os.walk(start_path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                if not os.path.islink(fp):
-                    total_size += os.path.getsize(fp)
-        return total_size
 
 
 class ShutdownTimer(threading.Thread):
