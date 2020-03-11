@@ -82,8 +82,6 @@ class SettingsDialog(QtWidgets.QDialog):
         # Label telling user to connect to Tor for onion service settings
         self.connect_to_tor_label = QtWidgets.QLabel(
             strings._("gui_connect_to_tor_for_onion_settings"))
-        self.connect_to_tor_label.setStyleSheet(
-            self.common.css['settings_connect_to_tor'])
 
         # Whether or not to save the Onion private key for reuse (persistent
         # URL mode)
@@ -95,8 +93,6 @@ class SettingsDialog(QtWidgets.QDialog):
             "gui_settings_whats_this").format(
             "https://github.com/micahflee/onionshare/wiki/"
             "Using-a-Persistent-URL"))
-        save_private_key_label.setStyleSheet(
-            self.common.css['settings_whats_this'])
         save_private_key_label.setTextInteractionFlags(
             QtCore.Qt.TextBrowserInteraction)
         save_private_key_label.setOpenExternalLinks(True)
@@ -398,7 +394,6 @@ class SettingsDialog(QtWidgets.QDialog):
         version_label = QtWidgets.QLabel(
             'OnionShare {0:s}'.format(
                 self.common.version))
-        version_label.setStyleSheet(self.common.css['settings_version'])
         self.help_button = QtWidgets.QPushButton(
             strings._('gui_settings_button_help'))
         self.help_button.clicked.connect(self.help_clicked)
@@ -414,7 +409,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
         # Tor network connection status
         self.tor_status = QtWidgets.QLabel()
-        self.tor_status.setStyleSheet(self.common.css['settings_tor_status'])
         self.tor_status.hide()
 
         # Layout

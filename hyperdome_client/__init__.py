@@ -57,7 +57,6 @@ def main():
     of onionshare uses.
     """
     common = Common()
-    common.define_css()
 
     # Load the default settings and strings early, for the sake of
     # being able to parse options.

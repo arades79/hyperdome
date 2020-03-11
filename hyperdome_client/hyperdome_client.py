@@ -126,7 +126,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button.setIcon(QtGui.QIcon(
             self.common.get_resource_path('images/settings.png')))
         self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setStyleSheet(self.common.css['settings_button'])
+        self.settings_button.setIcon(QtGui.QIcon.fromTheme('settings'))
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
