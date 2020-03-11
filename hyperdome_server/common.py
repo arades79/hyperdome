@@ -156,6 +156,8 @@ class Common(object):
             tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
             tor_geo_ipv6_file_path = "/usr/local/share/tor/geoip6"
             obfs4proxy_file_path = "/usr/local/bin/obfs4proxy"
+        else:
+            raise OSError("Host platform not supported")
 
         return (
             tor_path,
