@@ -15,8 +15,8 @@ pytest-qt = "==3.3.0"
 six = "==1.13.0"
 urllib3 = "==1.25.6"
 flake8 = "==3.7.9"
-autopep8 = "==1.5"
 bandit = "==1.6.2"
+black = "==19.10b0"
 
 [packages]
 altgraph = "==0.16.1"
@@ -55,3 +55,6 @@ python_version = "3.8"
 [scripts]
 test_connection = "python dev_scripts/hyperdome_connection.py"
 lint = "python -m flake8 ."
+
+[pipenv]
+allow_prereleases = true
