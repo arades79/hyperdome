@@ -443,24 +443,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         elif self.poll_guest_key_task is not None:
             self.worker.tryStart(self.poll_guest_key_task)
 
-    def copy_url(self):
-        """
-        When the URL gets copied to the clipboard, display this \
-        in the status bar.
-        """
-        self.common.log('OnionShareGui', 'copy_url')
-        self.system_tray.showMessage(strings._('gui_copied_url_title'),
-                                     strings._('gui_copied_url'))
-
-    def copy_hidservauth(self):
-        """
-        When the stealth onion service HidServAuth gets copied to \
-        the clipboard, display this in the status bar.
-        """
-        self.common.log('OnionShareGui', 'copy_hidservauth')
-        self.system_tray.showMessage(strings._('gui_copied_hidservauth_title'),
-                                     strings._('gui_copied_hidservauth'))
-
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
