@@ -34,19 +34,23 @@ def file_list(path):
 
 
 version = open("share/version.txt").read().strip()
-description = """TODO put Hyperdome description here"""
+description = """The safest place to reach out"""
 long_description = (
-    description + "\n\n" + ("""TODO put long Hyperdome description here""")
+    description + "\n\n" + ("""Hyperdome is an asymmetrical chat application designed to have distributed and domain specific servers.
+        Users connect completely anonymously to the server and will be paired with whatever that server determines is qualified counsel.
+        College campuses could provide safe mental health services with no fear.
+        Legal offices can provide counseling to prospective clients with everything on the table.
+        Hyperdome provides a simple server and client that any entity can implement to give some set of guests access to a verified list of people.""")
 )
-author = "Micah Lee"
-author_email = "micah@micahflee.com"
-url = "https://github.com/micahflee/onionshare"
+author = "Skyelar Ceaver"
+author_email = "scravers@protonmail.com"
+url = "https://github.com/arades79/hyperdome"
 license = "GPL v3"
-keywords = "onion, share, onionshare, tor, anonymous, web server"
+keywords = "onion, hyperdome, tor, anonymous, web server, therapy, counseling"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Framework :: Flask",
-    "Topic :: Communications :: File Sharing",
+    "Topic :: Communications :: Wellness",
     "Topic :: Security :: Cryptography",
     "License :: OSI Approved :: GNU General Public License v3 or later",
     "Intended Audience :: End Users/Desktop",
@@ -86,7 +90,7 @@ if platform.system() != "OpenBSD":
     )
 
 setup(
-    name="onionshare",
+    name="hyperdome",
     version=version,
     description=description,
     long_description=long_description,
@@ -99,14 +103,10 @@ setup(
     keywords=keywords,
     classifiers=classifiers,
     packages=[
-        "onionshare",
-        "onionshare.web",
-        "onionshare_gui",
-        "onionshare_gui.mode",
-        "onionshare_gui.mode.share_mode",
-        "onionshare_gui.mode.receive_mode",
+        "hyperdome_server.web",
+        "hyperdome_client",
     ],
     include_package_data=True,
-    scripts=["install/scripts/onionshare", "install/scripts/onionshare-gui"],
+    scripts=["install/scripts/hyperdome_client", "install/scripts/hyperdome_server"],
     data_files=data_files,
 )
