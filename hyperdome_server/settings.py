@@ -32,11 +32,10 @@ class Settings(object):
     settings.
     """
 
-    def __init__(self, common,
-                 config: str = ''):
+    def __init__(self, common, config: str = ""):
         self.common = common
 
-        self.common.log('Settings', '__init__')
+        self.common.log("Settings", "__init__")
 
         # Default config
         self.filename = self.build_filename()
@@ -46,9 +45,12 @@ class Settings(object):
             if os.path.isfile(config):
                 self.filename = config
             else:
-                self.common.log('Settings', '__init__',
-                                'Supplied config does not exist or is '
-                                'unreadable. Falling back to default location')
+                self.common.log(
+                    "Settings",
+                    "__init__",
+                    "Supplied config does not exist or is "
+                    "unreadable. Falling back to default location",
+                )
 
         # Dictionary of available languages in this version of OnionShare,
         # mapped to the language name, in that language
@@ -56,7 +58,7 @@ class Settings(object):
             # 'bn': 'বাংলা',       # Bengali
             # 'ca': 'Català',     # Catalan
             # 'da': 'Dansk',      # Danish
-            'en': 'English',    # English
+            "en": "English",  # English
             # 'fr': 'Français',   # French
             # 'el': 'Ελληνικά',   # Greek
             # 'it': 'Italiano',   # Italian
@@ -71,26 +73,26 @@ class Settings(object):
         # These are the default settings. They will get overwritten when
         # loading from disk
         self.default_settings = {
-            'version': self.common.version,
-            'connection_type': 'automatic',
-            'control_port_address': '127.0.0.1',
-            'control_port_port': 9051,
-            'socks_address': '127.0.0.1',
-            'socks_port': 9050,
-            'socket_file_path': '/var/run/tor/control',
-            'auth_type': 'no_auth',
-            'auth_password': '',
-            'shutdown_timeout': False,
-            'autoupdate_timestamp': None,
-            'no_bridges': True,
-            'tor_bridges_use_obfs4': False,
-            'tor_bridges_use_meek_lite_azure': False,
-            'tor_bridges_use_custom_bridges': '',
-            'save_private_key': True, # should be renamed for clarity,
-                                      # perhaps "use ephemeral"
-            'private_key': '',
-            'hidservauth_string': '',
-            'locale': None  # this gets defined in fill_in_defaults()
+            "version": self.common.version,
+            "connection_type": "automatic",
+            "control_port_address": "127.0.0.1",
+            "control_port_port": 9051,
+            "socks_address": "127.0.0.1",
+            "socks_port": 9050,
+            "socket_file_path": "/var/run/tor/control",
+            "auth_type": "no_auth",
+            "auth_password": "",
+            "shutdown_timeout": False,
+            "autoupdate_timestamp": None,
+            "no_bridges": True,
+            "tor_bridges_use_obfs4": False,
+            "tor_bridges_use_meek_lite_azure": False,
+            "tor_bridges_use_custom_bridges": "",
+            "save_private_key": True,  # should be renamed for clarity,
+            # perhaps "use ephemeral"
+            "private_key": "",
+            "hidservauth_string": "",
+            "locale": None,  # this gets defined in fill_in_defaults()
         }
         self._settings: dict[str] = {}
         self.fill_in_defaults()
@@ -106,14 +108,14 @@ class Settings(object):
 
         # Choose the default locale based on the OS preference, and fall-back
         # to English
-        if self._settings['locale'] is None:
+        if self._settings["locale"] is None:
             language_code, _ = locale.getdefaultlocale()
 
             # Default to English
             if not language_code:
-                language_code = 'en_US'
+                language_code = "en_US"
 
-            if language_code == 'pt_PT' and language_code == 'pt_BR':
+            if language_code == "pt_PT" and language_code == "pt_BR":
                 # Steven: What? How would this be possible unless
                 # it's overriding the == operator in a stupid way?
                 # Portuguese locales include country code
@@ -123,26 +125,27 @@ class Settings(object):
                 default_locale = language_code[:2]
 
             if default_locale not in self.available_locales:
-                default_locale = 'en'
-            self._settings['locale'] = default_locale
+                default_locale = "en"
+            self._settings["locale"] = default_locale
 
     def build_filename(self):
         """
         Returns the path of the settings file.
         """
-        return os.path.join(self.common.build_data_dir(), 'onionshare.json')
+        return os.path.join(self.common.build_data_dir(), "onionshare.json")
 
     def load(self):
         """
         Load the settings from file.
         """
-        self.common.log('Settings', 'load')
+        self.common.log("Settings", "load")
 
         # If the settings file exists, load it
         if os.path.exists(self.filename):
-            self.common.log('Settings', 'load',
-                            'Trying to load {}'.format(self.filename))
-            with open(self.filename, 'r') as f:
+            self.common.log(
+                "Settings", "load", "Trying to load {}".format(self.filename)
+            )
+            with open(self.filename, "r") as f:
                 self._settings = json.load(f)
                 self.fill_in_defaults()
 
@@ -150,17 +153,18 @@ class Settings(object):
         """
         Save settings to file.
         """
-        self.common.log('Settings', 'save')
-        open(self.filename, 'w').write(json.dumps(self._settings))
-        self.common.log('Settings', 'save',
-                        'Settings saved in {}'.format(self.filename))
+        self.common.log("Settings", "save")
+        open(self.filename, "w").write(json.dumps(self._settings))
+        self.common.log(
+            "Settings", "save", "Settings saved in {}".format(self.filename)
+        )
 
     def get(self, key: str):
         return self._settings[key]
 
     def set(self, key: str, val):
         # If typecasting int values fails, fallback to default values
-        if key in ('control_port_port', 'socks_port'):
+        if key in ("control_port_port", "socks_port"):
             try:
                 val = int(val)
             except ValueError:

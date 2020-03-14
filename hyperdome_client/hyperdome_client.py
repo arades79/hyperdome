@@ -39,14 +39,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     GUI elements.
     """
 
-    def __init__(self,
-                 common,
-                 onion,
-                 qtapp: QtWidgets.QApplication,
-                 app,
-                 filenames,
-                 config: bool = False,
-                 local_only: bool = False):
+    def __init__(
+        self,
+        common,
+        onion,
+        qtapp: QtWidgets.QApplication,
+        app,
+        filenames,
+        config: bool = False,
+        local_only: bool = False,
+    ):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
@@ -55,7 +57,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
         self.local_only: bool = local_only
-        self.common.log('OnionShareGui', '__init__')
+        self.common.log("OnionShareGui", "__init__")
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool()
@@ -72,15 +74,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # set window constants
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
-        self.setWindowTitle('hyperdome')
-        self.setWindowIcon(QtGui.QIcon(self.common.get_resource_path(
-            'images/logo.png')))
+        self.setWindowTitle("hyperdome")
+        self.setWindowIcon(
+            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+        )
 
         # make dialog for error messages
-        self.error_window = Alert(self.common, '', autostart=False)
+        self.error_window = Alert(self.common, "", autostart=False)
 
         # initialize session variables
-        self.uid: str = ''
+        self.uid: str = ""
         self.chat_history: list = []
         self.servers: dict = dict()
         self.server: Server = Server()
@@ -95,42 +98,44 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # System tray
         menu = QtWidgets.QMenu()
-        self.settings_action = menu.addAction(
-            strings._('gui_settings_window_title'))
+        self.settings_action = menu.addAction(strings._("gui_settings_window_title"))
         self.settings_action.triggered.connect(self.open_settings)
-        help_action = menu.addAction(strings._('gui_settings_button_help'))
+        help_action = menu.addAction(strings._("gui_settings_button_help"))
         help_action.triggered.connect(SettingsDialog.help_clicked)
-        exit_action = menu.addAction(strings._('systray_menu_exit'))
+        exit_action = menu.addAction(strings._("systray_menu_exit"))
         exit_action.triggered.connect(self.close)
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         # The convention is Mac systray icons are always grayscale
-        if self.common.platform == 'Darwin':
-            self.system_tray.setIcon(QtGui.QIcon(self.common.get_resource_path(
-                'images/logo_grayscale.png')))
+        if self.common.platform == "Darwin":
+            self.system_tray.setIcon(
+                QtGui.QIcon(self.common.get_resource_path("images/logo_grayscale.png"))
+            )
         else:
             self.system_tray.setIcon(
-                QtGui.QIcon(
-                    self.common.get_resource_path('images/logo.png')))
+                QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
         self.server_add_dialog = AddServerDialog(
-            common=self.common, add_server_action=self.add_server)
+            common=self.common, add_server_action=self.add_server
+        )
 
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setFixedWidth(40)
         self.settings_button.setFixedHeight(50)
-        self.settings_button.setIcon(QtGui.QIcon(
-            self.common.get_resource_path('images/settings.png')))
+        self.settings_button.setIcon(
+            QtGui.QIcon(self.common.get_resource_path("images/settings.png"))
+        )
         self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setStyleSheet(self.common.css['settings_button'])
+        self.settings_button.setIcon(QtGui.QIcon.fromTheme("settings"))
 
         self.message_text_field = QtWidgets.QPlainTextEdit()
         self.message_text_field.setFixedHeight(50)
-        self.message_text_field.setPlaceholderText('Enter message:')
+        self.message_text_field.setPlaceholderText("Enter message:")
 
         self.enter_button = QtWidgets.QPushButton("Send")
         self.enter_button.clicked.connect(self.send_message)
@@ -152,10 +157,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # server list view
         self.start_chat_button = QtWidgets.QPushButton()
-        self.start_chat_button.setText('Start Chat')
+        self.start_chat_button.setText("Start Chat")
         self.start_chat_button.setFixedWidth(100)
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-            self.start_chat)
+            self.start_chat
+        )
         self.start_chat_button.setEnabled(False)
 
         self.server_dropdown = QtWidgets.QComboBox(self)
@@ -200,7 +206,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         enc_message = self.crypt.encrypt_outgoing_message(message)
 
         send_message = threads.SendMessageTask(
-            self.server, self.session, self.uid, enc_message)
+            self.server, self.session, self.uid, enc_message
+        )
         send_message.signals.error.connect(self.handle_error)
 
         self.worker.start(send_message)
@@ -212,14 +219,18 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Update UI with messages retrieved from server.
         """
         sender_name = "counselor" if self.server.is_counselor else "user"
-        message_list = [f'{sender_name}: {self.crypt.decrypt_incoming_message(message)}'
-                        for message in messages.split('\n') if message]
+        message_list = [
+            f"{sender_name}: {self.crypt.decrypt_incoming_message(message)}"
+            for message in messages.split("\n")
+            if message
+        ]
         self.chat_window.addItems(message_list)
 
     def get_uid(self):
         """
         Ask server for a new UID for a new user session
         """
+
         @QtCore.pyqtSlot(str)
         def after_id(uid: str):
             self.uid = uid
@@ -233,7 +244,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             get_uid_task.signals.error.connect(self.handle_error)
             self.worker.start(get_uid_task)
         else:  # user is a counselor which will get uid later
-            after_id('')  # use same callback without uid
+            after_id("")  # use same callback without uid
 
     @QtCore.pyqtSlot(str)
     def handle_error(self, error: str):
@@ -259,8 +270,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
                 self._session.proxies = {
-                    'http': f'socks5h://{socks_address}:{socks_port}',
-                    'https': f'socks5h://{socks_address}:{socks_port}'}
+                    "http": f"socks5h://{socks_address}:{socks_port}",
+                    "https": f"socks5h://{socks_address}:{socks_port}",
+                }
         return self._session
 
     def server_switcher(self):
@@ -272,8 +284,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
         if self.is_connected:
             self.disconnect_chat()
-        if (self.server_dropdown.currentIndex() ==
-                self.server_dropdown.count() - 1):
+        if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
             self.server_add_dialog.exec_()
@@ -290,46 +301,49 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 return
             if self.server.is_counselor:
                 self.uid = counselor
+
                 @QtCore.pyqtSlot(str)
                 def counselor_got_guest(guest_key: str):
                     if not guest_key:
                         return
                     self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
                     self.poll_guest_key_task = None
-                    self.get_messages_task = threads.GetMessagesTask(self.session,
-                                                                     self.server,
-                                                                     self.uid)
+                    self.get_messages_task = threads.GetMessagesTask(
+                        self.session, self.server, self.uid
+                    )
                     self.get_messages_task.setAutoDelete(False)
                     self.get_messages_task.signals.success.connect(
-                        self.on_history_added)
-                self.poll_guest_key_task = threads.PollForConnectedGuestTask(
-                    self.session, self.server, self.uid)
-                self.poll_guest_key_task.setAutoDelete(False)
-                self.poll_guest_key_task.signals.success.connect(
-                    counselor_got_guest)
-                self.poll_guest_key_task.signals.error.connect(self.handle_error
+                        self.on_history_added
+                    )
 
-                                                               # TODO: there should be a connection status enum for better state understanding
-                                                               )
+                self.poll_guest_key_task = threads.PollForConnectedGuestTask(
+                    self.session, self.server, self.uid
+                )
+                self.poll_guest_key_task.setAutoDelete(False)
+                self.poll_guest_key_task.signals.success.connect(counselor_got_guest)
+                self.poll_guest_key_task.signals.error.connect(
+                    self.handle_error
+                    # TODO: there should be a connection status enum for better state understanding
+                )
             else:
                 self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
-                self.get_messages_task = threads.GetMessagesTask(self.session,
-                                                                 self.server,
-                                                                 self.uid)
+                self.get_messages_task = threads.GetMessagesTask(
+                    self.session, self.server, self.uid
+                )
                 self.get_messages_task.setAutoDelete(False)
-                self.get_messages_task.signals.success.connect(
-                    self.on_history_added)
+                self.get_messages_task.signals.success.connect(self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
-            self.start_chat_button.clicked.disconnect(
-                self.start_chat_button_connection)
+            self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
             self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-                self.disconnect_chat)
+                self.disconnect_chat
+            )
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
         start_chat_task = threads.StartChatTask(
-            self.server, self.session, self.uid, self.crypt.public_chat_key)
+            self.server, self.session, self.uid, self.crypt.public_chat_key
+        )
         start_chat_task.signals.success.connect(after_start)
         start_chat_task.signals.error.connect(self.handle_error)
         self.worker.start(start_chat_task)
@@ -338,6 +352,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Reciever for the add server dialog to handle the new server details.
         """
+
         @QtCore.pyqtSlot(str)
         def set_server(_: str):
             self.server_add_dialog.close()
@@ -362,19 +377,22 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         If the user cancels before Tor finishes connecting, ask if they want to
         quit, or open settings.
         """
-        self.common.log('OnionShareGui', '_tor_connection_canceled')
+        self.common.log("OnionShareGui", "_tor_connection_canceled")
 
         def ask():
             a = Alert(
                 self.common,
-                strings._('gui_tor_connection_ask'),
+                strings._("gui_tor_connection_ask"),
                 QtWidgets.QMessageBox.Question,
                 buttons=QtWidgets.QMessageBox.NoButton,
-                autostart=False)
+                autostart=False,
+            )
             settings_button = QtWidgets.QPushButton(
-                strings._('gui_tor_connection_ask_open_settings'))
+                strings._("gui_tor_connection_ask_open_settings")
+            )
             quit_button = QtWidgets.QPushButton(
-                strings._('gui_tor_connection_ask_quit'))
+                strings._("gui_tor_connection_ask_quit")
+            )
             a.addButton(settings_button, QtWidgets.QMessageBox.AcceptRole)
             a.addButton(quit_button, QtWidgets.QMessageBox.RejectRole)
             a.setDefaultButton(settings_button)
@@ -383,17 +401,17 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if a.clickedButton() == settings_button:
                 # Open settings
                 self.common.log(
-                    'OnionShareGui',
-                    '_tor_connection_canceled',
-                    'Settings button clicked')
+                    "OnionShareGui",
+                    "_tor_connection_canceled",
+                    "Settings button clicked",
+                )
                 self.open_settings()
 
             if a.clickedButton() == quit_button:
                 # Quit
                 self.common.log(
-                    'OnionShareGui',
-                    '_tor_connection_canceled',
-                    'Quit button clicked')
+                    "OnionShareGui", "_tor_connection_canceled", "Quit button clicked"
+                )
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -405,7 +423,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         The TorConnectionDialog wants to open the Settings dialog
         """
-        self.common.log('OnionShareGui', '_tor_connection_open_settings')
+        self.common.log("OnionShareGui", "_tor_connection_open_settings")
 
         # Wait 1ms for the event loop to finish closing the TorConnectionDialog
         QtCore.QTimer.singleShot(1, self.open_settings)
@@ -414,13 +432,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Open the SettingsDialog.
         """
-        self.common.log('OnionShareGui', 'open_settings')
+        self.common.log("OnionShareGui", "open_settings")
 
         def reload_settings():
             self.common.log(
-                'OnionShareGui',
-                'open_settings',
-                'settings have changed, reloading')
+                "OnionShareGui", "open_settings", "settings have changed, reloading"
+            )
             self.common.settings.load()
 
             # We might've stopped the main requests timer if
@@ -428,8 +445,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             # If we've reloaded settings, we probably succeeded in obtaining
             # a new connection. If so, restart the timer.
 
-        d = SettingsDialog(self.common, self.onion, self.qtapp, self.config,
-                           self.local_only)
+        d = SettingsDialog(
+            self.common, self.onion, self.qtapp, self.config, self.local_only
+        )
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
@@ -443,24 +461,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         elif self.poll_guest_key_task is not None:
             self.worker.tryStart(self.poll_guest_key_task)
 
-    def copy_url(self):
-        """
-        When the URL gets copied to the clipboard, display this \
-        in the status bar.
-        """
-        self.common.log('OnionShareGui', 'copy_url')
-        self.system_tray.showMessage(strings._('gui_copied_url_title'),
-                                     strings._('gui_copied_url'))
-
-    def copy_hidservauth(self):
-        """
-        When the stealth onion service HidServAuth gets copied to \
-        the clipboard, display this in the status bar.
-        """
-        self.common.log('OnionShareGui', 'copy_hidservauth')
-        self.system_tray.showMessage(strings._('gui_copied_hidservauth_title'),
-                                     strings._('gui_copied_hidservauth'))
-
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
@@ -469,16 +469,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             del self.get_messages_task
             self.get_messages_task = None
         if self.is_connected:
-            self.worker.start(threads.EndChatTask(
-                self.session, self.server, self.uid))
+            self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
         if self.server.is_counselor:
-            self.worker.start(threads.CounselorSignoutTask(
-                self.session, self.server, self.uid))
-        self.start_chat_button.setText('Start Chat')
-        self.start_chat_button.clicked.disconnect(
-            self.start_chat_button_connection)
+            self.worker.start(
+                threads.CounselorSignoutTask(self.session, self.server, self.uid)
+            )
+        self.start_chat_button.setText("Start Chat")
+        self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-            self.start_chat)
+            self.start_chat
+        )
         self.start_chat_button.setEnabled(True)
         self.is_connected = False
 
@@ -486,7 +486,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         When the main window is closed, do some cleanup
         """
-        self.common.log('OnionShareGui', 'closeEvent')
+        self.common.log("OnionShareGui", "closeEvent")
         self.disconnect_chat()
 
         self.hide()

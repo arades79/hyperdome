@@ -26,6 +26,7 @@ import time
 import traceback
 import requests
 import stem
+
 # TODO there must be a cleaner way to do this
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.onionshare_dev_mode = True
@@ -54,7 +55,7 @@ class HyperdomeServerController:
             common = Common()
             common.load_settings()
             strings.load_strings(common)
-            print(strings._('version_string').format(common.version))
+            print(strings._("version_string").format(common.version))
 
             local_only = False
             common.debug = True
@@ -63,14 +64,9 @@ class HyperdomeServerController:
             self.web = Web(common, False)
 
             self.onion = Onion(common)
-            self.onion.connect(custom_settings=False,
-                               config=False,
-                               connect_timeout=120)
+            self.onion.connect(custom_settings=False, config=False, connect_timeout=120)
             # Start the onionshare app
-            self.app = HyperdomeServer(common,
-                                       self.onion,
-                                       local_only,
-                                       shutdown_timeout)
+            self.app = HyperdomeServer(common, self.onion, local_only, shutdown_timeout)
             self.app.choose_port()
             try:
                 self.app.start_onion_service()
@@ -85,9 +81,9 @@ class HyperdomeServerController:
         if not self.onion_connected:
             return False
         # Start OnionShare http service in new thread
-        self.t = threading.Thread(target=self.web.start,
-                                  args=(self.app.port, True),
-                                  daemon=True)
+        self.t = threading.Thread(
+            target=self.web.start, args=(self.app.port, True), daemon=True
+        )
         self.t.start()
 
         # TODO this looks dangerously like a race condition
@@ -98,8 +94,8 @@ class HyperdomeServerController:
         if self.app.shutdown_timeout > 0:
             self.app.shutdown_timer.start()
 
-        print('')
-        self.url = 'http://{0:s}'.format(self.app.onion_host)
+        print("")
+        self.url = "http://{0:s}".format(self.app.onion_host)
         print(strings._("give_this_url"))
         print(self.url)
         print()
@@ -162,7 +158,7 @@ class HyperdomeClientController:
             self.common.define_css()
             self.common.load_settings()
             strings.load_strings(self.common)
-            print(strings._('version_string').format(self.common.version))
+            print(strings._("version_string").format(self.common.version))
             # signal.signal(signal.SIGINT, signal.SIG_DFL)
             self.common.debug = True
             self.onion = Onion(self.common)
@@ -173,9 +169,8 @@ class HyperdomeClientController:
             self.onion.connect(self.common.settings)
             self.run_client_2()
         except Exception as e:
-            print(''.join(traceback.format_exception(type(e),
-                                                     e,
-                                                     e.__traceback__)))
+            print("".join(traceback.format_exception(type(e), e, e.__traceback__)))
+
     def run_client_2(self):
         raise NotImplementedError
 
@@ -193,8 +188,9 @@ class HyperdomeClientController:
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
                 self._session.proxies = {
-                    'http': f'socks5h://{socks_address}:{socks_port}',
-                    'https': f'socks5h://{socks_address}:{socks_port}'}
+                    "http": f"socks5h://{socks_address}:{socks_port}",
+                    "https": f"socks5h://{socks_address}:{socks_port}",
+                }
         return self._session
 
 
@@ -203,26 +199,38 @@ class HyperdomeTherapistController(HyperdomeClientController):
         print("Running client 2 of therapist")
         self.server.username = "test"
         self.server.password = "test"
-        self.session.post(f"{self.server.url}/therapist_signup",
-                          data={"masterkey": "megumin",
-                                "username": self.server.username,
-                                "password": self.server.password})
+        self.session.post(
+            f"{self.server.url}/therapist_signup",
+            data={
+                "masterkey": "megumin",
+                "username": self.server.username,
+                "password": self.server.password,
+            },
+        )
         print("Signed up therapist")
-        self.session.post(f"{self.server.url}/therapist_signin",
-                          data={"username": self.server.username,
-                                "password": self.server.password})
+        self.session.post(
+            f"{self.server.url}/therapist_signin",
+            data={"username": self.server.username, "password": self.server.password},
+        )
         print("Signed in therapist")
-        self.session.post(f"{self.server.url}/message_from_therapist",
-                          headers={"username": self.server.username,
-                                   "password": self.server.password},
-                          data={"message": "Therapist message 12345"})
+        self.session.post(
+            f"{self.server.url}/message_from_therapist",
+            headers={
+                "username": self.server.username,
+                "password": self.server.password,
+            },
+            data={"message": "Therapist message 12345"},
+        )
         print("Posted therapist message")
-        new_message = ''
+        new_message = ""
         for _ in range(60):
             new_message = self.session.get(
                 f"{self.server.url}/collect_therapist_messages",
-                headers={"username": self.server.username,
-                         "password": self.server.password}).text.strip()
+                headers={
+                    "username": self.server.username,
+                    "password": self.server.password,
+                },
+            ).text.strip()
             if new_message:
                 break
             time.sleep(1)
@@ -230,8 +238,10 @@ class HyperdomeTherapistController(HyperdomeClientController):
             print("SUCCESS from therapist!")
             self.success = True
         else:
-            print("ERROR from therapist: was expecting 'User message 12345', "
-                  f"got '{new_message}'")
+            print(
+                "ERROR from therapist: was expecting 'User message 12345', "
+                f"got '{new_message}'"
+            )
             self.success = False
         # time.sleep(5)
 
@@ -239,23 +249,23 @@ class HyperdomeTherapistController(HyperdomeClientController):
 class HyperdomeUserController(HyperdomeClientController):
     def run_client_2(self):
         print("Running client 2 of user")
-        self.uid = self.session.get(
-            f'{self.server.url}/generate_guest_id').text
+        self.uid = self.session.get(f"{self.server.url}/generate_guest_id").text
         print("User got uid")
         while not self.therapist:
             print("Waiting for connection to therapist...")
             self.therapist = self.session.post(
-                f"{self.server.url}/request_therapist",
-                data={"guest_id": self.uid}).text
+                f"{self.server.url}/request_therapist", data={"guest_id": self.uid}
+            ).text
         print("\n\n\n\n\nUser connected to therapist: ", self.therapist)
-        self.session.post(f'{self.server.url}/message_from_user',
-                          data={'message': "User message 12345",
-                                'guest_id': self.uid})
-        new_message = ''
+        self.session.post(
+            f"{self.server.url}/message_from_user",
+            data={"message": "User message 12345", "guest_id": self.uid},
+        )
+        new_message = ""
         for _ in range(60):
             new_message = self.session.get(
-                f"{self.server.url}/collect_guest_messages",
-                data={"guest_id": self.uid}).text.strip()
+                f"{self.server.url}/collect_guest_messages", data={"guest_id": self.uid}
+            ).text.strip()
             if new_message:
                 break
             time.sleep(1)
@@ -263,8 +273,10 @@ class HyperdomeUserController(HyperdomeClientController):
             print("SUCCESS from user!")
             self.success = True
         else:
-            print("ERROR from user: was expecting 'Therapist message 12345', "
-                  f"got '{new_message}'")
+            print(
+                "ERROR from user: was expecting 'Therapist message 12345', "
+                f"got '{new_message}'"
+            )
             self.success = False
 
 
@@ -300,11 +312,9 @@ def main():
             return "Timed out while waiting for client communication"
         print("Client communications finished")
     except Exception as e:
-        print(''.join(traceback.format_exception(type(e),
-                                                 e,
-                                                 e.__traceback__)))
+        print("".join(traceback.format_exception(type(e), e, e.__traceback__)))
     finally:
-        for to_close in ('htc', 'huc', 'hsc'):
+        for to_close in ("htc", "huc", "hsc"):
             if to_close in locals():
                 locals()[to_close].close()
         # htc.close()

@@ -34,7 +34,7 @@ from cryptography.fernet import Fernet
 bstr = typing.Union[str, bytes]
 
 
-class LockBox():
+class LockBox:
     """
     handle key storage, generation, exchange,
     encryption and decryption
@@ -42,14 +42,16 @@ class LockBox():
 
     _chat_key = None
     _signing_key = None
-    _send_ratchet_key= None
+    _send_ratchet_key = None
     _recieve_ratchet_key = None
     _HASH = hashes.SHA3_512()
     _ENCODING = serial.Encoding.PEM
     _BACKEND = default_backend()
     _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
     _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _RATCHET_KDF = functools.partial(HKDF, _HASH, 64, salt=None, info=b'ratchet increment', backend=_BACKEND)
+    _RATCHET_KDF = functools.partial(
+        HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
+    )
 
     def encrypt_outgoing_message(self, message: bstr) -> str:
         if isinstance(message, str):
@@ -61,8 +63,7 @@ class LockBox():
         self._send_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
         ciphertext = Fernet(fernet_key).encrypt(message)
-        return ciphertext.decode('utf-8')
-
+        return ciphertext.decode("utf-8")
 
     def decrypt_incoming_message(self, message: bstr) -> str:
         if isinstance(message, str):
@@ -74,7 +75,7 @@ class LockBox():
         self._recieve_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
         plaintext = Fernet(fernet_key).decrypt(message)
-        return plaintext.decode('utf-8')
+        return plaintext.decode("utf-8")
 
     @property
     def public_chat_key(self) -> str:
@@ -87,8 +88,9 @@ class LockBox():
 
         self._chat_key = X448PrivateKey.generate()
         pub_key_bytes = self._chat_key.public_key().public_bytes(
-            self._ENCODING, self._PUBLIC_FORMAT)
-        return pub_key_bytes.decode('utf-8')
+            self._ENCODING, self._PUBLIC_FORMAT
+        )
+        return pub_key_bytes.decode("utf-8")
 
     @property
     def public_signing_key(self) -> str:
@@ -97,9 +99,8 @@ class LockBox():
         of the ed448 signing key
         """
         key = self._signing_key.public_key()
-        key_bytes = key.public_bytes(
-            self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes.decode('utf-8')
+        key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
+        return key_bytes.decode("utf-8")
 
     def perform_key_exchange(self, public_key_bytes: bstr, chirality: bool):
         """
@@ -129,20 +130,23 @@ class LockBox():
         if isinstance(message, str):
             message = message.encode()
         sig = self._signing_key.sign(message)
-        return sig.decode('utf-8')
-
+        return sig.decode("utf-8")
 
     def save_key(self, identifier, passphrase):
         filename = f".{identifier}.pem"
-        with open(filename, 'wb') as file:
+        with open(filename, "wb") as file:
             file.write(
                 self._signing_key.private_bytes(
                     self._ENCODING,
                     self._PRIVATE_FORMAT,
-                    serial.BestAvailableEncryption(passphrase)))
+                    serial.BestAvailableEncryption(passphrase),
+                )
+            )
 
     def load_key(self, identifier, passphrase):
         filename = f".{identifier}.pem"
-        with open(filename, 'rb') as file:
+        with open(filename, "rb") as file:
             enc_key = file.read()
-            self._signing_key = serial.load_pem_private_key(enc_key, passphrase, self._BACKEND)
+            self._signing_key = serial.load_pem_private_key(
+                enc_key, passphrase, self._BACKEND
+            )

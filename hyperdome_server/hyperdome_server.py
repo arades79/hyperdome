@@ -34,7 +34,7 @@ class HyperdomeServer(object):
     def __init__(self, common, onion, local_only=False, shutdown_timeout=0):
         self.common = common
 
-        self.common.log('OnionShare', '__init__')
+        self.common.log("OnionShare", "__init__")
 
         # The Onion object
         self.onion = onion
@@ -66,27 +66,25 @@ class HyperdomeServer(object):
         """
         Start the onionshare onion service.
         """
-        self.common.log('OnionShare', 'start_onion_service')
+        self.common.log("OnionShare", "start_onion_service")
 
         if not self.port:
             self.choose_port()
 
         if self.shutdown_timeout > 0:
-            self.shutdown_timer = ShutdownTimer(self.common,
-                                                self.shutdown_timeout)
+            self.shutdown_timer = ShutdownTimer(self.common, self.shutdown_timeout)
 
         if self.local_only:
-            self.onion_host = '127.0.0.1:{0:d}'.format(self.port)
+            self.onion_host = "127.0.0.1:{0:d}".format(self.port)
             return
 
         self.onion_host = self.onion.start_onion_service(self.port)
-
 
     def cleanup(self):
         """
         Shut everything down and clean up temporary files, etc.
         """
-        self.common.log('OnionShare', 'cleanup')
+        self.common.log("OnionShare", "cleanup")
 
         # Cleanup files
         try:
