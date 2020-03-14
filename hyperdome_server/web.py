@@ -28,6 +28,7 @@ import random
 import binascii
 import traceback
 import json
+import secrets
 
 import flask
 from flask import Flask, request, render_template, abort, make_response
@@ -111,11 +112,11 @@ class Web(object):
         self.define_common_routes()
 
         # hyperdome server user tracking variables
-        self.counselors_available = dict()
-        self.active_chat_user_map = dict()
-        self.pending_messages = dict()
-        self.guest_keys = dict()
-        self.counselor_keys = dict()
+        self.counselors_available = {}
+        self.active_chat_user_map = {}
+        self.pending_messages = {}
+        self.guest_keys = {}
+        self.counselor_keys = {}
 
         #
         self.info = {
@@ -176,7 +177,7 @@ class Web(object):
             ]
             if not counselors:
                 return ""
-            chosen_counselor = random.choice(counselors)
+            chosen_counselor = secrets.choice(counselors)
             self.counselors_available[chosen_counselor] -= 1
             self.active_chat_user_map[guest_id] = chosen_counselor
             self.active_chat_user_map[chosen_counselor] = guest_id

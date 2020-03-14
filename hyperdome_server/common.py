@@ -23,11 +23,11 @@ import hashlib
 import inspect
 import os
 import platform
-import random
 import socket
 import sys
 import threading
 import time
+import secrets
 
 from .settings import Settings
 
@@ -194,7 +194,7 @@ class Common(object):
         """
         Returns a random string with a specified number of bytes.
         """
-        b = os.urandom(num_bytes)
+        b = secrets.token_bytes(num_bytes)
         h = hashlib.sha256(b).digest()[:16]
         s = base64.b32encode(h).lower().replace(b"=", b"").decode("utf-8")
         return s[:output_len] if output_len else s
@@ -207,7 +207,7 @@ class Common(object):
         with socket.socket() as tmpsock:
             while True:
                 try:
-                    tmpsock.bind(("127.0.0.1", random.randint(min_port, max_port)))
+                    tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
                     break
                 except OSError:
                     pass
