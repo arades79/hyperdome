@@ -32,11 +32,13 @@ class Server(object):
         """
         The onion address provided does not contain a valid v3 public key
         """
+
         pass
 
     def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
         self.url = url
-        if url: self._check_url()
+        if url:
+            self._check_url()
         self.nick = nick
         self.username = uname
         self.password = passwd
@@ -47,21 +49,19 @@ class Server(object):
         Ensure URL is properly formatted
         """
 
-        if not (
-            self.url.startswith(("http://","https://"))
-        ):
+        if not (self.url.startswith(("http://", "https://"))):
             self.url = f"http://{self.url}"
-        if not self.url.endswith('.onion'):
-            self.url = f'{self.url}.onion'
+        if not self.url.endswith(".onion"):
+            self.url = f"{self.url}.onion"
 
         onion_key = self.url[7:-6]
         key_len = len(onion_key)
         last_char = onion_key[-1]
 
-        if (key_len != 56 or last_char != 'd'):
-            print(f"{key_len=}\t{last_char=}")
+        if key_len != 56 or last_char != "d":
+            # TODO: add debugging logger
+            # print(f"{key_len=}\t{last_char=}")
             raise self.InvalidOnionAddress()
-
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -77,10 +77,16 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setWindowTitle("Add Hyperdome Server")
         self.setWindowIcon(QtGui.QIcon(common.get_resource_path("images/logo.png")))
 
+        def add_server():
+            try:
+                server = self._make_server_from_fields()
+                add_server_action(server)
+            except Server.InvalidOnionAddress:
+                self.reject()
+
+
         self.add_server_button = QtWidgets.QPushButton("Add Server")
-        self.add_server_button.clicked.connect(
-            lambda: add_server_action(self._make_server_from_fields())
-        )
+        self.add_server_button.clicked.connect(add_server)
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
@@ -162,3 +168,5 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_username_input.clear()
         self.counselor_password_input.clear()
         self.server_add_text.clear()
+        self.server_nick_text.clear()
+        self.done(0)
