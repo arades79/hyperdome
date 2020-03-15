@@ -207,7 +207,9 @@ class Common(object):
         with socket.socket() as tmpsock:
             while True:
                 try:
-                    tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
+                    tmpsock.bind(
+                        ("127.0.0.1", secrets.choice(range(min_port, max_port)))
+                    )
                     break
                 except OSError:
                     pass
