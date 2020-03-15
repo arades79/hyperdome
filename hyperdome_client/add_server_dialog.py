@@ -19,6 +19,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtWidgets, QtGui
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+import base64
 
 
 class Server(object):
@@ -26,9 +28,15 @@ class Server(object):
     Holder class for server connection details
     """
 
+    class InvalidOnionAddress(Exception):
+        """
+        The onion address provided does not contain a valid v3 public key
+        """
+        pass
+
     def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
         self.url = url
-        self._check_url()
+        if url: self._check_url()
         self.nick = nick
         self.username = uname
         self.password = passwd
@@ -38,8 +46,22 @@ class Server(object):
         """
         Ensure URL is properly formatted
         """
-        if not self.url.startswith("http://") and not self.url.startswith("https://"):
-            self.url = "http://" + self.url
+
+        if not (
+            self.url.startswith(("http://","https://"))
+        ):
+            self.url = f"http://{self.url}"
+        if not self.url.endswith('.onion'):
+            self.url = f'{self.url}.onion'
+
+        onion_key = self.url[7:-6]
+        key_len = len(onion_key)
+        last_char = onion_key[-1]
+
+        if (key_len != 56 or last_char != 'd'):
+            print(f"{key_len=}\t{last_char=}")
+            raise self.InvalidOnionAddress()
+
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -140,5 +162,3 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_username_input.clear()
         self.counselor_password_input.clear()
         self.server_add_text.clear()
-
-        event.accept()
