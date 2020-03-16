@@ -200,7 +200,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         message = self.message_text_field.toPlainText()
         self.message_text_field.clear()
 
-        if not self.is_connected and not self.uid:
+        if not (self.is_connected or self.uid):
             return self.handle_error("not in an active chat")
 
         enc_message = self.crypt.encrypt_outgoing_message(message)
@@ -287,7 +287,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
-            self.server_add_dialog.exec_()
+            self.server_add_dialog.open()
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()

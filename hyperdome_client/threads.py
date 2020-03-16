@@ -109,6 +109,7 @@ class SendMessageTask(QtCore.QRunnable):
         self.uid = uid
         self.message = message
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             send_message(self.server, self.session, self.uid, self.message)
@@ -128,6 +129,7 @@ class GetUidTask(QtCore.QRunnable):
         self.server = server
         self.session = session
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             uid = get_uid(self.server, self.session)
@@ -152,6 +154,7 @@ class StartChatTask(QtCore.QRunnable):
         self.uid = uid
         self.pub_key = pub_key
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             self.signals.success.emit(
@@ -174,6 +177,7 @@ class GetMessagesTask(QtCore.QRunnable):
         self.server = server
         self.uid = uid
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             new_messages = get_messages(self.server, self.session, self.uid)
@@ -199,6 +203,7 @@ class ProbeServerTask(QtCore.QRunnable):
         self.session = session
         self.server = server
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             status = probe_server(self.server, self.session)
@@ -224,6 +229,7 @@ class EndChatTask(QtCore.QRunnable):
         self.server = server
         self.uid = uid
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             self.session.post(
@@ -248,6 +254,7 @@ class CounselorSignoutTask(QtCore.QRunnable):
         self.server = server
         self.uid = uid
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             self.session.post(
@@ -270,6 +277,7 @@ class PollForConnectedGuestTask(QtCore.QRunnable):
         super(PollForConnectedGuestTask, self).__init__()
         self.task = functools.partial(get_guest_pub_key, server, session, uid)
 
+    @QtCore.pyqtSlot()
     def run(self):
         try:
             self.signals.success.emit(self.task())
