@@ -67,6 +67,7 @@ def main():
     # to pass alternate settings (which might contain a preferred locale).
     # If an alternate --config is passed, we'll reload strings later.
     common.load_settings()
+    # TODO: remove or rebuild strings
     strings.load_strings(common)
 
     # Display OnionShare banner
@@ -93,6 +94,7 @@ def main():
         "--debug", action="store_true", dest="debug", help=strings._("help_debug")
     )
     parser.add_argument(
+        # TODO: default should be empty string for consistant typing
         "--config", metavar="config", default=False, help=strings._("help_config")
     )
     args = parser.parse_args()
