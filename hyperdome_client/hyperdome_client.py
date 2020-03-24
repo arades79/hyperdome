@@ -286,18 +286,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
-            add_server_dialog = AddServerDialog(self.common, self.session, self)
-            add_server_dialog.server_added.connect(self.on_server_added, QtCore.Qt.UniqueConnection)
-            _ = add_server_dialog.exec_()
+            self.add_server_dialog = AddServerDialog(self.common, self.session, self)
+            dialog_error = self.add_server_dialog.exec_()
+            if not dialog_error:
+                server = self.add_server_dialog.get_server()
+                self.server = server
+                self.servers[server.nick] = self.server
+                self.server_dropdown.insertItem(1, server.nick)
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
-
-    @QtCore.pyqtSlot(Server)
-    def on_server_added(self, server: Server):
-        self.server = server
-        self.servers[server.nick] = self.server
-        self.server_dropdown.insertItem(1, server.nick)
 
     def start_chat(self):
         @QtCore.pyqtSlot(str)

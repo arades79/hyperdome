@@ -28,17 +28,17 @@ class AddServerDialog(QtWidgets.QDialog):
     Dialog for entering server connection details and or credentials.
     """
 
-    server_added = QtCore.pyqtSignal(Server)
     is_counselor = False
 
     def __init__(self, common, session, parent):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        self.session = session
+        self.session = parent.session
+        self.worker = parent.worker
 
         self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(QtGui.QIcon(common.get_resource_path("images/logo.png")))
+        self.setWindowIcon(QtGui.QIcon(parent.common.get_resource_path("images/logo.png")))
 
         self.add_server_button = QtWidgets.QPushButton("Add Server")
         self.add_server_button.clicked.connect(self.add_server)
@@ -106,7 +106,7 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Reciever for the add server dialog to handle the new server details.
         """
-        server = Server(
+        self.server = Server(
             url=self.server_add_text.text(),
             nick=self.server_nick_text.text(),
             uname=self.counselor_username_input.text(),
@@ -114,21 +114,21 @@ class AddServerDialog(QtWidgets.QDialog):
             is_counselor=self.is_counselor,
         )
 
-        @QtCore.pyqtSlot(str)
-        def set_server(_: str):
-            self.add_server_button.setEnabled(True)
-            self.server_added.emit(server)
-            self.close()
-
-        @QtCore.pyqtSlot(str)
-        def bad_server(err: str):
-            self.add_server_button.setEnabled(True)
-            QtWidgets.QMessageBox(str=err).exec_()
-
         self.add_server_button.setEnabled(False)
-        probe = threads.ProbeServerTask(self.session, server)
-        probe.signals.success.connect(set_server)
-        probe.signals.error.connect(bad_server)
-        pool = QtCore.QThreadPool()
-        pool.start(probe)
-        pool.waitForDone(10000)
+        probe = threads.ProbeServerTask(self.session, self.server)
+        probe.signals.success.connect(self.set_server)
+        probe.signals.error.connect(self.bad_server)
+        self.worker.start(probe)
+
+    @QtCore.pyqtSlot(str)
+    def set_server(self, _: str):
+        self.add_server_button.setEnabled(True)
+        self.done(0)
+
+    @QtCore.pyqtSlot(str)
+    def bad_server(self, err: str):
+        self.add_server_button.setEnabled(True)
+        QtWidgets.QMessageBox(str=err).exec_()
+
+    def get_server(self):
+        return self.server
