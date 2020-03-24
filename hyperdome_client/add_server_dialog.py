@@ -18,7 +18,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
+from . import threads
 from .server import Server
 
 
@@ -27,24 +28,20 @@ class AddServerDialog(QtWidgets.QDialog):
     Dialog for entering server connection details and or credentials.
     """
 
-    def __init__(self, common, add_server_action):
-        super(AddServerDialog, self).__init__()
+    server_added = QtCore.pyqtSignal(Server)
+    is_counselor = False
 
-        self.is_counselor = False
+    def __init__(self, common, session, parent):
+        super(AddServerDialog, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        self.session = session
 
         self.setWindowTitle("Add Hyperdome Server")
         self.setWindowIcon(QtGui.QIcon(common.get_resource_path("images/logo.png")))
 
-        def add_server():
-            try:
-                server = self._make_server_from_fields()
-                add_server_action(server)
-            except Server.InvalidOnionAddress:
-                self.reject()
-
-
         self.add_server_button = QtWidgets.QPushButton("Add Server")
-        self.add_server_button.clicked.connect(add_server)
+        self.add_server_button.clicked.connect(self.add_server)
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
@@ -54,20 +51,20 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server_nick_text.setFixedWidth(400)
         self.server_nick_text.setPlaceholderText("Nickname:")
 
-        self.counselor_radio = QtWidgets.QRadioButton()
-        self.counselor_radio.setText("Counselor")
-        self.counselor_radio.toggled.connect(
-            lambda: self.radio_switch(self.counselor_radio)
+        counselor_radio = QtWidgets.QRadioButton()
+        counselor_radio.setText("Counselor")
+        counselor_radio.toggled.connect(
+            lambda: self.radio_switch(counselor_radio)
         )
 
-        self.guest_radio = QtWidgets.QRadioButton()
-        self.guest_radio.setText("Guest")
-        self.guest_radio.setChecked(True)
-        self.guest_radio.toggled.connect(lambda: self.radio_switch(self.guest_radio))
+        guest_radio = QtWidgets.QRadioButton()
+        guest_radio.setText("Guest")
+        guest_radio.setChecked(True)
+        guest_radio.toggled.connect(lambda: self.radio_switch(guest_radio))
 
-        self.radio_buttons = QtWidgets.QHBoxLayout()
-        self.radio_buttons.addWidget(self.counselor_radio)
-        self.radio_buttons.addWidget(self.guest_radio)
+        radio_buttons = QtWidgets.QHBoxLayout()
+        radio_buttons.addWidget(counselor_radio)
+        radio_buttons.addWidget(guest_radio)
 
         self.counselor_username_input = QtWidgets.QLineEdit()
         self.counselor_username_input.setPlaceholderText("Username:")
@@ -86,25 +83,11 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server_dialog_layout = QtWidgets.QVBoxLayout()
         self.server_dialog_layout.addWidget(self.server_add_text)
         self.server_dialog_layout.addWidget(self.server_nick_text)
-        self.server_dialog_layout.addLayout(self.radio_buttons)
+        self.server_dialog_layout.addLayout(radio_buttons)
         self.server_dialog_layout.addLayout(self.counselor_credentials)
         self.server_dialog_layout.addWidget(self.add_server_button)
 
         self.setLayout(self.server_dialog_layout)
-
-    def _make_server_from_fields(self):
-        """
-        Take text fields and package into server object to pass.
-        """
-        url = self.server_add_text.text()
-        nick = self.server_nick_text.text()
-        uname = self.counselor_username_input.text()
-        passwd = self.counselor_password_input.text()
-        is_counselor = self.is_counselor
-
-        return Server(
-            url=url, nick=nick, uname=uname, passwd=passwd, is_counselor=is_counselor
-        )
 
     def radio_switch(self, radio_switch):
         """
@@ -119,12 +102,33 @@ class AddServerDialog(QtWidgets.QDialog):
             self.counselor_username_input.hide()
             self.counselor_password_input.hide()
 
-    def closeEvent(self, event):
+    def add_server(self):
         """
-        Cleanup for when window is closed.
+        Reciever for the add server dialog to handle the new server details.
         """
-        self.counselor_username_input.clear()
-        self.counselor_password_input.clear()
-        self.server_add_text.clear()
-        self.server_nick_text.clear()
-        self.done(0)
+        server = Server(
+            url=self.server_add_text.text(),
+            nick=self.server_nick_text.text(),
+            uname=self.counselor_username_input.text(),
+            passwd=self.counselor_password_input.text(),
+            is_counselor=self.is_counselor,
+        )
+
+        @QtCore.pyqtSlot(str)
+        def set_server(_: str):
+            self.add_server_button.setEnabled(True)
+            self.server_added.emit(server)
+            self.close()
+
+        @QtCore.pyqtSlot(str)
+        def bad_server(err: str):
+            self.add_server_button.setEnabled(True)
+            QtWidgets.QMessageBox(str=err).exec_()
+
+        self.add_server_button.setEnabled(False)
+        probe = threads.ProbeServerTask(self.session, server)
+        probe.signals.success.connect(set_server)
+        probe.signals.error.connect(bad_server)
+        pool = QtCore.QThreadPool()
+        pool.start(probe)
+        pool.waitForDone(10000)

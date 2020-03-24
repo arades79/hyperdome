@@ -115,7 +115,8 @@ def main():
     app = HyperdomeServer(common, onion, local_only)
 
     # Launch the gui
-    HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
+    main_window = HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
+    main_window.show()
 
     # Clean up when app quits
     def shutdown():
