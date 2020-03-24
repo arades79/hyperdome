@@ -30,7 +30,7 @@ class AddServerDialog(QtWidgets.QDialog):
 
     is_counselor = False
 
-    def __init__(self, common, session, parent):
+    def __init__(self, parent):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
@@ -115,6 +115,8 @@ class AddServerDialog(QtWidgets.QDialog):
         )
 
         self.add_server_button.setEnabled(False)
+        self.add_server_button.setText("Checking...")
+
         probe = threads.ProbeServerTask(self.session, self.server)
         probe.signals.success.connect(self.set_server)
         probe.signals.error.connect(self.bad_server)
@@ -122,13 +124,17 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def set_server(self, _: str):
-        self.add_server_button.setEnabled(True)
         self.done(0)
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):
         self.add_server_button.setEnabled(True)
+        self.add_server_button.setText("Add Server")
         QtWidgets.QMessageBox(str=err).exec_()
 
     def get_server(self):
         return self.server
+
+    def closeEvent(self, event):
+        self.done(1)
+        return super().closeEvent(event)
