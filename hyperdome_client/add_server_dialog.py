@@ -37,6 +37,8 @@ class AddServerDialog(QtWidgets.QDialog):
         self.session = parent.session
         self.worker = parent.worker
 
+        self.error_message = QtWidgets.QMessageBox(self)
+
         self.setWindowTitle("Add Hyperdome Server")
         self.setWindowIcon(QtGui.QIcon(parent.common.get_resource_path("images/logo.png")))
 
@@ -99,13 +101,18 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Reciever for the add server dialog to handle the new server details.
         """
-        self.server = Server(
-            url=self.server_add_text.text(),
-            nick=self.server_nick_text.text(),
-            uname=self.counselor_username_input.text(),
-            passwd=self.counselor_password_input.text(),
-            is_counselor=self.is_counselor,
-        )
+        try:
+            self.server = Server(
+                url=self.server_add_text.text(),
+                nick=self.server_nick_text.text(),
+                uname=self.counselor_username_input.text(),
+                passwd=self.counselor_password_input.text(),
+                is_counselor=self.is_counselor,
+            )
+        except Server.InvalidOnionAddress:
+            self.error_message.setText("Invalid onion address!")
+            self.error_message.exec_()
+            return
 
         self.add_server_button.setEnabled(False)
         self.add_server_button.setText("Checking...")
@@ -123,7 +130,8 @@ class AddServerDialog(QtWidgets.QDialog):
     def bad_server(self, err: str):
         self.add_server_button.setEnabled(True)
         self.add_server_button.setText("Add Server")
-        QtWidgets.QMessageBox(str=err).exec_()
+        self.error_message.setText(err)
+        self.error_message.exec_()
 
     def get_server(self):
         return self.server
