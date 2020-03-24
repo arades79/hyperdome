@@ -33,7 +33,7 @@ class Server:
         pass
 
     def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
-        self.url = url
+        self.url = url.strip()
         if url:
             self._check_url()
         self.nick = nick
