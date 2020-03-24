@@ -22,7 +22,7 @@ import time
 import requests
 from PyQt5 import QtCore
 
-from .add_server_dialog import Server
+from .server import Server
 from hyperdome_server.onion import (
     BundledTorTimeout,
     TorErrorProtocolError,
