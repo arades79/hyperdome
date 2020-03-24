@@ -40,7 +40,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.error_message = QtWidgets.QMessageBox(self)
 
         self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(QtGui.QIcon(parent.common.get_resource_path("images/logo.png")))
+        self.setWindowIcon(
+            QtGui.QIcon(parent.common.get_resource_path("images/logo.png"))
+        )
 
         self.add_server_button = QtWidgets.QPushButton("Add Server")
         self.add_server_button.clicked.connect(self.add_server)

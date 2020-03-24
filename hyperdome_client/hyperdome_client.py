@@ -159,9 +159,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button = QtWidgets.QPushButton()
         self.start_chat_button.setText("Start Chat")
         self.start_chat_button.setFixedWidth(100)
-        self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-            self.start_chat
-        )
+        self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(False)
 
         self.server_dropdown = QtWidgets.QComboBox(self)
@@ -340,10 +338,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.get_messages_task.signals.success.connect(self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
-            self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
-            self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-                self.disconnect_chat
-            )
+            self.start_chat_button.clicked.disconnect()
+            self.start_chat_button.clicked.connect(self.disconnect_chat)
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
@@ -427,6 +423,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             # If we've reloaded settings, we probably succeeded in obtaining
             # a new connection. If so, restart the timer.
 
+        # TODO: Use more threadsafe dialog handling used for add_server_dialog here
         d = SettingsDialog(
             self.common, self.onion, self.qtapp, self.config, self.local_only
         )
@@ -457,7 +454,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 threads.CounselorSignoutTask(self.session, self.server, self.uid)
             )
         self.start_chat_button.setText("Start Chat")
-        self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
+        self.start_chat_button.clicked.disconnect()
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
             self.start_chat
         )
