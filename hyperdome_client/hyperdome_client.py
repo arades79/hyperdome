@@ -293,6 +293,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.server = server
                 self.servers[server.nick] = self.server
                 self.server_dropdown.insertItem(1, server.nick)
+                self.server_dropdown.setCurrentIndex(1)
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
