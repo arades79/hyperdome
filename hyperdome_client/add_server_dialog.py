@@ -53,14 +53,11 @@ class AddServerDialog(QtWidgets.QDialog):
 
         counselor_radio = QtWidgets.QRadioButton()
         counselor_radio.setText("Counselor")
-        counselor_radio.toggled.connect(
-            lambda: self.radio_switch(counselor_radio)
-        )
+        counselor_radio.toggled.connect(self.radio_switch)
 
         guest_radio = QtWidgets.QRadioButton()
         guest_radio.setText("Guest")
         guest_radio.setChecked(True)
-        guest_radio.toggled.connect(lambda: self.radio_switch(guest_radio))
 
         radio_buttons = QtWidgets.QHBoxLayout()
         radio_buttons.addWidget(counselor_radio)
@@ -89,18 +86,14 @@ class AddServerDialog(QtWidgets.QDialog):
 
         self.setLayout(self.server_dialog_layout)
 
-    def radio_switch(self, radio_switch):
+    def radio_switch(self, is_toggled):
         """
         Show or hide crediential fields based on user type selected.
         """
-        if radio_switch.text() == "Counselor":
-            self.is_counselor = True
-            self.counselor_username_input.show()
-            self.counselor_password_input.show()
-        else:
-            self.is_counselor = False
-            self.counselor_username_input.hide()
-            self.counselor_password_input.hide()
+        self.is_counselor = is_toggled
+        self.counselor_credentials.setEnabled(is_toggled)
+        self.counselor_username_input.setVisible(is_toggled)
+        self.counselor_password_input.setVisible(is_toggled)
 
     def add_server(self):
         """
