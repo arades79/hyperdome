@@ -18,28 +18,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtWidgets, QtGui
-
-
-class Server(object):
-    """
-    Holder class for server connection details
-    """
-
-    def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
-        self.url = url
-        self._check_url()
-        self.nick = nick
-        self.username = uname
-        self.password = passwd
-        self.is_counselor = is_counselor
-
-    def _check_url(self):
-        """
-        Ensure URL is properly formatted
-        """
-        if not self.url.startswith("http://") and not self.url.startswith("https://"):
-            self.url = "http://" + self.url
+from PyQt5 import QtWidgets, QtGui, QtCore
+from . import threads
+from .server import Server
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -47,18 +28,24 @@ class AddServerDialog(QtWidgets.QDialog):
     Dialog for entering server connection details and or credentials.
     """
 
-    def __init__(self, common, add_server_action):
-        super(AddServerDialog, self).__init__()
+    def __init__(self, parent):
+        super(AddServerDialog, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        self.session = parent.session
+        self.worker = parent.worker
+
+        self.error_message = QtWidgets.QMessageBox(self)
+
+        self.setWindowTitle("Add Hyperdome Server")
+        self.setWindowIcon(
+            QtGui.QIcon(parent.common.get_resource_path("images/logo.png"))
+        )
 
         self.is_counselor = False
 
-        self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(QtGui.QIcon(common.get_resource_path("images/logo.png")))
-
         self.add_server_button = QtWidgets.QPushButton("Add Server")
-        self.add_server_button.clicked.connect(
-            lambda: add_server_action(self._make_server_from_fields())
-        )
+        self.add_server_button.clicked.connect(self.add_server)
 
         self.server_add_text = QtWidgets.QLineEdit()
         self.server_add_text.setFixedWidth(400)
@@ -68,20 +55,17 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server_nick_text.setFixedWidth(400)
         self.server_nick_text.setPlaceholderText("Nickname:")
 
-        self.counselor_radio = QtWidgets.QRadioButton()
-        self.counselor_radio.setText("Counselor")
-        self.counselor_radio.toggled.connect(
-            lambda: self.radio_switch(self.counselor_radio)
-        )
+        counselor_radio = QtWidgets.QRadioButton()
+        counselor_radio.setText("Counselor")
+        counselor_radio.toggled.connect(self.radio_switch)
 
-        self.guest_radio = QtWidgets.QRadioButton()
-        self.guest_radio.setText("Guest")
-        self.guest_radio.setChecked(True)
-        self.guest_radio.toggled.connect(lambda: self.radio_switch(self.guest_radio))
+        guest_radio = QtWidgets.QRadioButton()
+        guest_radio.setText("Guest")
+        guest_radio.setChecked(True)
 
-        self.radio_buttons = QtWidgets.QHBoxLayout()
-        self.radio_buttons.addWidget(self.counselor_radio)
-        self.radio_buttons.addWidget(self.guest_radio)
+        radio_buttons = QtWidgets.QHBoxLayout()
+        radio_buttons.addWidget(counselor_radio)
+        radio_buttons.addWidget(guest_radio)
 
         self.counselor_username_input = QtWidgets.QLineEdit()
         self.counselor_username_input.setPlaceholderText("Username:")
@@ -100,45 +84,60 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server_dialog_layout = QtWidgets.QVBoxLayout()
         self.server_dialog_layout.addWidget(self.server_add_text)
         self.server_dialog_layout.addWidget(self.server_nick_text)
-        self.server_dialog_layout.addLayout(self.radio_buttons)
+        self.server_dialog_layout.addLayout(radio_buttons)
         self.server_dialog_layout.addLayout(self.counselor_credentials)
         self.server_dialog_layout.addWidget(self.add_server_button)
 
         self.setLayout(self.server_dialog_layout)
 
-    def _make_server_from_fields(self):
-        """
-        Take text fields and package into server object to pass.
-        """
-        url = self.server_add_text.text()
-        nick = self.server_nick_text.text()
-        uname = self.counselor_username_input.text()
-        passwd = self.counselor_password_input.text()
-        is_counselor = self.is_counselor
-
-        return Server(
-            url=url, nick=nick, uname=uname, passwd=passwd, is_counselor=is_counselor
-        )
-
-    def radio_switch(self, radio_switch):
+    def radio_switch(self, is_toggled):
         """
         Show or hide crediential fields based on user type selected.
         """
-        if radio_switch.text() == "Counselor":
-            self.is_counselor = True
-            self.counselor_username_input.show()
-            self.counselor_password_input.show()
-        else:
-            self.is_counselor = False
-            self.counselor_username_input.hide()
-            self.counselor_password_input.hide()
+        self.is_counselor = is_toggled
+        self.counselor_credentials.setEnabled(is_toggled)
+        self.counselor_username_input.setVisible(is_toggled)
+        self.counselor_password_input.setVisible(is_toggled)
+
+    def add_server(self):
+        """
+        Receiver for the add server dialog to handle the new server details.
+        """
+        try:
+            self.server = Server(
+                url=self.server_add_text.text(),
+                nick=self.server_nick_text.text(),
+                uname=self.counselor_username_input.text(),
+                passwd=self.counselor_password_input.text(),
+                is_counselor=self.is_counselor,
+            )
+        except Server.InvalidOnionAddress:
+            self.error_message.setText("Invalid onion address!")
+            self.error_message.exec_()
+            return
+
+        self.add_server_button.setEnabled(False)
+        self.add_server_button.setText("Checking...")
+
+        probe = threads.ProbeServerTask(self.session, self.server)
+        probe.signals.success.connect(self.set_server)
+        probe.signals.error.connect(self.bad_server)
+        self.worker.start(probe)
+
+    @QtCore.pyqtSlot(str)
+    def set_server(self, _):
+        self.done(0)
+
+    @QtCore.pyqtSlot(str)
+    def bad_server(self, err: str):
+        self.add_server_button.setEnabled(True)
+        self.add_server_button.setText("Add Server")
+        self.error_message.setText(err)
+        self.error_message.exec_()
+
+    def get_server(self):
+        return self.server
 
     def closeEvent(self, event):
-        """
-        Cleanup for when window is closed.
-        """
-        self.counselor_username_input.clear()
-        self.counselor_password_input.clear()
-        self.server_add_text.clear()
-
-        event.accept()
+        self.done(1)
+        return super().closeEvent(event)

@@ -25,7 +25,8 @@ from hyperdome_server import strings
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog
 from .widgets import Alert
-from .add_server_dialog import AddServerDialog, Server
+from .add_server_dialog import AddServerDialog
+from .server import Server
 from . import threads
 from . import encryption
 
@@ -60,7 +61,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.common.log("OnionShareGui", "__init__")
 
         # setup threadpool and tasks for async
-        self.worker = QtCore.QThreadPool()
+        self.worker = QtCore.QThreadPool.globalInstance()
         self.get_messages_task: threads.GetMessagesTask = None
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
@@ -118,10 +119,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
-        self.server_add_dialog = AddServerDialog(
-            common=self.common, add_server_action=self.add_server
-        )
-
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
@@ -149,7 +146,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.chat_window = QtWidgets.QListWidget()
         self.chat_window.setWordWrap(True)
         self.chat_window.setWrapping(True)
-        self.chat_window.addItems(self.chat_history)
+        self.chat_window.setAutoScroll(True)
+        self.chat_window.setVerticalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollPerItem
+        )
 
         self.chat_pane = QtWidgets.QVBoxLayout()
         self.chat_pane.addWidget(self.chat_window, stretch=1)
@@ -159,9 +159,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button = QtWidgets.QPushButton()
         self.start_chat_button.setText("Start Chat")
         self.start_chat_button.setFixedWidth(100)
-        self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-            self.start_chat
-        )
+        self.start_chat_button.clicked.connect(self.start_chat)
         self.start_chat_button.setEnabled(False)
 
         self.server_dropdown = QtWidgets.QComboBox(self)
@@ -182,7 +180,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.main_widget.setLayout(self.full_layout)
 
         self.setCentralWidget(self.main_widget)
-        self.show()
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
         tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
@@ -200,7 +197,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         message = self.message_text_field.toPlainText()
         self.message_text_field.clear()
 
-        if not self.is_connected and not self.uid:
+        if not (self.is_connected or self.uid):
             return self.handle_error("not in an active chat")
 
         enc_message = self.crypt.encrypt_outgoing_message(message)
@@ -218,6 +215,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Update UI with messages retrieved from server.
         """
+
         sender_name = "counselor" if self.server.is_counselor else "user"
         message_list = [
             f"{sender_name}: {self.crypt.decrypt_incoming_message(message)}"
@@ -240,7 +238,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.timer.stop()
         if not self.server.is_counselor:
             get_uid_task = threads.GetUidTask(self.server, self.session)
-            get_uid_task.signals.success.connect(after_id)
+            get_uid_task.signals.success.connect(after_id, QtCore.Qt.UniqueConnection)
             get_uid_task.signals.error.connect(self.handle_error)
             self.worker.start(get_uid_task)
         else:  # user is a counselor which will get uid later
@@ -287,7 +285,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
-            self.server_add_dialog.exec_()
+            add_server_dialog = AddServerDialog(self)
+            dialog_error = add_server_dialog.exec_()
+            if not dialog_error:
+                server = add_server_dialog.get_server()
+                self.server = server
+                self.servers[server.nick] = self.server
+                self.server_dropdown.insertItem(1, server.nick)
+                self.server_dropdown.setCurrentIndex(1)
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
@@ -312,6 +317,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                         self.session, self.server, self.uid
                     )
                     self.get_messages_task.setAutoDelete(False)
+                    try:
+                        # if no connections exist, which happens on first connection,
+                        # .disconnect() raises a TypeError.
+                        # the disconnect is needed because of setAutoDelete properties,
+                        # which was causing slots to be bound recursively,
+                        # and duplicating callback actions
+                        self.get_messages_task.signals.disconnect()
+                    except TypeError:
+                        pass
                     self.get_messages_task.signals.success.connect(
                         self.on_history_added
                     )
@@ -331,13 +345,20 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     self.session, self.server, self.uid
                 )
                 self.get_messages_task.setAutoDelete(False)
+                try:
+                    # if no connections exist, which happens on first connection,
+                    # .disconnect() raises a TypeError.
+                    # the disconnect is needed because of setAutoDelete properties,
+                    # which was causing slots to be bound recursively,
+                    # and duplicating callback actions
+                    self.get_messages_task.signals.disconnect()
+                except TypeError:
+                    pass
                 self.get_messages_task.signals.success.connect(self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
-            self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
-            self.start_chat_button_connection = self.start_chat_button.clicked.connect(
-                self.disconnect_chat
-            )
+            self.start_chat_button.clicked.disconnect()
+            self.start_chat_button.clicked.connect(self.disconnect_chat)
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
@@ -347,30 +368,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         start_chat_task.signals.success.connect(after_start)
         start_chat_task.signals.error.connect(self.handle_error)
         self.worker.start(start_chat_task)
-
-    def add_server(self, server):
-        """
-        Reciever for the add server dialog to handle the new server details.
-        """
-
-        @QtCore.pyqtSlot(str)
-        def set_server(_: str):
-            self.server_add_dialog.close()
-            self.server_add_dialog.add_server_button.setEnabled(True)
-            self.server = server
-            self.servers[server.nick] = self.server
-            self.server_dropdown.insertItem(1, server.nick)
-
-        @QtCore.pyqtSlot(str)
-        def bad_server(err: str):
-            self.server_add_dialog.add_server_button.setEnabled(True)
-            self.handle_error(err)
-
-        self.server_add_dialog.add_server_button.setEnabled(False)
-        probe = threads.ProbeServerTask(self.session, server)
-        probe.signals.success.connect(set_server)
-        probe.signals.error.connect(bad_server)
-        self.worker.start(probe)
 
     def _tor_connection_canceled(self):
         """
@@ -445,6 +442,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             # If we've reloaded settings, we probably succeeded in obtaining
             # a new connection. If so, restart the timer.
 
+        # TODO: Use more threadsafe dialog handling used for add_server_dialog here
         d = SettingsDialog(
             self.common, self.onion, self.qtapp, self.config, self.local_only
         )
@@ -466,7 +464,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.timer.stop()
         self.worker.clear()
         if self.get_messages_task is not None:
-            del self.get_messages_task
+            self.worker.tryTake(self.get_messages_task)
             self.get_messages_task = None
         if self.is_connected:
             self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
@@ -475,7 +473,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 threads.CounselorSignoutTask(self.session, self.server, self.uid)
             )
         self.start_chat_button.setText("Start Chat")
-        self.start_chat_button.clicked.disconnect(self.start_chat_button_connection)
+        self.start_chat_button.clicked.disconnect()
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
             self.start_chat
         )
