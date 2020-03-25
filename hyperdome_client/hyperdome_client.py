@@ -319,13 +319,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                         self.session, self.server, self.uid
                     )
                     self.get_messages_task.setAutoDelete(False)
-                    # remove
                     try:
-                        self.get_messages_task.signals.success.disconnect()
-                        self.get_messages_task.signals.success.disconnect()
-                        self.get_messages_task.signals.success.disconnect()
-                    except: pass
-                    # remove
+                        self.get_messages_task.signals.disconnect()
+                    except TypeError:
+                        pass
                     self.get_messages_task.signals.success.connect(
                         self.on_history_added
                     )
@@ -345,12 +342,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     self.session, self.server, self.uid
                 )
                 self.get_messages_task.setAutoDelete(False)
-                # remove
                 try:
-                    self.get_messages_task.signals.success.disconnect()
-                except: pass
-                # remove
-
+                    self.get_messages_task.signals.disconnect()
+                except TypeError:
+                    pass
                 self.get_messages_task.signals.success.connect(self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
