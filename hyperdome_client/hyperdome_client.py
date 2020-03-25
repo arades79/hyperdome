@@ -59,7 +59,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.app = app
         self.local_only: bool = local_only
         self.common.log("OnionShareGui", "__init__")
-        self.counter = 0
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool.globalInstance()
@@ -319,6 +318,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     )
                     self.get_messages_task.setAutoDelete(False)
                     try:
+                        # if no connections exist, which happens on first connection,
+                        # .disconnect() raises a TypeError.
+                        # the disconnect is needed because of setAutoDelete properties,
+                        # which was causing slots to be bound recursively,
+                        # and duplicating callback actions
                         self.get_messages_task.signals.disconnect()
                     except TypeError:
                         pass
@@ -342,6 +346,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 )
                 self.get_messages_task.setAutoDelete(False)
                 try:
+                    # if no connections exist, which happens on first connection,
+                    # .disconnect() raises a TypeError.
+                    # the disconnect is needed because of setAutoDelete properties,
+                    # which was causing slots to be bound recursively,
+                    # and duplicating callback actions
                     self.get_messages_task.signals.disconnect()
                 except TypeError:
                     pass

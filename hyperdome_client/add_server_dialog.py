@@ -28,8 +28,6 @@ class AddServerDialog(QtWidgets.QDialog):
     Dialog for entering server connection details and or credentials.
     """
 
-    is_counselor = False
-
     def __init__(self, parent):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -43,6 +41,8 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setWindowIcon(
             QtGui.QIcon(parent.common.get_resource_path("images/logo.png"))
         )
+
+        self.is_counselor = False
 
         self.add_server_button = QtWidgets.QPushButton("Add Server")
         self.add_server_button.clicked.connect(self.add_server)
@@ -101,7 +101,7 @@ class AddServerDialog(QtWidgets.QDialog):
 
     def add_server(self):
         """
-        Reciever for the add server dialog to handle the new server details.
+        Receiver for the add server dialog to handle the new server details.
         """
         try:
             self.server = Server(
@@ -125,7 +125,7 @@ class AddServerDialog(QtWidgets.QDialog):
         self.worker.start(probe)
 
     @QtCore.pyqtSlot(str)
-    def set_server(self, _: str):
+    def set_server(self, _):
         self.done(0)
 
     @QtCore.pyqtSlot(str)

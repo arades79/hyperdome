@@ -47,10 +47,13 @@ class Server:
         """
 
         if not (self.url.startswith(("http://", "https://"))):
+            # tor hidden services do not support https so http default is okay
             self.url = f"http://{self.url}"
         if not self.url.endswith(".onion"):
             self.url = f"{self.url}.onion"
 
+        # tor onion v3 addresses are always 56 characters and end with a 'd'
+        # this is guaranteed because of base32 padding and ed25519 key length
         onion_key = self.url[7:-6]
         key_len = len(onion_key)
         last_char = onion_key[-1]
