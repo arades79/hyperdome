@@ -95,7 +95,10 @@ def main():
     )
     parser.add_argument(
         # TODO: default should be empty string for consistant typing
-        "--config", metavar="config", default=False, help=strings._("help_config")
+        "--config",
+        metavar="config",
+        default=False,
+        help=strings._("help_config"),
     )
     args = parser.parse_args()
 

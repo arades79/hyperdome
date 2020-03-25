@@ -59,9 +59,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.app = app
         self.local_only: bool = local_only
         self.common.log("OnionShareGui", "__init__")
+        self.counter = 0
 
         # setup threadpool and tasks for async
-        self.worker = QtCore.QThreadPool()
+        self.worker = QtCore.QThreadPool.globalInstance()
         self.get_messages_task: threads.GetMessagesTask = None
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
@@ -215,6 +216,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Update UI with messages retrieved from server.
         """
+        print(f"threadid:{int(QtCore.QThread.currentThreadId())}")
+
         sender_name = "counselor" if self.server.is_counselor else "user"
         message_list = [
             f"{sender_name}: {self.crypt.decrypt_incoming_message(message)}"
@@ -316,6 +319,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                         self.session, self.server, self.uid
                     )
                     self.get_messages_task.setAutoDelete(False)
+                    # remove
+                    try:
+                        self.get_messages_task.signals.success.disconnect()
+                        self.get_messages_task.signals.success.disconnect()
+                        self.get_messages_task.signals.success.disconnect()
+                    except: pass
+                    # remove
                     self.get_messages_task.signals.success.connect(
                         self.on_history_added
                     )
@@ -335,6 +345,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     self.session, self.server, self.uid
                 )
                 self.get_messages_task.setAutoDelete(False)
+                # remove
+                try:
+                    self.get_messages_task.signals.success.disconnect()
+                except: pass
+                # remove
+
                 self.get_messages_task.signals.success.connect(self.on_history_added)
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
@@ -445,7 +461,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.timer.stop()
         self.worker.clear()
         if self.get_messages_task is not None:
-            del self.get_messages_task
+            self.worker.tryTake(self.get_messages_task)
             self.get_messages_task = None
         if self.is_connected:
             self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
