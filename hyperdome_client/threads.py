@@ -179,7 +179,6 @@ class GetMessagesTask(QtCore.QRunnable):
 
     @QtCore.pyqtSlot()
     def run(self):
-        print(f"{self.signals.receivers(self.signals.success)=}")
         try:
             new_messages = get_messages(self.server, self.session, self.uid)
             self.signals.success.emit(new_messages)

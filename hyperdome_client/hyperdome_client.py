@@ -216,7 +216,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Update UI with messages retrieved from server.
         """
-        print(f"threadid:{int(QtCore.QThread.currentThreadId())}")
 
         sender_name = "counselor" if self.server.is_counselor else "user"
         message_list = [
