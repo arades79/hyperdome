@@ -6,7 +6,7 @@ p = platform.system()
 version = open('share/version.txt').read().strip()
 
 a = Analysis(
-    ['scripts/onionshare-pyinstaller'],
+    ['scripts/hyperdome_client.py'],
     pathex=['.'],
     binaries=None,
     datas=[
@@ -39,7 +39,7 @@ exe = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name='onionshare-gui',
+    name='hyperdome',
     debug=False,
     strip=False,
     upx=True,
@@ -52,14 +52,14 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=True,
-    name='onionshare')
+    name='hyperdome')
 
 if p == 'Darwin':
     app = BUNDLE(
         coll,
-        name='OnionShare.app',
-        icon='install/onionshare.icns',
-        bundle_identifier='com.micahflee.onionshare',
+        name='Hyperdome.app',
+        icon='install/hyperdome.icns',
+        bundle_identifier='com.arades.hyperdome',
         info_plist={
             'CFBundleShortVersionString': version,
             'NSHighResolutionCapable': 'True'
