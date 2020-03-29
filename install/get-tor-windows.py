@@ -32,12 +32,10 @@ import requests
 
 def main():
     exe_url = (
-        "https://archive.torproject.org/tor-package-archive"
-        "/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe"
+        "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe"
     )
     asc_url = (
-        "https://archive.torproject.org/tor-package-archive"
-        "/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe.asc"
+        "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe.asc"
     )
     exe_filename = "torbrowser-install-9.0.7_en-US.exe"
 
@@ -50,7 +48,7 @@ def main():
     exe_path = os.path.join(working_path, exe_filename)
 
     dist_path = os.path.join(
-        os.path.join(os.path.join(root_path, "dist"), "onionshare"), "tor"
+        os.path.join(os.path.join(root_path, "dist"), "hyperdome"), "tor"
     )
 
     # Make sure the working folder exists
