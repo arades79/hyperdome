@@ -6,7 +6,7 @@ p = platform.system()
 version = open('share/version.txt').read().strip()
 
 a = Analysis(
-    ['scripts/hyperdome_client.py'],
+    ['scripts/hyperdome_client'],
     pathex=['.'],
     binaries=None,
     datas=[
@@ -21,7 +21,6 @@ a = Analysis(
         ('../share/templates/*', 'share/templates'),
         ('../share/static/css/*', 'share/static/css'),
         ('../share/static/img/*', 'share/static/img'),
-        ('../share/static/js/*', 'share/static/js'),
         ('../install/licenses/*', 'licenses')
     ],
     hiddenimports=[],
