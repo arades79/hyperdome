@@ -23,7 +23,7 @@ a = Analysis(
         ('../share/static/img/*', 'share/static/img'),
         ('../install/licenses/*', 'licenses')
     ],
-    hiddenimports=[],
+    hiddenimports=["pkg_resources.py2_warn"],
     hookspath=[],
     runtime_hooks=[],
     win_no_prefer_redirects=False,
