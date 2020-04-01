@@ -6,7 +6,7 @@
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 
-	<!-- Both OnionShare and Tor need network server and client -->
+	<!-- Both Hyperdome and Tor need network server and client -->
 	<key>com.apple.security.network.server</key>
 	<true/>
 	<key>com.apple.security.network.client</key>
@@ -23,17 +23,17 @@
 		<string>/private/etc/apache2/mime.types</string>
 	</array>
 
-	<!-- For OnionShare to be able to connect to Tor Browser's tor control port,
+	<!-- For Hyperdome to be able to connect to Tor Browser's tor control port,
 	     it needs to read it's control_auth_cookie file -->
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
 	<array>
 		<string>/Library/Application Support/TorBrowser-Data/Tor/control_auth_cookie</string>
 	</array>
 
-	<!-- In receive mode, OnionShare needs to be able to write to ~/OnionShare -->
+	<!-- In receive mode, Hyperdome needs to be able to write to ~/Hyperdome -->
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
 	<array>
-		<string>/OnionShare/</string>
+		<string>/Hyperdome/</string>
 	</array>
 </dict>
 </plist>

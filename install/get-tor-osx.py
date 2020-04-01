@@ -71,12 +71,6 @@ def main():
 
 
     # TODO: Verify by asc
-    # Compare the hash
-    # if dmg_sha256 != expected_dmg_sha256:
-    #     print("ERROR! The sha256 doesn't match:")
-    #     print("expected: {}".format(expected_dmg_sha256))
-    #     print("  actual: {}".format(dmg_sha256))
-    #     sys.exit(-1)
 
     # Mount the dmg, copy data to the working path
     subprocess.call(["hdiutil", "attach", dmg_path])

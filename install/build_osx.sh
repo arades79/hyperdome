@@ -10,19 +10,15 @@ rm -rf $ROOT/dist &>/dev/null 2>&1
 # build the .app
 echo Building OnionShare.app
 pyinstaller $ROOT/install/pyinstaller.spec
-python3 $ROOT/install/get-tor-osx.py
-
-# create a symlink of onionshare-gui called onionshare, for the CLI version
-cd $ROOT/dist/OnionShare.app/Contents/MacOS
-ln -s onionshare-gui onionshare
-cd $ROOT
+# TODO: download and bundle tor
+# python3 $ROOT/install/get-tor-osx.py
 
 if [ "$1" = "--release" ]; then
   mkdir -p dist
-  APP_PATH="$ROOT/dist/OnionShare.app"
-  PKG_PATH="$ROOT/dist/OnionShare.pkg"
-  IDENTITY_NAME_APPLICATION="Developer ID Application: Micah Lee"
-  IDENTITY_NAME_INSTALLER="Developer ID Installer: Micah Lee"
+  APP_PATH="$ROOT/dist/Hyperdome.app"
+  PKG_PATH="$ROOT/dist/Hyperdome.pkg"
+  IDENTITY_NAME_APPLICATION="Developer ID Application: Skyelar Craver"
+  IDENTITY_NAME_INSTALLER="Developer ID Installer: Skyelar Craver"
   ENTITLEMENTS_CHILD_PATH="$ROOT/install/macos_sandbox/child.plist"
   ENTITLEMENTS_PARENT_PATH="$ROOT/install/macos_sandbox/parent.plist"
 

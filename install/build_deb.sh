@@ -20,6 +20,6 @@ if [[ $? -eq 0 ]]; then
 	echo "To install, run:"
 	echo "sudo dpkg -i deb_dist/onionshare_$VERSION-1_all.deb"
 else
-	echo "OnionShare failed to build!"
+	echo "Hyperdome failed to build!"
 	exit 1
 fi

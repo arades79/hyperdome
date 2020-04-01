@@ -11,8 +11,8 @@ VERSION=`cat share/version.txt`
 
 rm -rf deb_dist >/dev/null 2>&1
 python3 setup.py --command-packages=stdeb.command sdist_dsc
-cd deb_dist/onionshare-$VERSION
+cd deb_dist/hyperddome-$VERSION
 dpkg-buildpackage -S
 cd ..
-dput ppa:micahflee/ppa onionshare_$VERSION-1_source.changes
+dput ppa:micahflee/ppa hyperddome_$VERSION-1_source.changes
 cd ..
