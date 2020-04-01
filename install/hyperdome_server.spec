@@ -6,7 +6,7 @@ p = platform.system()
 version = open('share/version.txt').read().strip()
 
 a = Analysis(
-    ['scripts/hyperdome_client'],
+    ['scripts/hyperdome_server'],
     pathex=['.'],
     binaries=None,
     datas=[
@@ -16,8 +16,8 @@ a = Analysis(
         ('../share/torrc_template-obfs4', 'share'),
         ('../share/torrc_template-meek_lite_azure', 'share'),
         ('../share/images/*', 'share/images'),
-        ('../share/locale/*', 'share/locale'),
         ('../share/static/*', 'share/static'),
+        ('../share/locale/*', 'share/locale'),
         ('../share/templates/*', 'share/templates'),
         ('../share/static/css/*', 'share/static/css'),
         ('../share/static/img/*', 'share/static/img'),
@@ -38,11 +38,11 @@ exe = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name='hyperdome',
+    name='hyperdome_server',
     debug=False,
     strip=False,
     upx=True,
-    console=False)
+    console=True, icon='hyperdome_logo.ico')
 
 coll = COLLECT(
     exe,
@@ -51,14 +51,14 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=True,
-    name='hyperdome')
+    name='hyperdome_server')
 
 if p == 'Darwin':
     app = BUNDLE(
         coll,
-        name='Hyperdome.app',
+        name='Hyperdome_server.app',
         icon='install/hyperdome.icns',
-        bundle_identifier='com.arades.hyperdome',
+        bundle_identifier='com.arades.hyperdome_server',
         info_plist={
             'CFBundleShortVersionString': version,
             'NSHighResolutionCapable': 'True'
