@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018 Micah Lee <micah@micahflee.com> -->
+<component type="desktop">
+    <id>hyperdome.desktop</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0</project_license>
+    <name>Hyperdome</name>
+    <summary>The safest place to reach out</summary>
+    <description>
+        <p>
+        Hyperdome is an asymmetrical chat application designed to have distributed and domain specific servers.
+        Users connect completely anonymously to the server and will be paired with whatever that server determines is qualified counsel.
+        College campuses could provide safe mental health services with no fear.
+        Legal offices can provide counseling to prospective clients with everything on the table.
+        Hyperdome provides a simple server and client that any entity can implement to give some set of guests access to a verified list of people.
+        </p>
+    </description>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/arades79/hyperdome/develop/hyperdome_logo.png</image>
+            <caption>Placeholder</caption>
+        </screenshot>
+    </screenshots>
+    <url type="homepage">https://github.com/arades79/hyperdome/</url>
+    <updatecontact>scravers@protonmail.com</updatecontact>
+</component>
