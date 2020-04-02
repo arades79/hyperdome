@@ -77,7 +77,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumHeight(660)
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
         )
 
         # make dialog for error messages
@@ -107,15 +107,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         exit_action.triggered.connect(self.close)
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
-        # The convention is Mac systray icons are always grayscale
-        if self.common.platform == "Darwin":
-            self.system_tray.setIcon(
-                QtGui.QIcon(self.common.get_resource_path("images/logo_grayscale.png"))
-            )
-        else:
-            self.system_tray.setIcon(
-                QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
-            )
+        self.system_tray.setIcon(
+            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
+        )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
 
@@ -125,7 +119,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button.setFixedWidth(40)
         self.settings_button.setFixedHeight(50)
         self.settings_button.setIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/settings.png"))
+            QtGui.QIcon(self.common.get_resource_path("images/settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setIcon(QtGui.QIcon.fromTheme("settings"))

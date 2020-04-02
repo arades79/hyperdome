@@ -31,22 +31,19 @@ import requests
 
 
 def main():
-    exe_url = (
-        "https://archive.torproject.org/tor-package-archive"
-        "/torbrowser/8.0.5/torbrowser-install-8.0.5_en-US.exe"
-    )
-    exe_filename = "torbrowser-install-8.0.5_en-US.exe"
-    expected_exe_sha256 = (
-        "860fdd06e4ea8dd4c46f221676251f5c" "c528676d4e256559ee3831a5f97492f1"
-    )
+    exe_url = "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe"
+    asc_url = "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe.asc"
+    exe_filename = "torbrowser-install-9.0.7_en-US.exe"
+
     # Build paths
     root_path = os.path.dirname(
         os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     )
     working_path = os.path.join(os.path.join(root_path, "build"), "tor")
     exe_path = os.path.join(working_path, exe_filename)
+
     dist_path = os.path.join(
-        os.path.join(os.path.join(root_path, "dist"), "onionshare"), "tor"
+        os.path.join(os.path.join(root_path, "dist"), "hyperdome"), "tor"
     )
 
     # Make sure the working folder exists
@@ -58,17 +55,13 @@ def main():
         print("Downloading {}".format(exe_url))
         r = requests.get(exe_url)
         open(exe_path, "wb").write(r.content)
-        exe_sha256 = hashlib.sha256(r.content).hexdigest()
     else:
         exe_data = open(exe_path, "rb").read()
-        exe_sha256 = hashlib.sha256(exe_data).hexdigest()
 
-    # Compare the hash
-    if exe_sha256 != expected_exe_sha256:
-        print("ERROR! The sha256 doesn't match:")
-        print("expected: {}".format(expected_exe_sha256))
-        print("  actual: {}".format(exe_sha256))
-        sys.exit(-1)
+    print("Downloading {}".format(asc_url))
+    asc_data = requests.get(asc_url).content
+
+    # TODO: verify sig from .asc
 
     # Extract the bits we need from the exe
     cmd = [

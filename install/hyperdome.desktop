@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Hyperdome
+GenericName=Hyperdome Client
+Comment=The safest place to reach out
+Exec=/usr/bin/hyperdome_client
+Terminal=false
+Type=Application
+Icon=hyperdome_logo
+Categories=Network;Messaging;
+Keywords=tor;anonymity;privacy;onion service;messaging;counseling;
+StartupNotify=true
+StartupWMClass=hyperdome

@@ -33,12 +33,13 @@ import requests
 def main():
     dmg_url = (
         "https://archive.torproject.org/tor-package-archive"
-        "/torbrowser/8.0.5/TorBrowser-8.0.5-osx64_en-US.dmg"
+        "/torbrowser/9.0.7/TorBrowser-9.0.7-osx64_en-US.dmg"
     )
-    dmg_filename = "TorBrowser-8.0.5-osx64_en-US.dmg"
-    expected_dmg_sha256 = (
-        "08f0f79181319b74f8ad3a3f8c72a463" "56ec47f1ca3e22eb42d92e51451d9411"
+    asc_url = (
+        "https://archive.torproject.org/tor-package-archive"
+        "/torbrowser/9.0.7/TorBrowser-9.0.7-osx64_en-US.dmg.asc"
     )
+    dmg_filename = "TorBrowser-9.0.7-osx64_en-US.dmg"
 
     # Build paths
     root_path = os.path.dirname(
@@ -60,17 +61,13 @@ def main():
         print("Downloading {}".format(dmg_url))
         r = requests.get(dmg_url)
         open(dmg_path, "wb").write(r.content)
-        dmg_sha256 = hashlib.sha256(r.content).hexdigest()
     else:
         dmg_data = open(dmg_path, "rb").read()
-        dmg_sha256 = hashlib.sha256(dmg_data).hexdigest()
 
-    # Compare the hash
-    if dmg_sha256 != expected_dmg_sha256:
-        print("ERROR! The sha256 doesn't match:")
-        print("expected: {}".format(expected_dmg_sha256))
-        print("  actual: {}".format(dmg_sha256))
-        sys.exit(-1)
+    print("Downloading {}".format(asc_url))
+    asc_data = requests.get(asc_url).content
+
+    # TODO: Verify by asc
 
     # Mount the dmg, copy data to the working path
     subprocess.call(["hdiutil", "attach", dmg_path])

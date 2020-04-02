@@ -17,6 +17,7 @@ urllib3 = "==1.25.6"
 flake8 = "==3.7.9"
 bandit = "==1.6.2"
 black = "==19.10b0"
+pyinstaller = "==3.6"
 
 [packages]
 altgraph = "==0.16.1"
@@ -54,7 +55,7 @@ python_version = "3.8"
 
 [scripts]
 test_connection = "python dev_scripts/hyperdome_connection.py"
-lint = "python -m flake8 ."
+lint = "python -m black ."
 
 [pipenv]
 allow_prereleases = true

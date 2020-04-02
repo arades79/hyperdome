@@ -328,7 +328,7 @@ def start_chat(server: Server, session: requests.Session, uid: str, pub_key: str
         ).text
 
 
-COMPATIBLE_SERVERS = ["2.0"]
+COMPATIBLE_SERVERS = ["0.2"]
 
 
 def probe_server(server: Server, session: requests.Session):
