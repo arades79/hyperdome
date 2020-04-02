@@ -49,7 +49,7 @@ def main(cwd=None):
     strings.load_strings(common)
 
     # Display Hyperdome banner
-    print(f"Hyperdome Server {version}")
+    print(f"Hyperdome Server {common.version}")
 
     # OnionShare CLI in OSX needs to change current working directory (#132)
     if common.platform == "Darwin" and cwd:
