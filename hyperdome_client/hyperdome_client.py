@@ -489,12 +489,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.hide()
 
-        self.worker.waitForDone()
-        self.worker.event(event)
-
-        self.system_tray.hide()  # seemingly necessary
+        self.worker.waitForDone(1000)
 
         if self.onion:
             self.onion.cleanup()
         if self.app:
             self.app.cleanup()
+
+        super().closeEvent(event)
