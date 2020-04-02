@@ -36,11 +36,15 @@ def file_list(path):
 version = open("share/version.txt").read().strip()
 description = """The safest place to reach out"""
 long_description = (
-    description + "\n\n" + ("""Hyperdome is an asymmetrical chat application designed to have distributed and domain specific servers.
+    description
+    + "\n\n"
+    + (
+        """Hyperdome is an asymmetrical chat application designed to have distributed and domain specific servers.
         Users connect completely anonymously to the server and will be paired with whatever that server determines is qualified counsel.
         College campuses could provide safe mental health services with no fear.
         Legal offices can provide counseling to prospective clients with everything on the table.
-        Hyperdome provides a simple server and client that any entity can implement to give some set of guests access to a verified list of people.""")
+        Hyperdome provides a simple server and client that any entity can implement to give some set of guests access to a verified list of people."""
+    )
 )
 author = "Skyelar Ceaver"
 author_email = "scravers@protonmail.com"
@@ -102,10 +106,7 @@ setup(
     license=license,
     keywords=keywords,
     classifiers=classifiers,
-    packages=[
-        "hyperdome_server.web",
-        "hyperdome_client",
-    ],
+    packages=["hyperdome_server.web", "hyperdome_client",],
     include_package_data=True,
     scripts=["install/scripts/hyperdome_client", "install/scripts/hyperdome_server"],
     data_files=data_files,

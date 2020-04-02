@@ -35,7 +35,7 @@ from .hyperdome_server import HyperdomeServer
 def main(cwd=None):
     """
     The main() function implements all of the logic that the command-line
-    version of onionshare uses.
+    version of hyperdome uses.
     """
     common = Common()
 
@@ -51,7 +51,7 @@ def main(cwd=None):
     # Display Hyperdome banner
     print(f"Hyperdome Server {common.version}")
 
-    # OnionShare CLI in OSX needs to change current working directory (#132)
+    # hyperdome in OSX needs to change current working directory (Onionshare #132)
     if common.platform == "Darwin" and cwd:
         os.chdir(cwd)
 
@@ -118,7 +118,7 @@ def main(cwd=None):
     except Exception as e:
         sys.exit(e.args[0])
 
-    # Start the onionshare app
+    # Start the hyperdome server
     try:
         app = HyperdomeServer(common, onion, local_only, shutdown_timeout)
         app.choose_port()
@@ -131,7 +131,7 @@ def main(cwd=None):
         print(e.args[0])
         sys.exit()
 
-    # Start OnionShare http service in new thread
+    # Start hyperdome http service in new thread
     t = threading.Thread(target=web.start, args=(app.port, True))
     t.daemon = True
     t.start()

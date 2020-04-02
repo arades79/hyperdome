@@ -31,14 +31,9 @@ import requests
 
 
 def main():
-    exe_url = (
-        "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe"
-    )
-    asc_url = (
-        "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe.asc"
-    )
+    exe_url = "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe"
+    asc_url = "https://archive.torproject.org/tor-package-archive/torbrowser/9.0.7/torbrowser-install-9.0.7_en-US.exe.asc"
     exe_filename = "torbrowser-install-9.0.7_en-US.exe"
-
 
     # Build paths
     root_path = os.path.dirname(

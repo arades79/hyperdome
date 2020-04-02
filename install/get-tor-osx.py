@@ -41,7 +41,6 @@ def main():
     )
     dmg_filename = "TorBrowser-9.0.7-osx64_en-US.dmg"
 
-
     # Build paths
     root_path = os.path.dirname(
         os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -65,10 +64,8 @@ def main():
     else:
         dmg_data = open(dmg_path, "rb").read()
 
-
     print("Downloading {}".format(asc_url))
     asc_data = requests.get(asc_url).content
-
 
     # TODO: Verify by asc
 

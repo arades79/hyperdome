@@ -1,7 +1,7 @@
 REM delete old dist files
 rmdir /s /q dist
 
-REM build onionshare-gui.exe
+REM build hyperdome.exe and hyperdome_server.exe
 pyinstaller install\hyperdome_client.spec -y
 pyinstaller install\hyperdome_server.spec -y
 
