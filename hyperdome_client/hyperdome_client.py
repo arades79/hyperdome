@@ -122,7 +122,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button.clicked.connect(self.open_settings)
 
         self.message_text_field = QtWidgets.QLineEdit()
-        self.message_text_field.setAlignment(QtCore.Qt.AlignTop)
+        self.message_text_field.setClearButtonEnabled(True)
         self.message_text_field.returnPressed.connect(self.send_message)
         self.message_text_field.setPlaceholderText("Enter message:")
 
