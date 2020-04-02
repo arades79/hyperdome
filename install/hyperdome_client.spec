@@ -47,7 +47,7 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=True,
-    name='hyperdome')
+    name='hyperdome_client')
 
 if p == 'Darwin':
     app = BUNDLE(
