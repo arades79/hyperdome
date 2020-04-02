@@ -138,12 +138,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.enter_text.addWidget(self.settings_button)
 
         self.chat_window = QtWidgets.QListWidget()
-        self.chat_window.setWordWrap(True)
-        self.chat_window.setWrapping(True)
-        self.chat_window.setAutoScroll(True)
+        self.chat_window.setFlow(QtWidgets.QListWidget.TopToBottom)
+        self.chat_window.setWrapping(False)
         self.chat_window.setVerticalScrollMode(
             QtWidgets.QAbstractItemView.ScrollPerItem
         )
+        self.chat_window.addItems(self.chat_history)
 
         self.chat_pane = QtWidgets.QVBoxLayout()
         self.chat_pane.addWidget(self.chat_window, stretch=1)
