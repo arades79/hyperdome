@@ -117,20 +117,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setFixedWidth(40)
-        self.settings_button.setFixedHeight(50)
         self.settings_button.setIcon(
             QtGui.QIcon(self.common.get_resource_path("images/settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
         self.settings_button.setIcon(QtGui.QIcon.fromTheme("settings"))
 
-        self.message_text_field = QtWidgets.QPlainTextEdit()
-        self.message_text_field.setFixedHeight(50)
+        self.message_text_field = QtWidgets.QLineEdit()
+        self.message_text_field.setAlignment(QtCore.Qt.AlignTop)
+        self.message_text_field.returnPressed.connect(self.send_message)
         self.message_text_field.setPlaceholderText("Enter message:")
 
         self.enter_button = QtWidgets.QPushButton("Send")
         self.enter_button.clicked.connect(self.send_message)
-        self.enter_button.setFixedHeight(50)
 
         self.enter_text = QtWidgets.QHBoxLayout()
         self.enter_text.addWidget(self.message_text_field)
@@ -188,7 +187,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         either counsel or guest.
         """
 
-        message = self.message_text_field.toPlainText()
+        message = self.message_text_field.text()
         self.message_text_field.clear()
 
         if not (self.is_connected or self.uid):
