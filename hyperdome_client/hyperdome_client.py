@@ -116,12 +116,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # chat pane
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
-        self.settings_button.setFixedWidth(40)
         self.settings_button.setIcon(
             QtGui.QIcon(self.common.get_resource_path("images/settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setIcon(QtGui.QIcon.fromTheme("settings"))
 
         self.message_text_field = QtWidgets.QLineEdit()
         self.message_text_field.setAlignment(QtCore.Qt.AlignTop)
