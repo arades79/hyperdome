@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import click
+import sys
+import os
 import hyperdome_server
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 from cryptography.hazmat.primitives.serialization import (
@@ -28,19 +30,26 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_public_key,
 )
 
-version = '0.2'
+version = "0.2"
+
 
 @click.group(invoke_without_command=True)
-@click.version_option(version, prog_name="Hyperdome")
+@click.option('--debug', '-d', is_flag=True)
+@click.version_option(version, prog_name="Hyperdome Server")
 @click.pass_context
-def admin(ctx):
-    if ctx.invoked_subcommand is None:
-        hyperdome_server.main()
+def admin(ctx, debug):
+    if ctx.invoked_subcommand is not None:
+        return
+    if debug:
+        # TODO there must be a cleaner way to do this
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        sys.onionshare_dev_mode = True
+    hyperdome_server.main()
 
 
 @admin.command()
 @click.option(
-    "--file", is_flag=True, default=False, help="import public key from a file"
+    "--file", is_flag=True, help="import public key from a file"
 )
 @click.argument("pub_keys", nargs=-1)
 def add(file, pub_keys):
@@ -57,6 +66,7 @@ def add(file, pub_keys):
 def remove(names):
     """remove counselors from server database"""
     [click.echo(f"counselor removed: {name}") for name in names]
+
 
 if __name__ == "__main__":
     admin()
