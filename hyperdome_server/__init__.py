@@ -55,54 +55,6 @@ def main(cwd=None):
     if common.platform == "Darwin" and cwd:
         os.chdir(cwd)
 
-    # Parse arguments
-    parser = argparse.ArgumentParser(
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=28)
-    )
-    parser.add_argument(
-        "--local-only",
-        action="store_true",
-        dest="local_only",
-        help=strings._("help_local_only"),
-    )
-    parser.add_argument(
-        "--shutdown-timeout",
-        metavar="<int>",
-        dest="shutdown_timeout",
-        default=0,
-        help=strings._("help_shutdown_timeout"),
-    )
-    parser.add_argument(
-        "--connect-timeout",
-        metavar="<int>",
-        dest="connect_timeout",
-        default=120,
-        help=strings._("help_connect_timeout"),
-    )
-
-    parser.add_argument(
-        "--config", metavar="config", default=False, help=strings._("help_config")
-    )
-    parser.add_argument(
-        "--debug", action="store_true", dest="debug", help=strings._("help_debug")
-    )
-    args = parser.parse_args()
-
-    local_only = bool(args.local_only)
-    debug = bool(args.debug)
-    shutdown_timeout = int(args.shutdown_timeout)
-    connect_timeout = int(args.connect_timeout)
-    config = args.config
-
-    # Re-load settings, if a custom config was passed in
-    if config:
-        common.load_settings(config)
-        # Re-load the strings, in case the provided config has changed locale
-        strings.load_strings(common)
-
-    # Debug mode?
-    common.debug = debug
-
     # Create the Web object
     web = Web(common, False)
 
@@ -110,7 +62,8 @@ def main(cwd=None):
     onion = Onion(common)
     try:
         onion.connect(
-            custom_settings=False, config=config, connect_timeout=connect_timeout
+            custom_settings=False, config='', connect_timeout=0
+            # TODO: onion should get these values from elsewhere as new CLI has moved where the values are coming from
         )
     except KeyboardInterrupt:
         print("")
