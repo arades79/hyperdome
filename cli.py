@@ -50,22 +50,47 @@ def admin(ctx, debug):
 
 
 @admin.command()
-@click.option("--import", "-i", "import_", type=click.File(), multiple=True, help="import public key from a file (filename used as NAME)")
+@click.option(
+    "--import",
+    "-i",
+    "import_",
+    type=click.File(),
+    multiple=True,
+    help="import public key from a file (filename used as NAME)",
+)
 @click.argument("counselors", nargs=-1)
 def add(import_, counselors):
     """Add new counselors in NAME=PUBLIC_KEY format to server database"""
     counselors += tuple(f"{file.name}={file.read()}" for file in import_)
     counselors = dict(counselor.strip(",").split("=") for counselor in counselors)
-    [click.echo(f"counselor {name} added with public key: {pub_key}") for name, pub_key in counselors.items()]
+    [
+        click.echo(f"counselor {name} added with public key: {pub_key}")
+        for name, pub_key in counselors.items()
+    ]
 
 
 @admin.command()
 @click.confirmation_option(prompt="are you sure you want to remove these users?")
-@click.option('--pubkey', '-k', multiple=True, help="delete counselor by public key")
-@click.option('--file', '-f', type=click.File(), multiple=True, help="delete counselor by file used to import")
+@click.option("--pubkey", "-k", multiple=True, help="delete counselor by public key")
+@click.option(
+    "--file",
+    "-f",
+    type=click.File(),
+    multiple=True,
+    help="delete counselor by file used to import",
+)
+@click.option("--all", "all_", is_flag=True, help="delete entire counselor database")
 @click.argument("names", nargs=-1)
-def remove(pubkey, file, names):
+def remove(pubkey, file, all_, names):
     """remove counselor NAMES from server database"""
+    if all_:
+        click.confirm(
+            "this will remove all counselors from the database\n"
+            "Are you really sure this is what you want?",
+            abort=True,
+        )
+        click.echo("all counselors deleted")
+
     [click.echo(f"found counselor with key: {key}") for key in pubkey]
     [click.echo(f"found counselor from file {f.name}") for f in file]
     [click.echo(f"counselor removed: {name.strip(',')}") for name in names]
@@ -118,7 +143,8 @@ def default_config(ctx, param, value):
     callback=save_config,
 )
 @click.option(
-    "--default", "-d",
+    "--default",
+    "-d",
     type=str,
     multiple=True,
     help="set the named setting to its default value",
