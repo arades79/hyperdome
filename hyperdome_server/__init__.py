@@ -73,7 +73,7 @@ def main(cwd=None):
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(common, onion, local_only, shutdown_timeout)
+        app = HyperdomeServer(common, onion, False, 0)
         app.choose_port()
         app.start_onion_service()
     except KeyboardInterrupt:
