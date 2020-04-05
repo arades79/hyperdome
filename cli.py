@@ -50,22 +50,25 @@ def admin(ctx, debug):
 
 
 @admin.command()
-@click.option("--file", is_flag=True, help="import public key from a file")
+@click.option("--import", "-i", "import_", type=click.File(), multiple=True, help="import public key from a file (filename used as NAME)")
 @click.argument("counselors", nargs=-1)
-def add(file, counselors):
-    """Add new counselor public keys to server database"""
-    if file:
-        click.echo("loading keys from file...")
-        counselors = [open(f, "r").read() for f in counselors]
-    [click.echo(f"counselor added with public key: {pub_key}") for pub_key in pub_keys]
+def add(import_, counselors):
+    """Add new counselors in NAME=PUBLIC_KEY format to server database"""
+    counselors += tuple(f"{file.name}={file.read()}" for file in import_)
+    counselors = dict(counselor.strip(",").split("=") for counselor in counselors)
+    [click.echo(f"counselor {name} added with public key: {pub_key}") for name, pub_key in counselors.items()]
 
 
 @admin.command()
 @click.confirmation_option(prompt="are you sure you want to remove these users?")
+@click.option('--pubkey', '-k', multiple=True, help="delete counselor by public key")
+@click.option('--file', '-f', type=click.File(), multiple=True, help="delete counselor by file used to import")
 @click.argument("names", nargs=-1)
-def remove(names):
-    """remove counselors from server database"""
-    [click.echo(f"counselor removed: {name}") for name in names]
+def remove(pubkey, file, names):
+    """remove counselor NAMES from server database"""
+    [click.echo(f"found counselor with key: {key}") for key in pubkey]
+    [click.echo(f"found counselor from file {f.name}") for f in file]
+    [click.echo(f"counselor removed: {name.strip(',')}") for name in names]
 
 
 def load_config(ctx, param, value):
@@ -85,18 +88,14 @@ def save_config(ctx, param, value):
 def default_config(ctx, param, value):
     if not value:
         return
-    try:
-        click.confirm(
-            "This will erase all active settings!\n"
-            "It is recommended you first backup your current settings with --export\n"
-            "Set all configuations to default?",
-            abort=True,
-        )
-        click.echo("All settings changed to defaults")
-    except click.Abort:
-        click.echo("operation cancelled")
-    finally:
-        ctx.exit()
+    click.confirm(
+        "This will erase all active settings!\n"
+        "It is recommended you first backup your current settings with --export\n"
+        "Set all configuations to default?",
+        abort=True,
+    )
+    click.echo("All settings changed to defaults")
+    ctx.exit()
 
 
 @admin.command()
@@ -105,6 +104,7 @@ def default_config(ctx, param, value):
     "-i",
     is_eager=True,
     type=click.File(),
+    expose_value=False,
     help="populate config from a file",
     callback=load_config,
 )
@@ -112,12 +112,13 @@ def default_config(ctx, param, value):
     "--export",
     "-e",
     is_eager=True,
+    expose_value=False,
     type=click.File("w"),
     help="write existing configuration to a file",
     callback=save_config,
 )
 @click.option(
-    "--default",
+    "--default", "-d",
     type=str,
     multiple=True,
     help="set the named setting to its default value",
@@ -132,10 +133,11 @@ def default_config(ctx, param, value):
 )
 @click.argument("settings", nargs=-1)
 def config(default, settings):
-    """set settings via key=value pairs or import/export config file"""
+    """change settings in KEY=VALUE format or import/export config file"""
 
-    (click.echo(f"{setting} set to default") for setting in default)
-    settings = dict(setting.split("=") for setting in settings)
+    [click.echo(f"{setting} set to default") for setting in default]
+    settings = dict(setting.strip(",").split("=") for setting in settings)
+    [click.echo(f"set {key} to {val}") for key, val in settings.items()]
     # need to commit these settings
 
 
