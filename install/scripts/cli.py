@@ -23,7 +23,6 @@ import click
 import sys
 import os
 import json
-import hyperdome_server
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 from cryptography.hazmat.primitives.serialization import (
     load_ssh_public_key,
@@ -44,8 +43,9 @@ def admin(ctx, debug):
         return
     if debug:
         # TODO there must be a cleaner way to do this
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         sys.onionshare_dev_mode = True
+    import hyperdome_server
     hyperdome_server.main()
 
 
