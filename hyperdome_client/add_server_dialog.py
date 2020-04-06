@@ -75,7 +75,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.counselor_password_input = QtWidgets.QLineEdit()
         self.counselor_password_input.setPlaceholderText("Password:")
         self.counselor_password_input.setFixedWidth(200)
-        self.counselor_password_input.setEchoMode(QtWidgets.QLineEdit.PasswordEchoOnEdit)
+        self.counselor_password_input.setEchoMode(
+            QtWidgets.QLineEdit.PasswordEchoOnEdit
+        )
         self.counselor_password_input.hide()
 
         self.counselor_credentials = QtWidgets.QHBoxLayout()
