@@ -108,6 +108,10 @@ setup(
     classifiers=classifiers,
     packages=["hyperdome_server.web", "hyperdome_client",],
     include_package_data=True,
-    scripts=["install/scripts/hyperdome_client", "install/scripts/hyperdome_server", "install/scripts/cli.py"],
+    scripts=[
+        "install/scripts/hyperdome_client",
+        "install/scripts/hyperdome_server",
+        "install/scripts/cli.py",
+    ],
     data_files=data_files,
 )
