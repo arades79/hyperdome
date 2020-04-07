@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 - 2020 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-import platform
 from distutils.core import setup
 
 
@@ -80,18 +80,7 @@ data_files = [
         os.path.join(sys.prefix, "share/onionshare/static/img"),
         file_list("share/static/img"),
     ),
-    (
-        os.path.join(sys.prefix, "share/onionshare/static/js"),
-        file_list("share/static/js"),
-    ),
 ]
-if platform.system() != "OpenBSD":
-    data_files.append(
-        (
-            "/usr/share/nautilus-python/extensions/",
-            ["install/scripts/onionshare-nautilus.py"],
-        )
-    )
 
 setup(
     name="hyperdome",
@@ -106,7 +95,7 @@ setup(
     license=license,
     keywords=keywords,
     classifiers=classifiers,
-    packages=["hyperdome_server.web", "hyperdome_client",],
+    packages=["hyperdome_server ", "hyperdome_client",],
     include_package_data=True,
     scripts=[
         "install/scripts/hyperdome_client",
