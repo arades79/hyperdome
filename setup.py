@@ -62,22 +62,21 @@ classifiers = [
     "Environment :: Web Environment",
 ]
 data_files = [
-    (os.path.join(sys.prefix, "share/applications"), ["install/onionshare.desktop"]),
-    (os.path.join(sys.prefix, "share/metainfo"), ["install/onionshare.appdata.xml"]),
-    (os.path.join(sys.prefix, "share/pixmaps"), ["install/onionshare80.xpm"]),
-    (os.path.join(sys.prefix, "share/onionshare"), file_list("share")),
-    (os.path.join(sys.prefix, "share/onionshare/images"), file_list("share/images")),
-    (os.path.join(sys.prefix, "share/onionshare/locale"), file_list("share/locale")),
+    (os.path.join(sys.prefix, "share/applications"), ["install/hyperdome.desktop"]),
+    (os.path.join(sys.prefix, "share/metainfo"), ["install/hyperdome.appdata.xml"]),
+    (os.path.join(sys.prefix, "share/hyperdome"), file_list("share")),
+    (os.path.join(sys.prefix, "share/hyperdome/images"), file_list("share/images")),
+    (os.path.join(sys.prefix, "share/hyperdome/locale"), file_list("share/locale")),
     (
-        os.path.join(sys.prefix, "share/onionshare/templates"),
+        os.path.join(sys.prefix, "share/hyperdome/templates"),
         file_list("share/templates"),
     ),
     (
-        os.path.join(sys.prefix, "share/onionshare/static/css"),
+        os.path.join(sys.prefix, "share/hyperdome/static/css"),
         file_list("share/static/css"),
     ),
     (
-        os.path.join(sys.prefix, "share/onionshare/static/img"),
+        os.path.join(sys.prefix, "share/hyperdome/static/img"),
         file_list("share/static/img"),
     ),
 ]
