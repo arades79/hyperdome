@@ -18,6 +18,7 @@ flake8 = "==3.7.9"
 bandit = "==1.6.2"
 black = "==19.10b0"
 pyinstaller = "==3.6"
+setuptools = "*"
 
 [packages]
 altgraph = "==0.16.1"
