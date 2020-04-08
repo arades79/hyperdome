@@ -1,0 +1,10 @@
+#include <tunables/global>
+
+/usr/bin/onionshare {
+  #include <abstractions/hyperdome_server>
+
+  /usr/bin/ r,
+  /usr/bin/hyperdome_server r,
+
+  #include <local/usr.bin.hyperdome_server>
+}
