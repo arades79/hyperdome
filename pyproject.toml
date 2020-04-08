@@ -13,6 +13,7 @@ stem = "1.8.0"
 Flask = "1.1.2"
 Jinja2 = "2.11.1"
 PyQt5 = "5.14.2"
+requests = "2.23.0"
 
 [tool.poetry.dev-dependencies]
 pyinstaller = "3.6"

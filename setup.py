@@ -94,12 +94,11 @@ setup(
     license=license,
     keywords=keywords,
     classifiers=classifiers,
-    packages=["hyperdome_server ", "hyperdome_client",],
+    packages=["hyperdome", "hyperdome.client", "hyperdome.server", "hyperdome.common"],
     include_package_data=True,
     scripts=[
-        "install/scripts/hyperdome_client",
-        "install/scripts/hyperdome_server",
-        "install/scripts/cli.py",
+        "hyperdome.server.scripts",
+        "hyperdome.client.scripts"
     ],
     data_files=data_files,
 )

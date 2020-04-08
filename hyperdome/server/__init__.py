@@ -24,10 +24,10 @@ import sys
 import time
 import threading
 
-from . import strings
-from .common import Common
+from ..common import strings
+from ..common.common import Common
 from .web import Web
-from .onion import TorErrorProtocolError, TorTooOld, Onion
+from ..common.onion import TorErrorProtocolError, TorTooOld, Onion
 from .hyperdome_server import HyperdomeServer
 
 

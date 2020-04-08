@@ -29,7 +29,7 @@ from cryptography.hazmat.primitives.serialization import (
     load_der_public_key,
     load_pem_public_key,
 )
-
+from .. import main
 
 version = "0.2"
 
@@ -44,7 +44,7 @@ def admin(ctx, debug):
     if debug:
         sys.onionshare_dev_mode = True
 
-    hyperdome_server.main()
+    main()
 
 
 @admin.command()
