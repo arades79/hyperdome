@@ -29,10 +29,9 @@ from cryptography.hazmat.primitives.serialization import (
     load_der_public_key,
     load_pem_public_key,
 )
-from .. import main
+from hyperdome.server import main
 
-version = "0.2"
-
+version = "0.2.0"  # TODO: import version from pyproject.toml
 
 @click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
