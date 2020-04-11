@@ -345,6 +345,14 @@ python-versions = ">=3.5"
 version = "12.7.2"
 
 [[package]]
+category = "main"
+description = "A Python SOCKS client module. See https://github.com/Anorov/PySocks for more information."
+name = "pysocks"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "1.7.1"
+
+[[package]]
 category = "dev"
 description = "pytest: simple powerful testing with Python"
 name = "pytest"
@@ -419,6 +427,10 @@ certifi = ">=2017.4.17"
 chardet = ">=3.0.2,<4"
 idna = ">=2.5,<3"
 urllib3 = ">=1.21.1,<1.25.0 || >1.25.0,<1.25.1 || >1.25.1,<1.26"
+
+[package.dependencies.PySocks]
+optional = true
+version = ">=1.5.6,<1.5.7 || >1.5.7"
 
 [package.extras]
 security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
@@ -510,7 +522,7 @@ dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-
 watchdog = ["watchdog"]
 
 [metadata]
-content-hash = "8443391426c279e35209c2d1eb51d4b27bed91de7455f09f1866207b12d99f87"
+content-hash = "0a8867818ed031fafbf1ea15c857c2d02d782224df8c2a34e2bf529c5f3b62f7"
 python-versions = "~3.8"
 
 [metadata.files]
@@ -735,6 +747,11 @@ pyqt5-sip = [
     {file = "PyQt5_sip-12.7.2-cp38-cp38-win32.whl", hash = "sha256:01919371d32b26208b2f0318f1e15680d3aa60d1ced1812a5dac8bdb483fea69"},
     {file = "PyQt5_sip-12.7.2-cp38-cp38-win_amd64.whl", hash = "sha256:a8a6c0512641fc042726b6253b2d5f3f3f800098334d198d8ebdf337d85ab3d7"},
     {file = "PyQt5_sip-12.7.2.tar.gz", hash = "sha256:16a19b9f36985b8bff30b89fb8859d831713dd528fba5600563e36ff077960a2"},
+]
+pysocks = [
+    {file = "PySocks-1.7.1-py27-none-any.whl", hash = "sha256:08e69f092cc6dbe92a0fdd16eeb9b9ffbc13cadfe5ca4c7bd92ffb078b293299"},
+    {file = "PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5"},
+    {file = "PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0"},
 ]
 pytest = [
     {file = "pytest-5.4.1-py3-none-any.whl", hash = "sha256:0e5b30f5cb04e887b91b1ee519fa3d89049595f428c1db76e73bd7f17b09b172"},
