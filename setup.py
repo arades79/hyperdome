@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 
 def file_list(path):
@@ -94,11 +94,13 @@ setup(
     license=license,
     keywords=keywords,
     classifiers=classifiers,
-    packages=["hyperdome", "hyperdome.client", "hyperdome.server", "hyperdome.common"],
+    packages=find_packages(),
     include_package_data=True,
-    scripts=[
-        "hyperdome.server.scripts",
-        "hyperdome.client.scripts"
-    ],
     data_files=data_files,
+    entry_points =
+    """
+    [console_scripts]
+    hyperdome=hyperdome.client.scripts.start_client:start
+    hyperdome_server=hyperdome.server.scripts.cli:admin
+    """
 )

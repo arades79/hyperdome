@@ -28,3 +28,7 @@ pywin32-ctypes = {version = "^0.2.0", platform = "windows"}
 [build-system]
 requires = ["poetry==0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+hyperdome = "hyperdome.client.scripts.start_client:start"
+hyperdome_server = "hyperdome.server.scripts.cli:admin"
