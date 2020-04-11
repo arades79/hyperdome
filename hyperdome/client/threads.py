@@ -146,7 +146,7 @@ class StartChatTask(QtCore.QRunnable):
     signals = TaskSignals()
 
     def __init__(
-        self, server: Server, session: requests.Session, uid: str, pub_key: bytes
+        self, server: Server, session: requests.Session, uid: str, pub_key: str
     ):
         super(StartChatTask, self).__init__()
         self.server = server
