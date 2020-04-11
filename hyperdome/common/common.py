@@ -83,11 +83,7 @@ class Common(object):
         if getattr(sys, "onionshare_dev_mode", False):
             # Look for resources directory relative to python file
             prefix = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.abspath(inspect.getfile(inspect.currentframe()))
-                    )
-                ),
+                os.path.abspath(inspect.getfile(inspect.currentframe())),
                 "share",
             )
             if not os.path.exists(prefix):

@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from ..common.strings import strings
+from ..common import strings
 
 from .tor_connection_dialog import TorConnectionDialog
 from .settings_dialog import SettingsDialog

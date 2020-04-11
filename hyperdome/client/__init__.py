@@ -23,10 +23,11 @@ import argparse
 import signal
 from PyQt5 import QtCore, QtWidgets
 
-from ..common.strings import strings
+from ..common import strings
 from ..common.common import Common
 from ..common.onion import Onion
 from ..server.hyperdome_server import HyperdomeServer
+from .hyperdome_client import HyperdomeClient
 
 
 

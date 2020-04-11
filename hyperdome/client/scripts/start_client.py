@@ -22,7 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from hyperdome.client import main
 
 import click
+import sys
 
 @click.command()
-def start():
+@click.option("--debug", "-d", is_flag=True)
+def start(debug):
+    if debug:
+        sys.onionshare_dev_mode = True
     main()
