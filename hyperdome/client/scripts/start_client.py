@@ -24,6 +24,7 @@ from hyperdome.client import main
 import click
 import sys
 
+
 @click.command()
 @click.option("--debug", "-d", is_flag=True)
 def start(debug):

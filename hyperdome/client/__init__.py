@@ -30,8 +30,6 @@ from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
 
 
-
-
 class Application(QtWidgets.QApplication):
     """
     This is Qt's QApplication class. It has been overridden to support threads

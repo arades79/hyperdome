@@ -97,10 +97,9 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     data_files=data_files,
-    entry_points =
-    """
+    entry_points="""
     [console_scripts]
     hyperdome=hyperdome.client.scripts.start_client:start
     hyperdome_server=hyperdome.server.scripts.cli:admin
-    """
+    """,
 )

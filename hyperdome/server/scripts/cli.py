@@ -33,6 +33,7 @@ from hyperdome.server import main
 
 version = "0.2.0"  # TODO: import version from pyproject.toml
 
+
 @click.group(invoke_without_command=True)
 @click.option("--debug", "-d", is_flag=True)
 @click.version_option(version, prog_name="Hyperdome Server")
