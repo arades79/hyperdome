@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Hyperdome
@@ -20,5 +19,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import hyperdome.client
-hyperdome.client.main()
+from hyperdome.client import main
+
+import click
+import sys
+
+
+@click.command()
+@click.option("--debug", "-d", is_flag=True)
+def start(debug):
+    if debug:
+        sys.onionshare_dev_mode = True
+    main()

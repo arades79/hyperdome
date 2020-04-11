@@ -24,8 +24,6 @@ import os
 import queue
 import socket
 from urllib.request import urlopen
-import random
-import binascii
 import traceback
 import json
 import secrets

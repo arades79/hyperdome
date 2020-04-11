@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from hyperdome_server import strings
-from hyperdome_server.onion import BundledTorCanceled
+from ..common import strings
+from ..common.onion import BundledTorCanceled
 
 from .widgets import Alert
 import time

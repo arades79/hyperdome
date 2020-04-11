@@ -18,12 +18,7 @@
 /sbin/ldconfig.real rix,
 /bin/uname rix,
 /etc/mime.types r,
-/usr/share/onionshare/ r,
-/usr/share/onionshare/** r,
+/usr/share/hyperdome/ r,
+/usr/share/hypderdome/** r,
 /tmp/ rw,
 /tmp/** rw,
-
-# Allow read on almost anything in @{HOME}. Lenient, but
-# private-files-strict is in effect.
-owner @{HOME}/         r,
-owner @{HOME}/[^.]**   r,

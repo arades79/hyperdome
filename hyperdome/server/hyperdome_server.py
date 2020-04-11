@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import shutil
 
-from .common import ShutdownTimer
+from ..common.common import ShutdownTimer
 
 
 class HyperdomeServer(object):

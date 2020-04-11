@@ -22,8 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from stem.control import Controller
 from stem import ProtocolError, SocketClosed, SocketError
 from stem.connection import MissingPassword, UnreadableCookieFile, AuthenticationFailure
-from Crypto.PublicKey import RSA
-import base64
 import os
 import sys
 import tempfile
@@ -681,16 +679,3 @@ class Onion(object):
             return ("127.0.0.1", 9150)
         else:
             return (self.settings.get("socks_address"), self.settings.get("socks_port"))
-
-    def is_v2_key(self, key):
-        """
-        Helper function for determining if a key is RSA1024 (v2) or not.
-        """
-        try:
-            # Import the key
-            key = RSA.importKey(base64.b64decode(key))
-            # Is this a v2 Onion key? (1024 bits) If so, we should keep using
-            # it.
-            return key.n.bit_length() == 1024
-        except TypeError:
-            return False

@@ -1,0 +1,2 @@
+# Site-specific additions and overrides for usr.bin.hyperdome_server.
+# For more details, please see /etc/apparmor.d/local/README.

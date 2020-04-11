@@ -83,12 +83,7 @@ class Common(object):
         if getattr(sys, "onionshare_dev_mode", False):
             # Look for resources directory relative to python file
             prefix = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.abspath(inspect.getfile(inspect.currentframe()))
-                    )
-                ),
-                "share",
+                os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
             )
             if not os.path.exists(prefix):
                 # While running tests during stdeb bdist_deb, look 3
@@ -103,7 +98,7 @@ class Common(object):
         elif self.platform == "BSD" or self.platform == "Linux":
             # Assume OnionShare is installed systemwide in Linux, since we're
             # not running in dev mode
-            prefix = os.path.join(sys.prefix, "share/onionshare")
+            prefix = os.path.join(sys.prefix, "share/hyperdome")
 
         elif getattr(sys, "frozen", False):
             # Check if app is "frozen"
@@ -178,13 +173,13 @@ class Common(object):
                 # If for some reason we don't have the 'APPDATA' environment
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
-                onionshare_data_dir = os.path.expanduser("~/.config/onionshare")
+                onionshare_data_dir = os.path.expanduser("~/.config/hyperdome")
         elif self.platform == "Darwin":
             onionshare_data_dir = os.path.expanduser(
-                "~/Library/Application Support/OnionShare"
+                "~/Library/Application Support/hyperdome"
             )
         else:
-            onionshare_data_dir = os.path.expanduser("~/.config/onionshare")
+            onionshare_data_dir = os.path.expanduser("~/.config/hyperdome")
 
         os.makedirs(onionshare_data_dir, 0o700, True)
         return onionshare_data_dir

@@ -2,7 +2,7 @@
 """
 Hyperdome
 
-Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+Copyright (C) 2019 - 2020 Skyelar Craver <scravers@protonmail.com>
                    and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
@@ -29,9 +29,9 @@ from cryptography.hazmat.primitives.serialization import (
     load_der_public_key,
     load_pem_public_key,
 )
+from hyperdome.server import main
 
-
-version = "0.2"
+version = "0.2.0"  # TODO: import version from pyproject.toml
 
 
 @click.group(invoke_without_command=True)
@@ -42,17 +42,9 @@ def admin(ctx, debug):
     if ctx.invoked_subcommand is not None:
         return
     if debug:
-        # TODO there must be a cleaner way to do this
-        sys.path.insert(
-            0,
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
-        )
         sys.onionshare_dev_mode = True
-    import hyperdome_server
 
-    hyperdome_server.main()
+    main()
 
 
 @admin.command()

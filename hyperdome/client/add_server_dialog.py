@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtWidgets, QtGui, QtCore
 from . import threads
-from .server import Server
+from ..common.server import Server
 
 
 class AddServerDialog(QtWidgets.QDialog):

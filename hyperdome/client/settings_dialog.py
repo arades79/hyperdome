@@ -23,10 +23,10 @@ import sys
 import platform
 import re
 import os
-from hyperdome_server import strings
-from hyperdome_server.common import Common
-from hyperdome_server.settings import Settings
-from hyperdome_server.onion import (
+from ..common import strings
+from ..common.common import Common
+from ..common.settings import Settings
+from ..common.onion import (
     BundledTorTimeout,
     BundledTorNotSupported,
     TorErrorProtocolError,
@@ -53,8 +53,8 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        common,
-        onion,
+        common: Common,
+        onion: Onion,
         qtapp: QtWidgets.QApplication,
         has_config: bool = False,
         local_only: bool = False,
