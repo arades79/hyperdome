@@ -18,7 +18,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from inspect import signature
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..common import strings
@@ -30,6 +29,7 @@ from .add_server_dialog import AddServerDialog
 from ..common.server import Server
 from . import threads
 from ..common import encryption
+from ..common.common import get_resource_path
 
 import requests
 
@@ -77,7 +77,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumHeight(660)
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
 
         # make dialog for error messages
@@ -108,7 +108,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         self.system_tray.setIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
@@ -117,7 +117,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/settings_black_18dp.png"))
+            QtGui.QIcon(get_resource_path("images/settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
 

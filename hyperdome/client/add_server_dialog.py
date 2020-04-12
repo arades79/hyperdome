@@ -18,11 +18,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from inspect import signature
 from PyQt5 import QtWidgets, QtGui, QtCore
 from . import threads
 from ..common.server import Server
 from ..common.encryption import LockBox
+from ..common.common import get_resource_path
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -41,7 +41,7 @@ class AddServerDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("Add Hyperdome Server")
         self.setWindowIcon(
-            QtGui.QIcon(parent.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/logo.png"))
         )
 
         self.is_counselor = False

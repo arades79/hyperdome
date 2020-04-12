@@ -23,13 +23,13 @@ import click
 import sys
 import os
 import json
+import secrets
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 from cryptography.hazmat.primitives.serialization import (
     load_ssh_public_key,
     load_der_public_key,
     load_pem_public_key,
 )
-from hyperdome.server import main
 
 version = "0.2.0"  # TODO: import version from pyproject.toml
 
@@ -39,11 +39,12 @@ version = "0.2.0"  # TODO: import version from pyproject.toml
 @click.version_option(version, prog_name="Hyperdome Server")
 @click.pass_context
 def admin(ctx, debug):
-    if ctx.invoked_subcommand is not None:
-        return
     if debug:
         sys.onionshare_dev_mode = True
+    if ctx.invoked_subcommand is not None:
+        return
 
+    from ..main import main
     main()
 
 
@@ -92,6 +93,17 @@ def remove(pubkey, file, all_, names):
     [click.echo(f"found counselor with key: {key}") for key in pubkey]
     [click.echo(f"found counselor from file {f.name}") for f in file]
     [click.echo(f"counselor removed: {name.strip(',')}") for name in names]
+
+@admin.command()
+def generate():
+    """generate a sign-up code for a new counselor"""
+    from ..models import CounselorSignUp
+    from ..app import db
+    code = secrets.token_urlsafe(16)
+    sign_up = CounselorSignUp(passphrase=code)
+    db.session.add(sign_up)
+    db.session.commit()
+    click.echo(code)
 
 
 def load_config(ctx, param, value):

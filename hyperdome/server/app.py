@@ -36,6 +36,7 @@ app = Flask(
     template_folder=common.get_resource_path("templates"),
 )
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{common.get_resource_path("hyperdome_server.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = flask_sqlalchemy.SQLAlchemy(app)
 
 

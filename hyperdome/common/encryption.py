@@ -121,7 +121,7 @@ class LockBox:
     @arg_to_bytes
     def sign_message(self, message: bstr) -> str:
         sig = self._signing_key.sign(message)
-        return sig.decode("utf-8")
+        return base64.urlsafe_b64encode(sig).decode('utf-8')
 
     def save_key(self, identifier, passphrase):
         filename = get_resource_path(f"{identifier}.pem")

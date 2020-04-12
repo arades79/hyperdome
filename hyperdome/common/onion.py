@@ -32,7 +32,7 @@ import stem
 
 from distutils.version import LooseVersion as Version
 from . import strings
-
+from .common import platform_str
 
 class TorErrorAutomatic(Exception):
     """
@@ -163,7 +163,7 @@ class Onion(object):
         self.service_id = None
 
         # Is bundled tor supported?
-        self.bundle_tor_supported = self.common.platform in (
+        self.bundle_tor_supported = platform_str in (
             "Windows",
             "Darwin",
         ) and getattr(sys, "onionshare_dev_mode", False)

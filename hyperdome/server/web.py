@@ -28,6 +28,7 @@ import traceback
 import json
 import secrets
 import logging
+import base64
 from .app import app, db
 from flask import request, render_template, abort, make_response
 
@@ -204,6 +205,7 @@ class Web(object):
             username = request.form["username"]
             session_counselor_key = request.form["pub_key"]
             signature = request.form["signature"]
+            signature = base64.urlsafe_b64decode(signature)
             counselor = models.Counselor.query.filter_by(name=username).first_or_404()
             if not counselor.verify(signature, session_counselor_key):
                 return "Bad signature", 401

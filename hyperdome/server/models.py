@@ -32,7 +32,7 @@ class Counselor(db.Model):
     """
     id = db.Column(db.Integer, primary_key=True,)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    key_bytes = db.column(db.String(64), unique=True, nullable=False)
+    key_bytes = db.Column(db.String(64), unique=True, nullable=False)
 
     def __init__(self, pub_key: key_type, **kwargs):
         if isinstance(pub_key, Ed448PublicKey):
@@ -60,4 +60,6 @@ class CounselorSignUp(db.Model):
     model for storing valid counselor signup tokens
     """
     id = db.Column(db.Integer, primary_key=True,)
-    passphrase = db.column(db.String(32), unique=True, nullable=False)
+    passphrase = db.Column(db.String(32), unique=True, nullable=False)
+
+db.create_all()

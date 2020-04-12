@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtWidgets, QtGui
+from ..common.common import get_resource_path
 
 
 class Alert(QtWidgets.QMessageBox):
@@ -42,7 +43,7 @@ class Alert(QtWidgets.QMessageBox):
 
         self.setWindowTitle("OnionShare")
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/logo.png"))
         )
         self.setText(message)
         self.setIcon(icon)
