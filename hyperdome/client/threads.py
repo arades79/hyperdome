@@ -181,7 +181,6 @@ class SignUpTask(QtCore.QRunnable):
         self,
         server: Server,
         session: requests.Session,
-        username: str,
         pub_key: str,
         passcode: str,
         signature: str,
