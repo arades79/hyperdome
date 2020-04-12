@@ -142,6 +142,8 @@ class AddServerDialog(QtWidgets.QDialog):
         passcode = self.counselor_password_input.text()
         signature = signer.sign_message(passcode)
         signup_task = threads.SignUpTask(self.server, self.session, signer.public_signing_key, passcode, signature)
+        signup_task.signals.error.connect(self.bad_server)
+        signup_task.signals.success.connect(self.set_server)
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):
