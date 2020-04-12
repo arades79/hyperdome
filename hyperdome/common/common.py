@@ -38,7 +38,7 @@ if platform_str.endswith("BSD"):
 def get_resource_path(filename):
     """
     Returns the absolute path of a resource, regardless of whether
-    OnionShare is installed systemwide, and whether regardless of platform_str
+    hyperdome is installed systemwide, and whether regardless of platform_str
     """
     # On Windows, and in Windows dev mode, switch slashes in incoming
     # filename to backslackes

@@ -19,8 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import hmac
-from hyperdome.server.user import Counselor
-import logging
+from . import models
 import os
 import queue
 import socket
@@ -28,18 +27,9 @@ from urllib.request import urlopen
 import traceback
 import json
 import secrets
-
-import flask
-from flask import Flask, request, render_template, abort, make_response
-
-
-# Stub out flask's show_server_banner function, to avoiding showing
-# warnings that are not applicable to OnionShare
-def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
-    pass
-
-
-flask.cli.show_server_banner = stubbed_show_server_banner
+import logging
+from .app import app, db
+from flask import request, render_template, abort, make_response
 
 
 class Web(object):
@@ -62,14 +52,7 @@ class Web(object):
     def __init__(self, common, is_gui):
         self.common = common
         self.common.log("Web", "__init__", f"is_gui={is_gui}")
-
-        # The flask app
-        self.app = Flask(
-            __name__,
-            static_folder=self.common.get_resource_path("static"),
-            template_folder=self.common.get_resource_path("templates"),
-        )
-        self.app.secret_key = self.common.random_string(8)
+        app.secret_key = self.common.random_string(8)
 
         # Debug mode?
         if self.common.debug:
@@ -130,14 +113,14 @@ class Web(object):
         Common web app routes between sending and receiving
         """
 
-        @self.app.errorhandler(404)
+        @app.errorhandler(404)
         def page_not_found(e):
             """
             404 error page.
             """
             return self.error404()
 
-        @self.app.route("/<slug_candidate>/shutdown")
+        @app.route("/<slug_candidate>/shutdown")
         def shutdown(slug_candidate):
             """
             Stop the flask web server, from the context of an http request.
@@ -146,7 +129,7 @@ class Web(object):
             self.force_shutdown()
             return ""
 
-        @self.app.route("/noscript-xss-instructions")
+        @app.route("/noscript-xss-instructions")
         def noscript_xss_instructions():
             """
             Display instructions for disabling Tor Browser's
@@ -155,18 +138,18 @@ class Web(object):
             r = make_response(render_template("receive_noscript_xss.html"))
             return self.add_security_headers(r)
 
-        @self.app.errorhandler(Exception)
+        @app.errorhandler(Exception)
         def unhandled_exception(e):
             e_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             print(e_str)
             return "Exception raised", 500
 
-        @self.app.route("/probe")
+        @app.route("/probe")
         def probe():
             self.info["online"] = str(len(self.counselors_available))
             return json.dumps(self.info)
 
-        @self.app.route("/request_counselor", methods=["POST"])
+        @app.route("/request_counselor", methods=["POST"])
         def request_counselor():
             guest_id = request.form["guest_id"]
             guest_key = request.form["pub_key"]
@@ -185,13 +168,13 @@ class Web(object):
             counselor_key = self.counselor_keys.pop(chosen_counselor)
             return counselor_key
 
-        @self.app.route("/poll_connected_guest", methods=["GET"])
+        @app.route("/poll_connected_guest", methods=["GET"])
         def poll_connected_guest():
             counselor_id = request.form["counselor_id"]
             guest_key = self.guest_keys.pop(counselor_id, "")
             return guest_key
 
-        @self.app.route("/counseling_complete", methods=["POST"])
+        @app.route("/counseling_complete", methods=["POST"])
         def counseling_complete():
             sid = request.form["user_id"]
             if sid not in self.active_chat_user_map:
@@ -209,43 +192,46 @@ class Web(object):
             self.counselors_available[counselor_id] += 1
             return "Chat Ended"
 
-        @self.app.route("/counselor_signout", methods=["POST"])
+        @app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
             sid = request.form["user_id"]
             self.counselors_available.pop(sid, "")
             self.counselor_keys.pop(sid, "")
             return "Success"
 
-        @self.app.route("/counselor_signin")
+        @app.route("/counselor_signin")
         def counselor_signin():
-            counselor_key = request.form["pub_key"]
-            # TODO authenticate
+            username = request.form["username"]
+            session_counselor_key = request.form["pub_key"]
+            signature = request.form["signature"]
+            models.Counselor.query.filter_by(name=username).first_or_404()
             # user = load_user(request.form['username'])
             sid = self.common.random_string(16)
             # will use capacity variable for this later
             self.counselors_available[sid] = 1
-            self.counselor_keys[sid] = counselor_key
+            self.counselor_keys[sid] = session_counselor_key
             return sid
 
-        @self.app.route("/counselor_signup")
+        @app.route("/counselor_signup")
         def counselor_signup():
             username = request.form["username"]
             counselor_key = request.form["pub_key"]
             signup_code = request.form["signup_code"]
             signature = request.form["signature"]
-            counselor = Counselor(username, counselor_key)
+            counselor = models.Counselor(counselor_key, name=username)
             if signup_code in self.active_codes and counselor.verify(signature, signup_code):
-                # TODO: add counselor to DB
-                return "Good"
+                models.db.session.add(counselor)
+                models.db.session.commit()
+                return "Good"  # TODO: add better responses
             else:
                 return "User not Registered", 400
 
-        @self.app.route("/generate_guest_id")
+        @app.route("/generate_guest_id")
         def generate_guest_id():
             # TODO check for collisions
             return self.common.random_string(16)
 
-        @self.app.route("/send_message", methods=["POST"])
+        @app.route("/send_message", methods=["POST"])
         def message_from_user():
             message = request.form["message"]
             user_id = request.form["user_id"]
@@ -260,7 +246,7 @@ class Web(object):
                 return "user left", 404
             return "Success"
 
-        @self.app.route("/chat_status")
+        @app.route("/chat_status")
         def chat_status():
             user_id = request.form["user_id"]
             try:
@@ -272,7 +258,7 @@ class Web(object):
             except KeyError:
                 return "NO_CHAT"
 
-        @self.app.route("/collect_messages", methods=["GET"])
+        @app.route("/collect_messages", methods=["GET"])
         def collect_messages():
             guest_id = request.form["user_id"]
             return self.pending_messages.pop(guest_id, "")
@@ -342,7 +328,7 @@ class Web(object):
         )
         log_handler = logging.FileHandler(flask_debug_filename)
         log_handler.setLevel(logging.WARNING)
-        self.app.logger.addHandler(log_handler)
+        app.logger.addHandler(log_handler)
 
     def check_shutdown_slug_candidate(self, slug_candidate):
         self.common.log(
@@ -387,7 +373,7 @@ class Web(object):
         )
 
         self.running = True
-        self.app.run(host=host, port=port, threaded=True)
+        app.run(host=host, port=port, threaded=True)
 
     def stop(self, port):
         """
@@ -407,7 +393,7 @@ class Web(object):
                 s = socket.socket()
                 s.connect(("127.0.0.1", port))
                 s.sendall(
-                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(self.shutdown_slug)
+                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(self.shutdown_slug).encode()
                 )
             except TypeError:
                 try:
