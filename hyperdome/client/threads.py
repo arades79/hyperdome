@@ -361,7 +361,7 @@ def start_chat(
     signature: str = "",
 ):
     if server.is_counselor:
-        return session.get(
+        return session.post(
             f"{server.url}/counselor_signin",
             data={
                 "pub_key": pub_key,

@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
+from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.primitives.serialization as serial
 from cryptography.exceptions import InvalidSignature
 from ..common.types import key_type, bstr, arg_to_bytes
@@ -34,23 +35,11 @@ class Counselor(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     key_bytes = db.Column(db.String(64), unique=True, nullable=False)
 
-    def __init__(self, pub_key: key_type, **kwargs):
-        if isinstance(pub_key, Ed448PublicKey):
-            self.pub_key: Ed448PublicKey = pub_key
-            kwargs["key_bytes"] = self.pub_key.public_bytes(serial.Encoding.Raw, serial.PublicFormat.Raw)
-            return
-        elif isinstance(pub_key, str):
-            kwargs["key_bytes"] = pub_key.encode("utf-8")
-        else:
-            kwargs["key_bytes"] = pub_key
-
-        self.pub_key: Ed448PublicKey = Ed448PublicKey.from_public_bytes(kwargs["key_bytes"])
-        super().__init__(**kwargs)
-
     @arg_to_bytes
     def verify(self, signature: bstr, message: bstr) -> bool:
+        pub_key = serial.load_pem_public_key(self.key_bytes.encode(), default_backend())
         try:
-            self.pub_key.verify(message)
+            pub_key.verify(signature, message)
             return True
         except InvalidSignature:
             return False

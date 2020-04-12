@@ -355,7 +355,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         pub_key = self.crypt.public_chat_key
         if self.server.is_counselor:
-            self.crypt.load_key(self.server.nick, '')  # TODO: use private key encryption
+            self.crypt.load_key(self.server.nick, '123')  # TODO: use private key encryption
             signature = self.crypt.sign_message(pub_key)
         else:
             signature = ''

@@ -123,21 +123,21 @@ class LockBox:
         sig = self._signing_key.sign(message)
         return base64.urlsafe_b64encode(sig).decode('utf-8')
 
-    def save_key(self, identifier, passphrase):
+    def save_key(self, identifier: str, passphrase: str):
         filename = get_resource_path(f"{identifier}.pem")
         with open(filename, "wb") as file:
             file.write(
                 self._signing_key.private_bytes(
                     self._ENCODING,
                     self._PRIVATE_FORMAT,
-                    serial.BestAvailableEncryption(passphrase),
+                    serial.BestAvailableEncryption(passphrase.encode()),
                 )
             )
 
-    def load_key(self, identifier, passphrase):
+    def load_key(self, identifier: str, passphrase: str):
         filename = get_resource_path(f"{identifier}.pem")
         with open(filename, "rb") as file:
             enc_key = file.read()
             self._signing_key = serial.load_pem_private_key(
-                enc_key, passphrase, self._BACKEND
+                enc_key, passphrase.encode(), self._BACKEND
             )

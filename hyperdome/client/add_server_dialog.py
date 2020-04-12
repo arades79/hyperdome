@@ -134,7 +134,7 @@ class AddServerDialog(QtWidgets.QDialog):
     @QtCore.pyqtSlot(str)
     def set_server(self, _):
         if self.server.is_counselor:
-            self.signer.save_key(self.server.nick, '')
+            self.signer.save_key(self.server.nick, '123')
         self.done(0)
 
     @QtCore.pyqtSlot(str)
@@ -146,6 +146,7 @@ class AddServerDialog(QtWidgets.QDialog):
         signup_task = threads.SignUpTask(self.server, self.session, self.signer.public_signing_key, passcode, signature)
         signup_task.signals.error.connect(self.bad_server)
         signup_task.signals.success.connect(self.set_server)
+        self.worker.start(signup_task)
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):

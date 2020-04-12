@@ -57,3 +57,6 @@ tags
 
 # debug logs
 debug_dumps/
+
+# private keys
+*.pem
