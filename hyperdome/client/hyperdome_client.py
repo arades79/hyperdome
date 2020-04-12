@@ -18,6 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from inspect import signature
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..common import strings
@@ -352,8 +353,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
+        pub_key = self.crypt.public_chat_key
+        if self.server.is_counselor:
+            self.crypt.load_key(self.server.nick, '')  # TODO: use private key encryption
+            signature = self.crypt.sign_message(pub_key)
+        else:
+            signature = ''
+
         start_chat_task = threads.StartChatTask(
-            self.server, self.session, self.uid, self.crypt.public_chat_key
+            self.server, self.session, self.uid, pub_key, signature
         )
         start_chat_task.signals.success.connect(after_start)
         start_chat_task.signals.error.connect(self.handle_error)

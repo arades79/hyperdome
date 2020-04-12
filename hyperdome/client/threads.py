@@ -343,13 +343,7 @@ def get_uid(server: Server, session: requests.Session):
     """
     Ask server for a new UID for a new user session
     """
-    if server.is_counselor:
-        uid = session.post(
-            f"{server.url}/counselor_signin", data={"username": server.username},
-        ).text
-    else:
-        uid = session.get(f"{server.url}/generate_guest_id").text
-    return uid
+    return session.get(f"{server.url}/generate_guest_id").text
 
 
 def get_messages(server: Server, session: requests.Session, uid: str):
@@ -363,7 +357,7 @@ def start_chat(
     server: Server,
     session: requests.Session,
     uid: str,
-    pub_key: str = "",
+    pub_key: str,
     signature: str = "",
 ):
     if server.is_counselor:

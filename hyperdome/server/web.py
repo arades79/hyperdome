@@ -199,7 +199,7 @@ class Web(object):
             self.counselor_keys.pop(sid, "")
             return "Success"
 
-        @app.route("/counselor_signin")
+        @app.route("/counselor_signin", methods=["POST"])
         def counselor_signin():
             username = request.form["username"]
             session_counselor_key = request.form["pub_key"]
