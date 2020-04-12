@@ -27,11 +27,15 @@ bstr = typing.Union[str, bytes]
 
 key_type = typing.Union[bstr, Ed448PublicKey]
 
+
 def arg_to_bytes(fn):
     @functools.wraps
     def converted(*args, **kwargs):
-        args = [(arg.encode("utf-8") if isinstance(arg, str) else arg) for arg in args]
-        kwargs = {key: (value.encode("utf-8") if isinstance(value, str) else value) for key, value in kwargs.items()}
+        args = [(arg.encode() if isinstance(arg, str) else arg) for arg in args]
+        kwargs = {
+            key: (value.encode() if isinstance(value, str) else value)
+            for key, value in kwargs.items()
+        }
         return fn(*args, **kwargs)
-    return converted
 
+    return converted

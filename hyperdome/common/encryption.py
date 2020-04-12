@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # considering using pyca/cryptography instead
-import typing
 import functools
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -30,8 +29,7 @@ from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 import base64
 from cryptography.fernet import Fernet
-
-bstr = typing.Union[str, bytes]
+from .types import arg_to_bytes, bstr
 
 
 class LockBox:
@@ -53,11 +51,8 @@ class LockBox:
         HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
     )
 
+    @arg_to_bytes
     def encrypt_outgoing_message(self, message: bstr) -> str:
-        if isinstance(message, str):
-            message = message.encode()
-        if not message:
-            raise ValueError("message must not be 'None' or empty")
 
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
@@ -65,11 +60,8 @@ class LockBox:
         ciphertext = Fernet(fernet_key).encrypt(message)
         return ciphertext.decode("utf-8")
 
+    @arg_to_bytes
     def decrypt_incoming_message(self, message: bstr) -> str:
-        if isinstance(message, str):
-            message = message.encode()
-        if not message:
-            raise ValueError("message must not be 'None' or empty")
 
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._recieve_ratchet_key = new_base_key[:32]
@@ -102,14 +94,13 @@ class LockBox:
         key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes.decode("utf-8")
 
+    @arg_to_bytes
     def perform_key_exchange(self, public_key_bytes: bstr, chirality: bool):
         """
         ingest a PEM encoded public key and generate a symmetric key
         created by a Diffie-Helman key exchange result being passed into
         a key-derivation and used to create a fernet instance
         """
-        if isinstance(public_key_bytes, str):
-            public_key_bytes = public_key_bytes.encode()
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._chat_key.exchange(public_key)
         # TODO consider customizing symmetric encryption for larger key or authentication
@@ -126,9 +117,8 @@ class LockBox:
     def make_signing_key(self):
         self._signing_key = Ed448PrivateKey.generate()
 
+    @arg_to_bytes
     def sign_message(self, message: bstr) -> str:
-        if isinstance(message, str):
-            message = message.encode()
         sig = self._signing_key.sign(message)
         return sig.decode("utf-8")
 
