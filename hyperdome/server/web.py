@@ -219,12 +219,15 @@ class Web(object):
             counselor_key = request.form["pub_key"]
             signup_code = request.form["signup_code"]
             signature = request.form["signature"]
+            activator = models.CounselorSignUp.query.filter_by(passphrase=signup_code).get_or_404()
+            db.session.remove(activator)
             counselor = models.Counselor(counselor_key, name=username)
-            if signup_code in self.active_codes and counselor.verify(signature, signup_code):
+            if  counselor.verify(signature, signup_code):
                 models.db.session.add(counselor)
                 models.db.session.commit()
                 return "Good"  # TODO: add better responses
             else:
+                models.db.session.commit()
                 return "User not Registered", 400
 
         @app.route("/generate_guest_id")

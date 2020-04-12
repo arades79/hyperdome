@@ -54,3 +54,10 @@ class Counselor(db.Model):
             return True
         except InvalidSignature:
             return False
+
+class CounselorSignUp(db.Model):
+    """
+    model for storing valid counselor signup tokens
+    """
+    id = db.Column(db.Integer, primary_key=True,)
+    passphrase = db.column(db.String(32), unique=True, nullable=False)
