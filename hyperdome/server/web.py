@@ -204,8 +204,9 @@ class Web(object):
             username = request.form["username"]
             session_counselor_key = request.form["pub_key"]
             signature = request.form["signature"]
-            models.Counselor.query.filter_by(name=username).first_or_404()
-            # user = load_user(request.form['username'])
+            counselor = models.Counselor.query.filter_by(name=username).first_or_404()
+            if not counselor.verify(signature, session_counselor_key):
+                return "Bad signature", 401
             sid = self.common.random_string(16)
             # will use capacity variable for this later
             self.counselors_available[sid] = 1
