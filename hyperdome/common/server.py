@@ -32,13 +32,12 @@ class Server:
 
         pass
 
-    def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
+    def __init__(self, url="", nick="", uname="", is_counselor=False):
         self.url = url.strip()
         if url:
             self._check_url()
         self.nick = nick
         self.username = uname
-        self.password = passwd
         self.is_counselor = is_counselor
 
     def _check_url(self):

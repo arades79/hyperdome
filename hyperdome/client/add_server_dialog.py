@@ -18,9 +18,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from inspect import signature
 from PyQt5 import QtWidgets, QtGui, QtCore
 from . import threads
 from ..common.server import Server
+from ..common.encryption import LockBox
 
 
 class AddServerDialog(QtWidgets.QDialog):
@@ -111,7 +113,6 @@ class AddServerDialog(QtWidgets.QDialog):
                 url=self.server_add_text.text(),
                 nick=self.server_nick_text.text(),
                 uname=self.counselor_username_input.text(),
-                passwd=self.counselor_password_input.text(),
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
@@ -123,13 +124,24 @@ class AddServerDialog(QtWidgets.QDialog):
         self.add_server_button.setText("Checking...")
 
         probe = threads.ProbeServerTask(self.session, self.server)
-        probe.signals.success.connect(self.set_server)
+        if self.server.is_counselor:
+            probe.signals.success.connect(self.signup)
+        else:
+            probe.signals.success.connect(self.set_server)
         probe.signals.error.connect(self.bad_server)
         self.worker.start(probe)
 
     @QtCore.pyqtSlot(str)
     def set_server(self, _):
         self.done(0)
+
+    @QtCore.pyqtSlot(str)
+    def signup(self, _):
+        signer = LockBox()
+        signer.make_signing_key()
+        passcode = self.counselor_password_input.text()
+        signature = signer.sign_message(passcode)
+        signup_task = threads.SignUpTask(self.server, self.session, signer.public_signing_key, passcode, signature)
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):

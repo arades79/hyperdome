@@ -146,22 +146,68 @@ class StartChatTask(QtCore.QRunnable):
     signals = TaskSignals()
 
     def __init__(
-        self, server: Server, session: requests.Session, uid: str, pub_key: str
+        self,
+        server: Server,
+        session: requests.Session,
+        uid: str,
+        pub_key: str,
+        signature: str = "",
     ):
         super(StartChatTask, self).__init__()
         self.server = server
         self.session = session
         self.uid = uid
         self.pub_key = pub_key
+        self.signature = signature
 
     @QtCore.pyqtSlot()
     def run(self):
         try:
             self.signals.success.emit(
-                start_chat(self.server, self.session, self.uid, self.pub_key)
+                start_chat(
+                    self.server, self.session, self.uid, self.pub_key, self.signature
+                )
             )
         except requests.RequestException:
             self.signals.error.emit("Couldn't start a chat session")
+
+
+class SignUpTask(QtCore.QRunnable):
+    """
+    sign up a counselor on a server
+    """
+
+    def __init__(
+        self,
+        server: Server,
+        session: requests.Session,
+        username: str,
+        pub_key: str,
+        passcode: str,
+        signature: str,
+    ):
+        super().__init__()
+        self.signals = TaskSignals()
+        self.server = server
+        self.session = session
+        self.pub_key = pub_key
+        self.passcode = passcode
+        self.signature = signature
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        try:
+            self.signals.success.emit(
+                signup_counselor(
+                    self.server,
+                    self.session,
+                    self.passcode,
+                    self.pub_key,
+                    self.signature,
+                )
+            )
+        except requests.RequestException:
+            self.signals.error.emit("Couldn't sign up the counselor")
 
 
 class GetMessagesTask(QtCore.QRunnable):
@@ -300,8 +346,7 @@ def get_uid(server: Server, session: requests.Session):
     """
     if server.is_counselor:
         uid = session.post(
-            f"{server.url}/counselor_signin",
-            files={"username": server.username, "password": server.password},
+            f"{server.url}/counselor_signin", data={"username": server.username},
         ).text
     else:
         uid = session.get(f"{server.url}/generate_guest_id").text
@@ -315,10 +360,21 @@ def get_messages(server: Server, session: requests.Session, uid: str):
     return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).text
 
 
-def start_chat(server: Server, session: requests.Session, uid: str, pub_key: str):
+def start_chat(
+    server: Server,
+    session: requests.Session,
+    uid: str,
+    pub_key: str = "",
+    signature: str = "",
+):
     if server.is_counselor:
         return session.get(
-            f"{server.url}/counselor_signin", data={"pub_key": pub_key}
+            f"{server.url}/counselor_signin",
+            data={
+                "pub_key": pub_key,
+                "signature": signature,
+                "username": server.username,
+            },
         ).text
 
     else:
@@ -343,4 +399,22 @@ def probe_server(server: Server, session: requests.Session):
 def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
     return session.get(
         f"{server.url}/poll_connected_guest", data={"counselor_id": uid}
+    ).text
+
+
+def signup_counselor(
+    server: Server,
+    session: requests.Session,
+    passcode: str,
+    pub_key: str,
+    signature: str,
+):
+    return session.post(
+        f"{server.url}/counselor_signup",
+        data={
+            "username": server.username,
+            "pub_key": pub_key,
+            "signup_code": passcode,
+            "signature": signature,
+        },
     ).text

@@ -213,7 +213,7 @@ class Web(object):
             self.counselor_keys[sid] = session_counselor_key
             return sid
 
-        @app.route("/counselor_signup")
+        @app.route("/counselor_signup", methods=["POST"])
         def counselor_signup():
             username = request.form["username"]
             counselor_key = request.form["pub_key"]
