@@ -30,6 +30,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 import base64
 from cryptography.fernet import Fernet
 from .types import arg_to_bytes, bstr
+from .common import get_resource_path
 
 
 class LockBox:
@@ -123,7 +124,7 @@ class LockBox:
         return sig.decode("utf-8")
 
     def save_key(self, identifier, passphrase):
-        filename = f".{identifier}.pem"
+        filename = get_resource_path(f"{identifier}.pem")
         with open(filename, "wb") as file:
             file.write(
                 self._signing_key.private_bytes(
@@ -134,7 +135,7 @@ class LockBox:
             )
 
     def load_key(self, identifier, passphrase):
-        filename = f".{identifier}.pem"
+        filename = get_resource_path(f"{identifier}.pem")
         with open(filename, "rb") as file:
             enc_key = file.read()
             self._signing_key = serial.load_pem_private_key(
