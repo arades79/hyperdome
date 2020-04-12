@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import hmac
+from hyperdome.server.user import Counselor
 import logging
 import os
 import queue
@@ -115,6 +116,7 @@ class Web(object):
         self.pending_messages = {}
         self.guest_keys = {}
         self.counselor_keys = {}
+        self.active_codes = []
 
         #
         self.info = {
@@ -224,6 +226,19 @@ class Web(object):
             self.counselors_available[sid] = 1
             self.counselor_keys[sid] = counselor_key
             return sid
+
+        @self.app.route("/counselor_signup")
+        def counselor_signup():
+            username = request.form["username"]
+            counselor_key = request.form["pub_key"]
+            signup_code = request.form["signup_code"]
+            signature = request.form["signature"]
+            counselor = Counselor(username, counselor_key)
+            if signup_code in self.active_codes and counselor.verify(signature, signup_code):
+                # TODO: add counselor to DB
+                return "Good"
+            else:
+                return "User not Registered", 400
 
         @self.app.route("/generate_guest_id")
         def generate_guest_id():
