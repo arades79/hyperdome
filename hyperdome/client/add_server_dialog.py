@@ -112,7 +112,7 @@ class AddServerDialog(QtWidgets.QDialog):
             self.server = Server(
                 url=self.server_add_text.text(),
                 nick=self.server_nick_text.text(),
-                uname=self.counselor_username_input.text(),
+                username=self.counselor_username_input.text(),
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
@@ -133,17 +133,16 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def set_server(self, _):
-        if self.server.is_counselor:
-            self.signer.save_key(self.server.nick, '123')
         self.done(0)
 
     @QtCore.pyqtSlot(str)
     def signup(self, _):
-        self.signer = LockBox()
-        self.signer.make_signing_key()
+        signer = LockBox()
+        signer.make_signing_key()
+        self.server.key = signer.export_key("123")  # TODO: use user provided password
         passcode = self.counselor_password_input.text()
-        signature = self.signer.sign_message(passcode)
-        signup_task = threads.SignUpTask(self.server, self.session, self.signer.public_signing_key, passcode, signature)
+        signature = signer.sign_message(passcode)
+        signup_task = threads.SignUpTask(self.server, self.session, signer.public_signing_key, passcode, signature)
         signup_task.signals.error.connect(self.bad_server)
         signup_task.signals.success.connect(self.set_server)
         self.worker.start(signup_task)

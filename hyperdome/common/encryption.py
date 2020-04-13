@@ -121,23 +121,20 @@ class LockBox:
     @arg_to_bytes
     def sign_message(self, message: bstr) -> str:
         sig = self._signing_key.sign(message)
-        return base64.urlsafe_b64encode(sig).decode('utf-8')
+        return base64.urlsafe_b64encode(sig).decode("utf-8")
 
-    def save_key(self, identifier: str, passphrase: str):
-        filename = get_resource_path(f"{identifier}.pem")
-        with open(filename, "wb") as file:
-            file.write(
-                self._signing_key.private_bytes(
-                    self._ENCODING,
-                    self._PRIVATE_FORMAT,
-                    serial.BestAvailableEncryption(passphrase.encode()),
-                )
-            )
+    @arg_to_bytes
+    def export_key(self, passphrase: bstr):
+        key_bytes = self._signing_key.private_bytes(
+            self._ENCODING,
+            self._PRIVATE_FORMAT,
+            serial.BestAvailableEncryption(passphrase),
+        )
+        return base64.urlsafe_b64encode(key_bytes).decode("utf-8")
 
-    def load_key(self, identifier: str, passphrase: str):
-        filename = get_resource_path(f"{identifier}.pem")
-        with open(filename, "rb") as file:
-            enc_key = file.read()
-            self._signing_key = serial.load_pem_private_key(
-                enc_key, passphrase.encode(), self._BACKEND
-            )
+    @arg_to_bytes
+    def import_key(self, key_bytes: bstr, passphrase: bstr):
+        key_bytes = base64.urlsafe_b64decode(key_bytes)
+        self._signing_key = serial.load_pem_private_key(
+            key_bytes, passphrase, self._BACKEND
+        )

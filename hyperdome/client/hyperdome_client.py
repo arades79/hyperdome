@@ -32,6 +32,7 @@ from ..common import encryption
 from ..common.common import get_resource_path
 
 import requests
+import json
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -86,7 +87,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # initialize session variables
         self.uid: str = ""
         self.chat_history: list = []
-        self.servers: dict = dict()
+        self.load_servers()
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
@@ -155,6 +156,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.server_dropdown = QtWidgets.QComboBox(self)
         self.server_dropdown.addItem("Select a Server")
+        [self.server_dropdown.addItem(nick) for nick in self.servers]
         self.server_dropdown.addItem("Add New Server")
         self.server_dropdown.currentIndexChanged.connect(self.server_switcher)
 
@@ -284,6 +286,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.servers[server.nick] = self.server
                 self.server_dropdown.insertItem(1, server.nick)
                 self.server_dropdown.setCurrentIndex(1)
+                self.save_servers()
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
@@ -355,7 +358,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         pub_key = self.crypt.public_chat_key
         if self.server.is_counselor:
-            self.crypt.load_key(self.server.nick, '123')  # TODO: use private key encryption
+            self.crypt.import_key(self.server.key, '123')  # TODO: use private key encryption
             signature = self.crypt.sign_message(pub_key)
         else:
             signature = ''
@@ -477,6 +480,16 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         )
         self.start_chat_button.setEnabled(True)
         self.is_connected = False
+
+    def save_servers(self):
+        with open(get_resource_path("servers.json"), "w") as f:
+            f.write(json.dumps(self.servers, default=lambda o: o.__dict__))
+
+    def load_servers(self):
+        with open(get_resource_path("servers.json"), "r") as f:
+            servers_str = f.read()
+        servers_dict = json.loads(servers_str) if servers_str else {}
+        self.servers = {key: Server(**value) for key, value in servers_dict.items()}
 
     def closeEvent(self, event):
         """
