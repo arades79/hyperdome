@@ -486,10 +486,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             f.write(json.dumps(self.servers, default=lambda o: o.__dict__))
 
     def load_servers(self):
-        with open(get_resource_path("servers.json"), "r") as f:
-            servers_str = f.read()
-        servers_dict = json.loads(servers_str) if servers_str else {}
-        self.servers = {key: Server(**value) for key, value in servers_dict.items()}
+        try:
+            with open(get_resource_path("servers.json"), "r") as f:
+                servers_str = f.read()
+            servers_dict = json.loads(servers_str) if servers_str else {}
+            self.servers = {key: Server(**value) for key, value in servers_dict.items()}
+        except FileNotFoundError:
+            self.servers = {}
 
     def closeEvent(self, event):
         """
