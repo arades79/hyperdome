@@ -29,8 +29,10 @@ from .add_server_dialog import AddServerDialog
 from ..common.server import Server
 from . import threads
 from ..common import encryption
+from ..common.common import get_resource_path
 
 import requests
+import json
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -76,7 +78,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumHeight(660)
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
 
         # make dialog for error messages
@@ -85,7 +87,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # initialize session variables
         self.uid: str = ""
         self.chat_history: list = []
-        self.servers: dict = dict()
+        self.load_servers()
         self.server: Server = Server()
         self.is_connected: bool = False
         self._session: requests.Session = None
@@ -107,7 +109,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         self.system_tray.setIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
@@ -116,7 +118,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/settings_black_18dp.png"))
+            QtGui.QIcon(get_resource_path("images/settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
 
@@ -154,6 +156,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.server_dropdown = QtWidgets.QComboBox(self)
         self.server_dropdown.addItem("Select a Server")
+        [self.server_dropdown.addItem(nick) for nick in self.servers]
         self.server_dropdown.addItem("Add New Server")
         self.server_dropdown.currentIndexChanged.connect(self.server_switcher)
 
@@ -283,6 +286,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.servers[server.nick] = self.server
                 self.server_dropdown.insertItem(1, server.nick)
                 self.server_dropdown.setCurrentIndex(1)
+                self.save_servers()
         elif self.server_dropdown.currentIndex():
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
@@ -352,8 +356,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
+        pub_key = self.crypt.public_chat_key
+        if self.server.is_counselor:
+            self.crypt.import_key(self.server.key, '123')  # TODO: use private key encryption
+            signature = self.crypt.sign_message(pub_key)
+        else:
+            signature = ''
+
         start_chat_task = threads.StartChatTask(
-            self.server, self.session, self.uid, self.crypt.public_chat_key
+            self.server, self.session, self.uid, pub_key, signature
         )
         start_chat_task.signals.success.connect(after_start)
         start_chat_task.signals.error.connect(self.handle_error)
@@ -469,6 +480,19 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         )
         self.start_chat_button.setEnabled(True)
         self.is_connected = False
+
+    def save_servers(self):
+        with open(get_resource_path("servers.json"), "w") as f:
+            f.write(json.dumps(self.servers, default=lambda o: o.__dict__))
+
+    def load_servers(self):
+        try:
+            with open(get_resource_path("servers.json"), "r") as f:
+                servers_str = f.read()
+            servers_dict = json.loads(servers_str) if servers_str else {}
+            self.servers = {key: Server(**value) for key, value in servers_dict.items()}
+        except FileNotFoundError:
+            self.servers = {}
 
     def closeEvent(self, event):
         """

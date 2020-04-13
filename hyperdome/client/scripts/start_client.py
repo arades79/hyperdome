@@ -19,8 +19,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from hyperdome.client import main
-
 import click
 import sys
 
@@ -30,4 +28,5 @@ import sys
 def start(debug):
     if debug:
         sys.onionshare_dev_mode = True
+    from ..main import main
     main()

@@ -31,8 +31,56 @@ import secrets
 
 from .settings import Settings
 
+platform_str = platform.system()
+if platform_str.endswith("BSD"):
+    platform_str = "BSD"
 
-# TODO there's a lot of platform-specific pathing here, we can probably
+def get_resource_path(filename):
+    """
+    Returns the absolute path of a resource, regardless of whether
+    hyperdome is installed systemwide, and whether regardless of platform_str
+    """
+    # On Windows, and in Windows dev mode, switch slashes in incoming
+    # filename to backslackes
+    if platform_str == "Windows":
+        filename = filename.replace("/", "\\")
+
+    if getattr(sys, "onionshare_dev_mode", False):
+        # Look for resources directory relative to python file
+        prefix = os.path.join(
+            os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
+        )
+        if not os.path.exists(prefix):
+            # While running tests during stdeb bdist_deb, look 3
+            # directories up for the share folder
+            prefix = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(prefix)))
+                ),
+                "share",
+            )
+
+    elif platform_str == "BSD" or platform_str == "Linux":
+        # Assume OnionShare is installed systemwide in Linux, since we're
+        # not running in dev mode
+        prefix = os.path.join(sys.prefix, "share/hyperdome")
+
+    elif getattr(sys, "frozen", False):
+        # Check if app is "frozen"
+        # https://pythonhosted.org/PyInstaller/#run-time-information
+        if platform_str == "Darwin":
+            prefix = os.path.join(sys._MEIPASS, "share")
+        elif platform_str == "Windows":
+            prefix = os.path.join(os.path.dirname(sys.executable), "share")
+        else:
+            raise SystemError
+    else:
+        raise SystemError
+
+    return os.path.join(prefix, filename)
+
+
+# TODO there's a lot of platform_str-specific pathing here, we can probably
 # just use pathlib to get rid of a lot of code
 class Common(object):
     """
@@ -42,13 +90,10 @@ class Common(object):
     def __init__(self, debug=False):
         self.debug = debug
 
-        # The platform OnionShare is running on
-        self.platform = platform.system()
-        if self.platform.endswith("BSD"):
-            self.platform = "BSD"
+        # The platform_str OnionShare is running on
 
         # The current version of OnionShare
-        with open(self.get_resource_path("version.txt")) as f:
+        with open(get_resource_path("version.txt")) as f:
             self.version = f.read().strip()
 
     def load_settings(self, config=""):
@@ -70,59 +115,15 @@ class Common(object):
                 final_msg = "{}: {}".format(final_msg, msg)
             print(final_msg)
 
-    def get_resource_path(self, filename):
-        """
-        Returns the absolute path of a resource, regardless of whether
-        OnionShare is installed systemwide, and whether regardless of platform
-        """
-        # On Windows, and in Windows dev mode, switch slashes in incoming
-        # filename to backslackes
-        if self.platform == "Windows":
-            filename = filename.replace("/", "\\")
-
-        if getattr(sys, "onionshare_dev_mode", False):
-            # Look for resources directory relative to python file
-            prefix = os.path.join(
-                os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
-            )
-            if not os.path.exists(prefix):
-                # While running tests during stdeb bdist_deb, look 3
-                # directories up for the share folder
-                prefix = os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(os.path.dirname(os.path.dirname(prefix)))
-                    ),
-                    "share",
-                )
-
-        elif self.platform == "BSD" or self.platform == "Linux":
-            # Assume OnionShare is installed systemwide in Linux, since we're
-            # not running in dev mode
-            prefix = os.path.join(sys.prefix, "share/hyperdome")
-
-        elif getattr(sys, "frozen", False):
-            # Check if app is "frozen"
-            # https://pythonhosted.org/PyInstaller/#run-time-information
-            if self.platform == "Darwin":
-                prefix = os.path.join(sys._MEIPASS, "share")
-            elif self.platform == "Windows":
-                prefix = os.path.join(os.path.dirname(sys.executable), "share")
-            else:
-                raise SystemError
-        else:
-            raise SystemError
-
-        return os.path.join(prefix, filename)
-
     def get_tor_paths(self):
-        if self.platform == "Linux":
+        if platform_str == "Linux":
             tor_path = "/usr/bin/tor"
             tor_geo_ip_file_path = "/usr/share/tor/geoip"
             tor_geo_ipv6_file_path = "/usr/share/tor/geoip6"
             obfs4proxy_file_path = "/usr/bin/obfs4proxy"
-        elif self.platform == "Windows":
+        elif platform_str == "Windows":
             base_path = os.path.join(
-                os.path.dirname(os.path.dirname(self.get_resource_path(""))), "tor"
+                os.path.dirname(os.path.dirname(get_resource_path(""))), "tor"
             )
             tor_path = os.path.join(os.path.join(base_path, "Tor"), "tor.exe")
             obfs4proxy_file_path = os.path.join(
@@ -134,9 +135,9 @@ class Common(object):
             tor_geo_ipv6_file_path = os.path.join(
                 os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip6"
             )
-        elif self.platform == "Darwin":
+        elif platform_str == "Darwin":
             base_path = os.path.dirname(
-                os.path.dirname(os.path.dirname(self.get_resource_path("")))
+                os.path.dirname(os.path.dirname(get_resource_path("")))
             )
             tor_path = os.path.join(base_path, "Resources", "Tor", "tor")
             tor_geo_ip_file_path = os.path.join(base_path, "Resources", "Tor", "geoip")
@@ -146,13 +147,13 @@ class Common(object):
             obfs4proxy_file_path = os.path.join(
                 base_path, "Resources", "Tor", "obfs4proxy"
             )
-        elif self.platform == "BSD":
+        elif platform_str == "BSD":
             tor_path = "/usr/local/bin/tor"
             tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
             tor_geo_ipv6_file_path = "/usr/local/share/tor/geoip6"
             obfs4proxy_file_path = "/usr/local/bin/obfs4proxy"
         else:
-            raise OSError("Host platform not supported")
+            raise OSError("Host platform_str not supported")
 
         return (
             tor_path,
@@ -165,7 +166,7 @@ class Common(object):
         """
         Returns the path of the OnionShare data directory.
         """
-        if self.platform == "Windows":
+        if platform_str == "Windows":
             if "APPDATA" in os.environ:
                 appdata = os.environ["APPDATA"]
                 onionshare_data_dir = "{}\\OnionShare".format(appdata)
@@ -174,7 +175,7 @@ class Common(object):
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
                 onionshare_data_dir = os.path.expanduser("~/.config/hyperdome")
-        elif self.platform == "Darwin":
+        elif platform_str == "Darwin":
             onionshare_data_dir = os.path.expanduser(
                 "~/Library/Application Support/hyperdome"
             )

@@ -6,7 +6,7 @@ p = platform.system()
 version = open('share/version.txt').read().strip()
 
 a = Analysis(
-    ['../hyperdome/server/scripts/cli.py'],
+    ['scripts/hyperdome_server'],
     pathex=['.'],
     binaries=None,
     datas=[

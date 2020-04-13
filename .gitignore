@@ -57,3 +57,9 @@ tags
 
 # debug logs
 debug_dumps/
+
+# private keys
+*.pem
+
+# client storage file
+share/servers.json

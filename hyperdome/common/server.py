@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+import json
 class Server:
     """
     Holder class for server connection details
@@ -32,13 +32,13 @@ class Server:
 
         pass
 
-    def __init__(self, url="", nick="", uname="", passwd="", is_counselor=False):
+    def __init__(self, url: str = "", nick: str = "", username: str = "", key: str = "", is_counselor=False):
         self.url = url.strip()
         if url:
             self._check_url()
         self.nick = nick
-        self.username = uname
-        self.password = passwd
+        self.username = username
+        self.key = key
         self.is_counselor = is_counselor
 
     def _check_url(self):
@@ -62,3 +62,7 @@ class Server:
             # TODO: add debugging logger
             # print(f"{key_len=}\t{last_char=}")
             raise self.InvalidOnionAddress()
+
+    def to_json(self) -> str:
+        return json.dumps(self, default=lambda o: o.__dict__)
+

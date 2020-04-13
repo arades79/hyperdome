@@ -22,6 +22,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..common import strings
 from ..common.onion import BundledTorCanceled
+from ..common.common import get_resource_path
 
 from .widgets import Alert
 import time
@@ -48,7 +49,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         self.setWindowTitle("OnionShare")
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/logo.png"))
         )
         self.setModal(True)
         self.setFixedSize(400, 150)
