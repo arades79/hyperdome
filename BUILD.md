@@ -3,66 +3,65 @@
 Start by getting the source code:
 
 ```sh
-git clone https://github.com/micahflee/onionshare.git
-cd onionshare
+git clone https://github.com/arades79/hyperdome.git
+cd hyperdome
 ```
+
+Hyperdome uses poetry for running development scripts and managing dependencies. You can read about poetry and it's reccomended method of installation at https://python-poetry.org/docs/ however the easiest method is simply typing `python3 -m pip install --user poetry` into a terminal.
 
 ## Linux
 
-Install the needed dependencies:
+Install the needed dependencies from your distro's package manager (names may not be exact):
+* python3
+* python3-pip
+* python3-flask
+* python3-stem
+* python3-pyqt5
+* python3-cryptography
+* python3-socks
+* tor
+* obfs4proxy
+* python3-pytest
 
-For Debian-like distros:
 
-```
-apt install -y python3-flask python3-stem python3-pyqt5 python3-cryptography python3-socks tor obfs4proxy python3-pytest build-essential fakeroot python3-all python3-stdeb dh-python
-```
+ open a terminal and type `poetry install` in the hyperdome directory to get and setup all of the package dependencies.
 
-For Fedora-like distros:
-
-```
-dnf install -y python3-flask python3-stem python3-qt5 python3-cryptography python3-pysocks tor obfs4 python3-pytest rpm-build
-```
-
-After that you can try both the CLI and the GUI version of OnionShare:
+After that you can try both the CLI and the GUI version of Hyperdome:
 
 ```sh
-./dev_scripts/onionshare
-./dev_scripts/onionshare-gui
+poetry run hyperdome_server --debug
+poetry run hyperdome_client --debug
 ```
 
-You can also build OnionShare packages to install:
+You can also build binary version of the applications with `build_generic.sh`
+This build and resulting binary have only been verified on Manjaro at this point.
 
-Create a .deb on Debian-like distros: `./install/build_deb.sh`
-
-Create a .rpm on Fedora-like distros: `./install/build_rpm.sh`
-
-For OpenSuSE: There are instructions for building [in the wiki](https://github.com/micahflee/onionshare/wiki/Linux-Distribution-Support#opensuse-leap-150).
-
-For ArchLinux: There is a PKBUILD available [here](https://aur.archlinux.org/packages/onionshare/) that can be used to install OnionShare.
-
-If you find that these instructions don't work for your Linux distribution or version, consult the [Linux Distribution Support wiki guide](https://github.com/micahflee/onionshare/wiki/Linux-Distribution-Support), which might contain extra instructions.
+There also exists `build_deb.sh` and `build_rpm.sh` scripts, but these haven't been verified, and aren't guaranteed to work out of the box.
 
 ## Mac OS X
 
+*WARNING:*
+ MacOS builds have not yet been tested for Hyperdome! All instructions below are from the upstream project. You should only try to build/run hyperdome on MacOS if you know your way around python development and MacOS packaging.
+
 Install Xcode from the Mac App Store. Once it's installed, run it for the first time to set it up. Also, run this to make sure command line tools are installed: `xcode-select --install`. And finally, open Xcode, go to Preferences > Locations, and make sure under Command Line Tools you select an installed version from the dropdown. (This is required for installing Qt5.)
 
-Download and install Python 3.7.2 from https://www.python.org/downloads/release/python-372/. I downloaded `python-3.7.2-macosx10.9.pkg`.
+Download and install Python 3.8.2 from https://www.python.org/downloads/release/python-382/.
 
-You may also need to run the command `/Applications/Python\ 3.7/Install\ Certificates.command` to update Python 3.6's internal certificate store. Otherwise, you may find that fetching the Tor Browser .dmg file fails later due to a certificate validation error.
+You may also need to run the command `/Applications/Python\ 3.8/Install\ Certificates.command` to update Python 3.6's internal certificate store. Otherwise, you may find that fetching the Tor Browser .dmg file fails later due to a certificate validation error.
 
-Install Qt 5.11.3 from https://www.qt.io/download-open-source/. I downloaded `qt-unified-mac-x64-3.0.6-online.dmg`. In the installer, you can skip making an account, and all you need is `Qt` > `Qt 5.11.3` > `macOS`.
+Install Qt 5.14 or later from https://www.qt.io/download-open-source/. I downloaded `qt-unified-mac-x64-3.0.6-online.dmg`. In the installer, you can skip making an account, and all you need is `Qt` > `Qt 5.14` > `macOS`.
 
-Now install some python dependencies with pip (note, there's issues building a .app if you install this in a virtualenv):
+open a terminal and type `poetry install` in the hyperdome directory to get and setup all of the package dependencies.
 
 ```sh
-pip3 install -r install/requirements.txt
+poetry install
 ```
 
-#### You can run both the CLI and GUI versions of OnionShare without building an bundle
+#### You can run both the server and client of hyperdome without building a bundle
 
 ```sh
-./dev_scripts/onionshare
-./dev_scripts/onionshare-gui
+poetry run hyperdome_server --debug
+poetry run hyperdome_client --debug
 ```
 
 #### Building PyInstaller
@@ -129,11 +128,12 @@ Now you should have `dist/OnionShare.pkg`.
 
 Download Python 3.8.2 or higher from whichever source you prefer. If your windows instalation is up-to-date the easiest way is to type `python` into a command prompt, which will take you to a windows store page.
 
-Hyperdome uses poetry for running development scripts and managing dependencies. You can read about poetry and it's reccomended method of installation at https://python-poetry.org/docs/ however the easiest method is simply typing `python -m pip install --user poetry` into a command prompt.
+Install  Qt 5.14 or higher from https://www.qt.io/download-open-source/. You don't need everything the installer tries to give you, just the most recent Qt core library and the build tools for MSVC.
 
-Once installed, `cd` to the directory you downloaded hyperdome to and type `poetry install` to get and setup all of the package dependencies.
+open a terminal and type `poetry install` in the hyperdome directory to get and setup all of the package dependencies.
 
-Install  Qt 5.14 or higher from https://www.qt.io/download-open-source/.
+
+You'll also need an up-to-date version of tor browser for the application to use its underlying tor proxy. You can get tor browser from https://torproject.org
 
 You now have all the requirements to build and run hyperdome and hyperdome server, run them in your development environments with:
 ```
