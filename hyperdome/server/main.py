@@ -50,7 +50,7 @@ def main(cwd=None):
     # Display Hyperdome banner
     print(f"Hyperdome Server {common.version}")
 
-    # hyperdome in OSX needs to change current working directory (Onionshare #132)
+    # hyperdome in OSX needs to change current working directory (hyperdome #132)
     if platform_str == "Darwin" and cwd:
         os.chdir(cwd)
 

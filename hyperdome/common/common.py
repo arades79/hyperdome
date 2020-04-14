@@ -45,7 +45,7 @@ def get_resource_path(filename):
     if platform_str == "Windows":
         filename = filename.replace("/", "\\")
 
-    if getattr(sys, "onionshare_dev_mode", False):
+    if getattr(sys, "hyperdome_dev_mode", False):
         # Look for resources directory relative to python file
         prefix = os.path.join(
             os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
@@ -61,7 +61,7 @@ def get_resource_path(filename):
             )
 
     elif platform_str == "BSD" or platform_str == "Linux":
-        # Assume OnionShare is installed systemwide in Linux, since we're
+        # Assume hyperdome is installed systemwide in Linux, since we're
         # not running in dev mode
         prefix = os.path.join(sys.prefix, "share/hyperdome")
 
@@ -84,15 +84,15 @@ def get_resource_path(filename):
 # just use pathlib to get rid of a lot of code
 class Common(object):
     """
-    The Common object is shared amongst all parts of OnionShare.
+    The Common object is shared amongst all parts of hyperdome.
     """
 
     def __init__(self, debug=False):
         self.debug = debug
 
-        # The platform_str OnionShare is running on
+        # The platform_str hyperdome is running on
 
-        # The current version of OnionShare
+        # The current version of hyperdome
         with open(get_resource_path("version.txt")) as f:
             self.version = f.read().strip()
 
@@ -164,26 +164,26 @@ class Common(object):
 
     def build_data_dir(self):
         """
-        Returns the path of the OnionShare data directory.
+        Returns the path of the hyperdome data directory.
         """
         if platform_str == "Windows":
             if "APPDATA" in os.environ:
                 appdata = os.environ["APPDATA"]
-                onionshare_data_dir = "{}\\OnionShare".format(appdata)
+                hyperdome_data_dir = "{}\\hyperdome".format(appdata)
             else:
                 # If for some reason we don't have the 'APPDATA' environment
                 # variable (like running tests in Linux while pretending
                 # to be in Windows)
-                onionshare_data_dir = os.path.expanduser("~/.config/hyperdome")
+                hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
         elif platform_str == "Darwin":
-            onionshare_data_dir = os.path.expanduser(
+            hyperdome_data_dir = os.path.expanduser(
                 "~/Library/Application Support/hyperdome"
             )
         else:
-            onionshare_data_dir = os.path.expanduser("~/.config/hyperdome")
+            hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
 
-        os.makedirs(onionshare_data_dir, 0o700, True)
-        return onionshare_data_dir
+        os.makedirs(hyperdome_data_dir, 0o700, True)
+        return hyperdome_data_dir
 
     @staticmethod
     def random_string(num_bytes, output_len=None):

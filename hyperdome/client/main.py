@@ -55,7 +55,7 @@ class Application(QtWidgets.QApplication):
 def main():
     """
     The main() function implements all of the logic that the GUI version \
-    of onionshare uses.
+    of hyperdome uses.
     """
     common = Common()
 
@@ -69,7 +69,7 @@ def main():
     # TODO: remove or rebuild strings
     strings.load_strings(common)
 
-    # Display OnionShare banner
+    # Display hyperdome banner
     print(strings._("version_string").format(common.version))
 
     # Allow Ctrl-C to quit the program without an exception
@@ -113,7 +113,7 @@ def main():
     # Start the Onion
     onion = Onion(common)
 
-    # Start the OnionShare app
+    # Start the hyperdome app
     app = HyperdomeServer(common, onion, local_only)
 
     # Launch the gui

@@ -37,7 +37,7 @@ import json
 
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
-    OnionShareGui is the main window for the GUI that contains all of the
+    hyperdome is the main window for the GUI that contains all of the
     GUI elements.
     """
 
@@ -59,7 +59,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
         self.local_only: bool = local_only
-        self.common.log("OnionShareGui", "__init__")
+        self.common.log("hyperdome", "__init__")
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool.globalInstance()
@@ -375,7 +375,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         If the user cancels before Tor finishes connecting, ask if they want to
         quit, or open settings.
         """
-        self.common.log("OnionShareGui", "_tor_connection_canceled")
+        self.common.log("hyperdome", "_tor_connection_canceled")
 
         def ask():
             a = Alert(
@@ -399,7 +399,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if a.clickedButton() == settings_button:
                 # Open settings
                 self.common.log(
-                    "OnionShareGui",
+                    "hyperdome",
                     "_tor_connection_canceled",
                     "Settings button clicked",
                 )
@@ -408,7 +408,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if a.clickedButton() == quit_button:
                 # Quit
                 self.common.log(
-                    "OnionShareGui", "_tor_connection_canceled", "Quit button clicked"
+                    "hyperdome", "_tor_connection_canceled", "Quit button clicked"
                 )
 
                 # Wait 1ms for the event loop to finish, then quit
@@ -421,7 +421,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         The TorConnectionDialog wants to open the Settings dialog
         """
-        self.common.log("OnionShareGui", "_tor_connection_open_settings")
+        self.common.log("hyperdome", "_tor_connection_open_settings")
 
         # Wait 1ms for the event loop to finish closing the TorConnectionDialog
         QtCore.QTimer.singleShot(1, self.open_settings)
@@ -430,11 +430,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Open the SettingsDialog.
         """
-        self.common.log("OnionShareGui", "open_settings")
+        self.common.log("hyperdome", "open_settings")
 
         def reload_settings():
             self.common.log(
-                "OnionShareGui", "open_settings", "settings have changed, reloading"
+                "hyperdome", "open_settings", "settings have changed, reloading"
             )
             self.common.settings.load()
 
@@ -498,7 +498,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         When the main window is closed, do some cleanup
         """
-        self.common.log("OnionShareGui", "closeEvent")
+        self.common.log("hyperdome", "closeEvent")
         self.disconnect_chat()
 
         self.hide()

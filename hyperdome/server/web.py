@@ -35,7 +35,7 @@ from flask import request, render_template, abort, make_response
 
 class Web(object):
     """
-    The Web object is the OnionShare web server, powered by flask
+    The Web object is the hyperdome web server, powered by flask
     """
 
     REQUEST_LOAD = 0

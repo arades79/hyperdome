@@ -36,7 +36,7 @@ from .common import platform_str
 
 class TorErrorAutomatic(Exception):
     """
-    OnionShare is failing to connect and authenticate to the Tor controller,
+    hyperdome is failing to connect and authenticate to the Tor controller,
     using automatic settings that should work with Tor Browser.
     """
 
@@ -53,7 +53,7 @@ class TorErrorInvalidSetting(Exception):
 
 class TorErrorSocketPort(Exception):
     """
-    OnionShare can't connect to the Tor controller using the supplied
+    hyperdome can't connect to the Tor controller using the supplied
     address and port.
     """
 
@@ -62,7 +62,7 @@ class TorErrorSocketPort(Exception):
 
 class TorErrorSocketFile(Exception):
     """
-    OnionShare can't connect to the Tor controller using the supplied
+    hyperdome can't connect to the Tor controller using the supplied
     socket file.
     """
 
@@ -71,7 +71,7 @@ class TorErrorSocketFile(Exception):
 
 class TorErrorMissingPassword(Exception):
     """
-    OnionShare connected to the Tor controller, but it requires a password.
+    hyperdome connected to the Tor controller, but it requires a password.
     """
 
     pass
@@ -79,7 +79,7 @@ class TorErrorMissingPassword(Exception):
 
 class TorErrorUnreadableCookieFile(Exception):
     """
-    OnionShare connected to the Tor controller, but your user does not have
+    hyperdome connected to the Tor controller, but your user does not have
     permission to access the cookie file.
     """
 
@@ -88,7 +88,7 @@ class TorErrorUnreadableCookieFile(Exception):
 
 class TorErrorAuthError(Exception):
     """
-    OnionShare connected to the address and port, but can't authenticate.
+    hyperdome connected to the address and port, but can't authenticate.
     It's possible that a Tor controller isn't listening on this port.
     """
 
@@ -97,7 +97,7 @@ class TorErrorAuthError(Exception):
 
 class TorErrorProtocolError(Exception):
     """
-    This exception is raised if onionshare connects to the Tor controller,
+    This exception is raised if hyperdome connects to the Tor controller,
     but it isn't acting like a Tor controller (such as in Whonix).
     """
 
@@ -106,7 +106,7 @@ class TorErrorProtocolError(Exception):
 
 class TorTooOld(Exception):
     """
-    This exception is raised if onionshare needs to use a feature of Tor or
+    This exception is raised if hyperdome needs to use a feature of Tor or
     stem (like stealth ephemeral onion services) but the version you have
     installed is too old.
     """
@@ -116,28 +116,28 @@ class TorTooOld(Exception):
 
 class BundledTorNotSupported(Exception):
     """
-    This exception is raised if onionshare is set to use the bundled Tor
+    This exception is raised if hyperdome is set to use the bundled Tor
     binary, but it's not supported on that platform, or in dev mode.
     """
 
 
 class BundledTorTimeout(Exception):
     """
-    This exception is raised if onionshare is set to use the bundled Tor
+    This exception is raised if hyperdome is set to use the bundled Tor
     binary, but Tor doesn't finish connecting promptly.
     """
 
 
 class BundledTorCanceled(Exception):
     """
-    This exception is raised if onionshare is set to use the bundled Tor
+    This exception is raised if hyperdome is set to use the bundled Tor
     binary, and the user cancels connecting to Tor
     """
 
 
 class BundledTorBroken(Exception):
     """
-    This exception is raised if onionshare is set to use the bundled Tor
+    This exception is raised if hyperdome is set to use the bundled Tor
     binary, but the process seems to fail to run.
     """
 
@@ -145,7 +145,7 @@ class BundledTorBroken(Exception):
 class Onion(object):
     """
     Onion is an abstraction layer for connecting to the Tor control port and
-    creating onion services. OnionShare supports creating onion services by
+    creating onion services. hyperdome supports creating onion services by
     connecting to the Tor controller and using ADD_ONION, DEL_ONION.
 
     settings: A Settings object. If it's not passed in, load from disk.
@@ -166,7 +166,7 @@ class Onion(object):
         self.bundle_tor_supported = platform_str in (
             "Windows",
             "Darwin",
-        ) and getattr(sys, "onionshare_dev_mode", False)
+        ) and getattr(sys, "hyperdome_dev_mode", False)
 
         # Set the path of the tor binary, for bundled tor
         (

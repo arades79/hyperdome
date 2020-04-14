@@ -26,7 +26,7 @@ import locale
 
 class Settings(object):
     """
-    This class stores all of the settings for OnionShare, specifically for how
+    This class stores all of the settings for hyperdome, specifically for how
     to connect to Tor. If it can't find the settings file, it uses the default,
     which is to attempt to connect automatically using default Tor Browser
     settings.
@@ -52,7 +52,7 @@ class Settings(object):
                     "unreadable. Falling back to default location",
                 )
 
-        # Dictionary of available languages in this version of OnionShare,
+        # Dictionary of available languages in this version of hyperdome,
         # mapped to the language name, in that language
         self.available_locales = {
             # 'bn': 'বাংলা',       # Bengali
@@ -132,7 +132,7 @@ class Settings(object):
         """
         Returns the path of the settings file.
         """
-        return os.path.join(self.common.build_data_dir(), "onionshare.json")
+        return os.path.join(self.common.build_data_dir(), "hyperdome.json")
 
     def load(self):
         """
