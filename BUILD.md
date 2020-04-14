@@ -232,58 +232,7 @@ python setup.py install
 
 Now the next time you use PyInstaller to build OnionShare, the `.exe` file should not be flagged as malicious by anti-virus.
 
-#### If you want to build the installer
-
-* Go to http://nsis.sourceforge.net/Download and download the latest NSIS. I downloaded `nsis-3.04-setup.exe`.
-* Add `C:\Program Files (x86)\NSIS` to the path.
-
-#### If you want to sign binaries with Authenticode
-
-* You'll need a code signing certificate. I got an open source code signing certificate from [Certum](https://www.certum.eu/certum/cert,offer_en_open_source_cs.xml).
-* Once you get a code signing key and certificate and covert it to a pfx file, import it into your certificate store.
-
 ### To make a .exe:
 
-* Open a command prompt, cd into the onionshare directory, and type: `pyinstaller install\pyinstaller.spec`. `onionshare-gui.exe` and all of their supporting files will get created inside the `dist` folder.
+* go to the `install` directory and run `build_exe.bat`, inside the `dist` directory there will be folders for `hyperdome_server` and `hyperdome` for the server and client respectively, run the `hyperdome_server.exe` (along with any command line parameters if needed) for running a server on your local machine, and run `hyperdome.exe` to start the hyperdome client.
 
-### To build the installer:
-
-Note that you must have a codesigning certificate installed in order to use the `install\build_exe.bat` script, because it codesigns `onionshare-gui.exe`, `uninstall.exe`, and `onionshare-setup.exe`.
-
-Open a command prompt, cd to the onionshare directory, and type: `install\build_exe.bat`
-
-This will prompt you to codesign three binaries and execute one unsigned binary. When you're done clicking through everything you will have `dist\onionshare-setup.exe`.
-
-## Tests
-
-OnionShare includes PyTest unit tests. To run the tests, first install some dependencies:
-
-```sh
-pip3 install -r install/requirements-tests.txt
-```
-
-Then you can run `pytest` against the `tests/` directory.
-
-```sh
-pytest tests/
-```
-
-You can run GUI tests like this:
-
-```sh
-pytest --rungui tests/
-```
-
-If you would like to also run the GUI unit tests in 'tor' mode, start Tor Browser in the background, then run:
-
-```sh
-pytest --rungui --runtor tests/
-```
-
-Keep in mind that the Tor tests take a lot longer to run than local mode, but they are also more comprehensive.
-
-You can also choose to wrap the tests in `xvfb-run` so that a ton of OnionShare windows don't pop up on your desktop (you may need to install the `xorg-x11-server-Xvfb` package), like this:
-
-```sh
-xvfb-run pytest --rungui tests/
-```
