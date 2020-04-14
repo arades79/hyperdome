@@ -102,7 +102,6 @@ def main(cwd=None):
         print("")
         url = f"http://{app.onion_host}"
         print(strings._("give_this_url"))
-        print("Do not copy the slug (part after last /) for now")
         print(url)
         print()
         print(strings._("ctrlc_to_stop"))

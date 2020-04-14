@@ -79,7 +79,6 @@ class Web(object):
         ]
 
         self.q = queue.Queue()
-        self.slug = None
         self.error404_count = 0
 
         self.done = False
@@ -390,9 +389,6 @@ class Web(object):
 
         # Let the mode know that the user stopped the server
         self.stop_q.put(True)
-
-        # Reset any slug that was in use
-        self.slug = ""
 
         # To stop flask, load http://127.0.0.1:<port>/<shutdown_slug>/shutdown
         if self.running:

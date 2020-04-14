@@ -238,7 +238,7 @@ class Onion(object):
             self.tor_socks_port = self.common.get_available_port(1000, 65535)
             self.tor_torrc = os.path.join(self.tor_data_directory.name, "torrc")
 
-            if self.common.platform in ("Windows", "Darwin"):
+            if platform_str in ("Windows", "Darwin"):
                 # Windows doesn't support unix sockets, so it must use
                 # a network port.
                 # macOS can't use unix sockets either because socket filenames
@@ -324,7 +324,7 @@ class Onion(object):
 
             # Execute a tor subprocess
             start_ts = time.time()
-            if self.common.platform == "Windows":
+            if platform_str == "Windows":
                 # In Windows, hide console window when opening tor.exe
                 # subprocess
                 startupinfo = subprocess.STARTUPINFO()
@@ -347,7 +347,7 @@ class Onion(object):
 
             # Connect to the controller
             try:
-                if self.common.platform in ("Windows", "Darwin"):
+                if platform_str in ("Windows", "Darwin"):
                     self.c = Controller.from_port(port=self.tor_control_port)
                     self.c.authenticate()
                 else:
@@ -442,7 +442,7 @@ class Onion(object):
                 # file path
                 socket_file_path = ""
                 if not found_tor:
-                    if self.common.platform == "Darwin":
+                    if platform_str == "Darwin":
                         socket_file_path = os.path.expanduser(
                             "~/Library/Application Support/"
                             "TorBrowser-Data/Tor/control.socket"
@@ -457,15 +457,15 @@ class Onion(object):
             # guessing the socket file name next
             if not found_tor:
                 try:
-                    if self.common.platform in ("Linux", "BSD"):
+                    if platform_str in ("Linux", "BSD"):
                         socket_file_path = (
                             f"/run/user/{os.geteuid()}/Tor/" "control.socket"
                         )
-                    elif self.common.platform == "Darwin":
+                    elif platform_str == "Darwin":
                         socket_file_path = (
                             f"/run/user/{os.geteuid()}/Tor/" "control.socket"
                         )
-                    else:  # self.common.platform == 'Windows':
+                    else:  # platform_str == 'Windows':
                         # Windows doesn't support unix sockets
                         raise TorErrorAutomatic(strings._("settings_error_automatic"))
 
