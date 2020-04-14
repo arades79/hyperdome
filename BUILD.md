@@ -127,21 +127,18 @@ Now you should have `dist/OnionShare.pkg`.
 
 ### Setting up your dev environment
 
-Download Python 3.7.2, 32-bit (x86) from https://www.python.org/downloads/release/python-372/. I downloaded `python-3.7.2.exe`. When installing it, make sure to check the "Add Python 3.7 to PATH" checkbox on the first page of the installer.
+Download Python 3.8.2 or higher from whichever source you prefer. If your windows instalation is up-to-date the easiest way is to type `python` into a command prompt, which will take you to a windows store page.
 
-Open a command prompt, cd to the onionshare folder, and install dependencies with pip:
+Hyperdome uses poetry for running development scripts and managing dependencies. You can read about poetry and it's reccomended method of installation at https://python-poetry.org/docs/ however the easiest method is simply typing `python -m pip install --user poetry` into a command prompt.
 
-```cmd
-pip install -r install\requirements.txt
+Once installed, `cd` to the directory you downloaded hyperdome to and type `poetry install` to get and setup all of the package dependencies.
+
+Install  Qt 5.14 or higher from https://www.qt.io/download-open-source/.
+
+You now have all the requirements to build and run hyperdome and hyperdome server, run them in your development environments with:
 ```
-
-Install the Qt 5.11.3 from https://www.qt.io/download-open-source/. I downloaded `qt-unified-windows-x86-3.0.6-online.exe`. In the installer, you can skip making an account, and all you need `Qt` > `Qt 5.11.3` > `MSVC 2015 32-bit`.
-
-After that you can try both the CLI and the GUI version of OnionShare:
-
-```
-python dev_scripts\onionshare
-python dev_scripts\onionshare-gui
+poetry run hyperdome_server --debug
+poetry run hyperdome_client --debug
 ```
 
 #### If you want to build a .exe
