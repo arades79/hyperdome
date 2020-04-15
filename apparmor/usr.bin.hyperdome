@@ -1,6 +1,6 @@
 #include <tunables/global>
 
-/usr/bin/onionshare-gui {
+/usr/bin/Hyperdome-gui {
   #include <abstractions/gnome>
   #include <abstractions/ibus>
   #include <abstractions/hyperdome>

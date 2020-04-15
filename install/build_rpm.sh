@@ -14,4 +14,4 @@ python3 setup.py bdist_rpm --requires="python3-flask, python3-stem, python3-qt5,
 # install it
 echo ""
 echo "To install, run:"
-echo "sudo dnf install dist/onionshare-$VERSION-1.noarch.rpm"
+echo "sudo dnf install dist/Hyperdome-$VERSION-1.noarch.rpm"

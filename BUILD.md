@@ -1,4 +1,4 @@
-# Building OnionShare
+# Building Hyperdome
 
 Start by getting the source code:
 
@@ -112,7 +112,7 @@ python3 setup.py install
 install/build_osx.sh
 ```
 
-Now you should have `dist/OnionShare.app`.
+Now you should have `dist/Hyperdome.app`.
 
 #### To codesign and build a pkg for distribution
 
@@ -120,7 +120,7 @@ Now you should have `dist/OnionShare.app`.
 install/build_osx.sh --release
 ```
 
-Now you should have `dist/OnionShare.pkg`.
+Now you should have `dist/Hyperdome.pkg`.
 
 ## Windows
 
@@ -160,7 +160,7 @@ Add the following directories to the path:
 
 #### If you want the .exe to not get falsely flagged as malicious by anti-virus software
 
-OnionShare uses PyInstaller to turn the python source code into Windows executable `.exe` file. Apparently, malware developers also use PyInstaller, and some anti-virus vendors have included snippets of PyInstaller code in their virus definitions. To avoid this, you have to compile the Windows PyInstaller bootloader yourself instead of using the pre-compiled one that comes with PyInstaller.
+Hyperdome uses PyInstaller to turn the python source code into Windows executable `.exe` file. Apparently, malware developers also use PyInstaller, and some anti-virus vendors have included snippets of PyInstaller code in their virus definitions. To avoid this, you have to compile the Windows PyInstaller bootloader yourself instead of using the pre-compiled one that comes with PyInstaller.
 
 (If you don't care about this, you can install PyInstaller with `pip install PyInstaller==3.4`.)
 
@@ -227,7 +227,7 @@ cd ..
 python setup.py install
 ```
 
-Now the next time you use PyInstaller to build OnionShare, the `.exe` file should not be flagged as malicious by anti-virus.
+Now the next time you use PyInstaller to build Hyperdome, the `.exe` file should not be flagged as malicious by anti-virus.
 
 ### To make a .exe:
 

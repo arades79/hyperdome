@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome | https://Hyperdome.org/
 
 Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
 
@@ -17,7 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-This script downloads a pre-built tor binary to bundle with OnionShare.
+This script downloads a pre-built tor binary to bundle with Hyperdome.
 In order to avoid a Windows gnupg dependency, I manually verify the signature
 and hard-code the sha256 hash.
 """
