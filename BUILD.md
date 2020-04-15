@@ -47,7 +47,7 @@ Install Xcode from the Mac App Store. Once it's installed, run it for the first 
 
 Download and install Python 3.8.2 from https://www.python.org/downloads/release/python-382/.
 
-You may also need to run the command `/Applications/Python\ 3.8/Install\ Certificates.command` to update Python 3.6's internal certificate store. Otherwise, you may find that fetching the Tor Browser .dmg file fails later due to a certificate validation error.
+You may also need to run the command `/Applications/Python\ 3.8/Install\ Certificates.command` to update Python's internal certificate store. Otherwise, you may find that fetching the Tor Browser .dmg file fails later due to a certificate validation error.
 
 Install Qt 5.14 or later from https://www.qt.io/download-open-source/. I downloaded `qt-unified-mac-x64-3.0.6-online.dmg`. In the installer, you can skip making an account, and all you need is `Qt` > `Qt 5.14` > `macOS`.
 

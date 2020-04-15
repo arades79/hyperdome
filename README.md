@@ -47,7 +47,7 @@ To add a server you intend to be a counselor for, click the counselor radio butt
 When you're ready to chat, just press *Start Chat*. Counselors will wait for a Guest to be paired with them, and Guests will connect to a random counselor. When you're done just hit *Disconnect*. Don't worry, all messages are encrypted not only by the Tor network, but by additional end-to-end encryption. Not to mention, all IPs are obscured by the onion protocol, and absolutely no chat metadata is stored. Hyperdome takes privacy and security very seriously!
 
 ## Disclaimer
-Hyperdome is currently still pre-release software! At this time it is not reccomended to deploy a hyperdome server, or encourage it's wide use. Hyperdome has not been independently audited, and cannot be guaranteed to be safe. Also all interfaces are considered unstable, Server and client code may change drastically at any time. If you're still interested in demoing the software then feel free to build or run a release and do spread the word!
+Hyperdome is currently still pre-release software! At this time it is not reccomended to deploy a hyperdome server, or encourage its wide use. Hyperdome has not been independently audited, and cannot be guaranteed to be safe. Also all interfaces are considered unstable, Server and client code may change drastically at any time. If you're still interested in demoing the software then feel free to build or run a release and do spread the word!
 
 ## Discussion
 Hyperdome has a [Discord server](https://discord.gg/M2JVQa7)! Join to see discussion on development
