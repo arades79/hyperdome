@@ -24,7 +24,7 @@ import platform
 import re
 import os
 from ..common import strings
-from ..common.common import Common
+from ..common.common import Common, get_resource_path
 from ..common.settings import Settings
 from ..common.onion import (
     BundledTorTimeout,
@@ -73,7 +73,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setModal(True)
         self.setWindowTitle(strings._("gui_settings_window_title"))
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
 
         self.system = platform.system()
