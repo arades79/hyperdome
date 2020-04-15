@@ -1,4 +1,4 @@
-<p align="center"><img src="hyperdome_logo.png" width="25%"></p>
+<p align="center"><img src="readme/hyperdome_logo.png" width="25%"></p>
 
 # Hyperdome
 
@@ -18,14 +18,26 @@ Other use cases could involve law firms providing a portal for people to seek le
 
 ## Usage
 
+This is assuming you're using the Windows binary builds, for alternate instructions see [BUILD.md](BUILD.md)
+
+Before starting either server or client [download Tor Browser](https://www.torproject.org/download/) and have it running in the background.
+
 ### Server
 The server is entirely CLI based.
 Upon running the server, a terminal will open, and as long as Tor is running, you will recieve an onion address that the server is running on.
+
+<img src="readme/hyperdome_server_running.png">
+
 The URL can be shared to anyone with a client to add you as a server. The server will maintain the same URL across instances, so don't worry if it gets closed.
 
 Server administrators can add new counselors to their server by generating sign-up tokens to distribute to prospective counselors by entering `hyperdome_server(.exe) generate` into a terminal in the hyperdome_server folder.
 
+<img src="readme/hyperdome_server_generate.png">
+
 ### Client
+
+<img src="readme/hyperdome_client.png">
+
 The client is very simple to use, go in the client folder and open `hyperdome.exe`. First you'll need to add a server, click the *Select Server* dropdown, and add a server. Using the dialog, enter the onion address for a hyperdome server, and put in a nick-name for the server to help you remember what that server specializes in.
 
 To add a server you intend to be a counselor for, click the counselor radio button, enter a username you don't mind the Server seeing, and your one-time counselor password.
