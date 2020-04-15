@@ -32,7 +32,7 @@ import stem
 
 from distutils.version import LooseVersion as Version
 from . import strings
-from .common import platform_str
+from .common import platform_str, get_resource_path
 
 class TorErrorAutomatic(Exception):
     """
@@ -230,7 +230,7 @@ class Onion(object):
             )
 
             # Create the torrc
-            with open(self.common.get_resource_path("torrc_template")) as f:
+            with open(get_resource_path("torrc_template")) as f:
                 torrc_template = f.read()
             self.tor_cookie_auth_file = os.path.join(
                 self.tor_data_directory.name, "cookie"
@@ -288,7 +288,7 @@ class Onion(object):
                         )
                     )
                     with open(
-                        self.common.get_resource_path("torrc_template-obfs4")
+                        get_resource_path("torrc_template-obfs4")
                     ) as o:
                         for line in o:
                             f.write(line)
@@ -299,7 +299,7 @@ class Onion(object):
                         )
                     )
                     with open(
-                        self.common.get_resource_path("torrc_template-meek_lite_azure")
+                        get_resource_path("torrc_template-meek_lite_azure")
                     ) as o:
                         for line in o:
                             f.write(line)

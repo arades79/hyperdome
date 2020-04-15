@@ -49,7 +49,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
         self.setModal(True)
         self.setFixedSize(400, 150)
