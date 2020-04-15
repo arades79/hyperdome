@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-OnionShare | https://onionshare.org/
+Hyperdome
 
-Copyright (C) 2014-2018 Micah Lee <micah@micahflee.com>
+Copyright (C) 2019 Skyelar Craver <scravers@protonmail.com>
+                   and Steven Pitts <makusu2@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,10 +17,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-This script downloads a pre-built tor binary to bundle with OnionShare.
-In order to avoid a Mac gnupg dependency, I manually verify the signature
-and hard-code the sha256 hash.
 """
 import inspect
 import os
@@ -50,7 +47,7 @@ def main():
         "/Volumes", "Tor Browser", "Tor Browser.app", "Contents"
     )
     dmg_path = os.path.join(working_path, dmg_filename)
-    dist_path = os.path.join(root_path, "dist", "OnionShare.app", "Contents")
+    dist_path = os.path.join(root_path, "dist", "Hyperdome.app", "Contents")
 
     # Make sure the working folder exists
     if not os.path.exists(working_path):

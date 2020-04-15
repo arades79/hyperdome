@@ -27,14 +27,14 @@ from ..common.common import ShutdownTimer
 
 class HyperdomeServer(object):
     """
-    OnionShare is the main application class. Pass in options and run
+    hyperdome is the main application class. Pass in options and run
     start_onion_service and it will do the magic.
     """
 
     def __init__(self, common, onion, local_only=False, shutdown_timeout=0):
         self.common = common
 
-        self.common.log("OnionShare", "__init__")
+        self.common.log("hyperdome", "__init__")
 
         # The Onion object
         self.onion = onion
@@ -44,7 +44,7 @@ class HyperdomeServer(object):
         self.port = None
 
         # files and dirs to delete on shutdown
-        # Note: Was originally files used for onionshare, but we could use this
+        # Note: Was originally files used for hyperdome, but we could use this
         # to ensure all traces of the program are gone from the computer
         self.cleanup_filenames = []
 
@@ -64,9 +64,9 @@ class HyperdomeServer(object):
 
     def start_onion_service(self):
         """
-        Start the onionshare onion service.
+        Start the hyperdome onion service.
         """
-        self.common.log("OnionShare", "start_onion_service")
+        self.common.log("hyperdome", "start_onion_service")
 
         if not self.port:
             self.choose_port()
@@ -84,7 +84,7 @@ class HyperdomeServer(object):
         """
         Shut everything down and clean up temporary files, etc.
         """
-        self.common.log("OnionShare", "cleanup")
+        self.common.log("hyperdome", "cleanup")
 
         # Cleanup files
         try:

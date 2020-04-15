@@ -1,6 +1,6 @@
 #include <tunables/global>
 
-/usr/bin/onionshare {
+/usr/bin/Hyperdome {
   #include <abstractions/hyperdome_server>
 
   /usr/bin/ r,

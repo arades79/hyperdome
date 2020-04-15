@@ -41,9 +41,9 @@ class Alert(QtWidgets.QMessageBox):
 
         self.common.log("Alert", "__init__")
 
-        self.setWindowTitle("OnionShare")
+        self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
         self.setText(message)
         self.setIcon(icon)

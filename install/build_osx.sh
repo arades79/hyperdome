@@ -8,7 +8,7 @@ echo Deleting dist folder
 rm -rf $ROOT/dist &>/dev/null 2>&1
 
 # build the .app
-echo Building OnionShare.app
+echo Building Hyperdome.app
 pyinstaller $ROOT/install/pyinstaller.spec
 # TODO: download and bundle tor
 # python3 $ROOT/install/get-tor-osx.py

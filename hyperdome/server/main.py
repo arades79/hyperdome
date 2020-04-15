@@ -50,7 +50,7 @@ def main(cwd=None):
     # Display Hyperdome banner
     print(f"Hyperdome Server {common.version}")
 
-    # hyperdome in OSX needs to change current working directory (Onionshare #132)
+    # hyperdome in OSX needs to change current working directory (hyperdome #132)
     if platform_str == "Darwin" and cwd:
         os.chdir(cwd)
 
@@ -102,7 +102,6 @@ def main(cwd=None):
         print("")
         url = f"http://{app.onion_host}"
         print(strings._("give_this_url"))
-        print("Do not copy the slug (part after last /) for now")
         print(url)
         print()
         print(strings._("ctrlc_to_stop"))

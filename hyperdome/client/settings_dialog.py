@@ -24,7 +24,7 @@ import platform
 import re
 import os
 from ..common import strings
-from ..common.common import Common
+from ..common.common import Common, get_resource_path
 from ..common.settings import Settings
 from ..common.onion import (
     BundledTorTimeout,
@@ -73,7 +73,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setModal(True)
         self.setWindowTitle(strings._("gui_settings_window_title"))
         self.setWindowIcon(
-            QtGui.QIcon(self.common.get_resource_path("images/logo.png"))
+            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
         )
 
         self.system = platform.system()
@@ -100,10 +100,9 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_save_private_key_checkbox")
         )
         save_private_key_label = QtWidgets.QLabel(
-            strings._("gui_settings_whats_this").format(
-                "https://github.com/micahflee/onionshare/wiki/" "Using-a-Persistent-URL"
+            "https://github.com/arades79/hyperdome/"
             )
-        )
+
         save_private_key_label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
         save_private_key_label.setOpenExternalLinks(True)
         save_private_key_layout = QtWidgets.QHBoxLayout()
@@ -144,7 +143,7 @@ class SettingsDialog(QtWidgets.QDialog):
         onion_group = QtWidgets.QGroupBox(strings._("gui_settings_onion_label"))
         onion_group.setLayout(onion_group_layout)
 
-        # OnionShare data dir
+        # hyperdome data dir
         data_dir_label = QtWidgets.QLabel(strings._("gui_settings_data_dir_label"))
         self.data_dir_lineedit = QtWidgets.QLineEdit()
         self.data_dir_lineedit.setReadOnly(True)
@@ -169,7 +168,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
         # Bundled Tor doesn't work on dev mode in Windows or Mac
         if (self.system == "Windows" or self.system == "Darwin") and getattr(
-            sys, "onionshare_dev_mode", False
+            sys, "hyperdome_dev_mode", False
         ):
             self.connection_type_bundled_radio.setEnabled(False)
 
@@ -452,7 +451,7 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_settings_button_cancel")
         )
         self.cancel_button.clicked.connect(self.cancel_clicked)
-        version_label = QtWidgets.QLabel("OnionShare {0:s}".format(self.common.version))
+        version_label = QtWidgets.QLabel("hyperdome {0:s}".format(self.common.version))
         self.help_button = QtWidgets.QPushButton(strings._("gui_settings_button_help"))
         self.help_button.clicked.connect(self.help_clicked)
         self.clear_button = QtWidgets.QPushButton("Default Settings")
@@ -709,7 +708,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def data_dir_button_clicked(self):
         """
-        Browse for a new OnionShare data directory
+        Browse for a new hyperdome data directory
         """
         data_dir = self.data_dir_lineedit.text()
         selected_dir = QtWidgets.QFileDialog.getExistingDirectory(
@@ -796,7 +795,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
         settings = self.settings_from_fields()
         if settings is not None:
-            # If language changed, inform user they need to restart OnionShare
+            # If language changed, inform user they need to restart hyperdome
             if changed(settings, self.old_settings, ["locale"]):
                 # Look up error message in different locale
                 new_locale = settings.get("locale")
@@ -1041,7 +1040,7 @@ class SettingsDialog(QtWidgets.QDialog):
     def closeEvent(self, e):
         self.common.log("SettingsDialog", "closeEvent")
 
-        # On close, if Tor isn't connected, then quit OnionShare altogether
+        # On close, if Tor isn't connected, then quit hyperdome altogether
         if not self.local_only:
             if not self.onion.is_authenticated():
                 self.common.log(

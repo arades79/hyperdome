@@ -27,6 +27,6 @@ import sys
 @click.option("--debug", "-d", is_flag=True)
 def start(debug):
     if debug:
-        sys.onionshare_dev_mode = True
+        sys.hyperdome_dev_mode = True
     from ..main import main
     main()
