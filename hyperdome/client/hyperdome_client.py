@@ -209,7 +209,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Update UI with messages retrieved from server.
         """
 
-        sender_name = "counselor" if self.server.is_counselor else "user"
+        sender_name = "User" if self.server.is_counselor else "Counselor"
         message_list = [
             f"{sender_name}: {self.crypt.decrypt_incoming_message(message)}"
             for message in messages.split("\n")
