@@ -257,10 +257,6 @@ class Web(object):
                 return "user left", 404
             return "Success"
 
-        @app.route("/chat_status")
-        def chat_status():
-            user_id = request.form["user_id"]
-
         @app.route("/collect_messages", methods=["GET"])
         def collect_messages():
             user_id = request.form["user_id"]
