@@ -260,19 +260,20 @@ class Web(object):
         @app.route("/chat_status")
         def chat_status():
             user_id = request.form["user_id"]
+
+        @app.route("/collect_messages", methods=["GET"])
+        def collect_messages():
+            user_id = request.form["user_id"]
+            messages = self.pending_messages.pop(user_id, "")
             try:
-                return (
+                status = (
                     "CHAT_OVER"
                     if self.active_chat_user_map[user_id] == ""
                     else "CHAT_ACTIVE"
                 )
             except KeyError:
-                return "NO_CHAT"
-
-        @app.route("/collect_messages", methods=["GET"])
-        def collect_messages():
-            guest_id = request.form["user_id"]
-            return self.pending_messages.pop(guest_id, "")
+                status = "NO_CHAT"
+            return jsonify(status=status, messages=messages)
 
     def error404(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
