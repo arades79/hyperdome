@@ -1,5 +1,10 @@
 # Hyperdome Changelog
 
+## 0.2.1
+changed some build files so hyperdome is not flagged by antivirus on windows.
+
+Also tweaked linux build instructions and included binary linux builds
+
 ## 0.2
 A considerably more viable demo release!
 
