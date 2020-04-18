@@ -225,14 +225,21 @@ class GetMessagesTask(QtCore.QRunnable):
     @QtCore.pyqtSlot()
     def run(self):
         try:
-            new_messages = get_messages(self.server, self.session, self.uid)
-            self.signals.success.emit(new_messages)
+            message_response = get_messages(self.server, self.session, self.uid)
+            if message_response["chat_status"] == "CHAT_ACTIVE":
+                self.signals.success.emit(message_response["messages"])
+            elif message_response["chat_status"] == "CHAT_OVER":
+                self.signals.erroe.emit("chat ended")
+            elif message_response["chat_status"] == "NO_CHAT":
+                self.signals.error.emit("no chat session found")
         except requests.HTTPError:
             self.signals.error.emit("Counselor not in chat")
         except requests.RequestException:
             self.signals.error.emit("Error in get messages request")
         except MethodNotAllowed:
             self.signals.error.emit("not allowed")
+        except KeyError:
+            self.signals.error.emit("API error")
 
 
 class ProbeServerTask(QtCore.QRunnable):
@@ -350,7 +357,7 @@ def get_messages(server: Server, session: requests.Session, uid: str):
     """
     collect new messages waiting on server for active session
     """
-    return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).text
+    return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).json()
 
 
 def start_chat(

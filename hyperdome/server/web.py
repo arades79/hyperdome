@@ -266,14 +266,14 @@ class Web(object):
             user_id = request.form["user_id"]
             messages = self.pending_messages.pop(user_id, "")
             try:
-                status = (
+                chat_status = (
                     "CHAT_OVER"
                     if self.active_chat_user_map[user_id] == ""
                     else "CHAT_ACTIVE"
                 )
             except KeyError:
-                status = "NO_CHAT"
-            return jsonify(status=status, messages=messages)
+                chat_status = "NO_CHAT"
+            return jsonify(chat_status=chat_status, messages=messages)
 
     def error404(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
