@@ -40,9 +40,7 @@ class AddServerDialog(QtWidgets.QDialog):
         self.error_message = QtWidgets.QMessageBox(self)
 
         self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/logo.png"))
-        )
+        self.setWindowIcon(QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png")))
 
         self.is_counselor = False
 
@@ -142,7 +140,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.server.key = signer.export_key("123")  # TODO: use user provided password
         passcode = self.counselor_password_input.text()
         signature = signer.sign_message(passcode)
-        signup_task = threads.SignUpTask(self.server, self.session, signer.public_signing_key, passcode, signature)
+        signup_task = threads.SignUpTask(
+            self.server, self.session, signer.public_signing_key, passcode, signature
+        )
         signup_task.signals.error.connect(self.bad_server)
         signup_task.signals.success.connect(self.set_server)
         self.worker.start(signup_task)

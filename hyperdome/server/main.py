@@ -124,4 +124,3 @@ def main(cwd=None):
         # Shutdown
         app.cleanup()
         onion.cleanup()
-

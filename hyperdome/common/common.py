@@ -35,6 +35,7 @@ platform_str = platform.system()
 if platform_str.endswith("BSD"):
     platform_str = "BSD"
 
+
 def get_resource_path(filename):
     """
     Returns the absolute path of a resource, regardless of whether

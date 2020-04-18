@@ -45,6 +45,7 @@ def admin(ctx, debug):
         return
 
     from ..main import main
+
     main()
 
 
@@ -94,11 +95,13 @@ def remove(pubkey, file, all_, names):
     [click.echo(f"found counselor from file {f.name}") for f in file]
     [click.echo(f"counselor removed: {name.strip(',')}") for name in names]
 
+
 @admin.command()
 def generate():
     """generate a sign-up code for a new counselor"""
     from ..models import CounselorSignUp
     from ..app import db
+
     code = secrets.token_urlsafe(16)
     sign_up = CounselorSignUp(passphrase=code)
     db.session.add(sign_up)

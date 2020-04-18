@@ -101,7 +101,7 @@ class SettingsDialog(QtWidgets.QDialog):
         )
         save_private_key_label = QtWidgets.QLabel(
             "https://github.com/arades79/hyperdome/"
-            )
+        )
 
         save_private_key_label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
         save_private_key_label.setOpenExternalLinks(True)

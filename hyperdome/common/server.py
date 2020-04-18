@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import json
+
+
 class Server:
     """
     Holder class for server connection details
@@ -32,7 +34,14 @@ class Server:
 
         pass
 
-    def __init__(self, url: str = "", nick: str = "", username: str = "", key: str = "", is_counselor=False):
+    def __init__(
+        self,
+        url: str = "",
+        nick: str = "",
+        username: str = "",
+        key: str = "",
+        is_counselor=False,
+    ):
         self.url = url.strip()
         if url:
             self._check_url()
@@ -65,4 +74,3 @@ class Server:
 
     def to_json(self) -> str:
         return json.dumps(self, default=lambda o: o.__dict__)
-

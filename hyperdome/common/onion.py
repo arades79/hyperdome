@@ -34,6 +34,7 @@ from distutils.version import LooseVersion as Version
 from . import strings
 from .common import platform_str, get_resource_path
 
+
 class TorErrorAutomatic(Exception):
     """
     hyperdome is failing to connect and authenticate to the Tor controller,
@@ -163,10 +164,9 @@ class Onion(object):
         self.service_id = None
 
         # Is bundled tor supported?
-        self.bundle_tor_supported = platform_str in (
-            "Windows",
-            "Darwin",
-        ) and getattr(sys, "hyperdome_dev_mode", False)
+        self.bundle_tor_supported = platform_str in ("Windows", "Darwin",) and getattr(
+            sys, "hyperdome_dev_mode", False
+        )
 
         # Set the path of the tor binary, for bundled tor
         (
@@ -287,9 +287,7 @@ class Onion(object):
                             self.obfs4proxy_file_path
                         )
                     )
-                    with open(
-                        get_resource_path("torrc_template-obfs4")
-                    ) as o:
+                    with open(get_resource_path("torrc_template-obfs4")) as o:
                         for line in o:
                             f.write(line)
                 elif self.settings.get("tor_bridges_use_meek_lite_azure"):
@@ -298,9 +296,7 @@ class Onion(object):
                             self.obfs4proxy_file_path
                         )
                     )
-                    with open(
-                        get_resource_path("torrc_template-meek_lite_azure")
-                    ) as o:
+                    with open(get_resource_path("torrc_template-meek_lite_azure")) as o:
                         for line in o:
                             f.write(line)
 

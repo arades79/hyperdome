@@ -25,12 +25,11 @@ import queue
 import socket
 from urllib.request import urlopen
 import traceback
-import json
 import secrets
 import logging
 import base64
 from .app import app, db
-from flask import request, render_template, abort, make_response
+from flask import request, render_template, abort, make_response, jsonify
 
 
 class Web(object):
@@ -147,7 +146,11 @@ class Web(object):
         @app.route("/probe")
         def probe():
             self.info["online"] = str(len(self.counselors_available))
-            return json.dumps(self.info)
+            return jsonify(
+                name="hyperdome",
+                version=self.common.version,
+                online=len(self.counselors_available),
+            )
 
         @app.route("/request_counselor", methods=["POST"])
         def request_counselor():
@@ -182,7 +185,10 @@ class Web(object):
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
             self.pending_messages.pop(sid, "")
-            self.active_chat_user_map.update({other_user: ""})
+            try:
+                self.active_chat_user_map[other_user] = ""
+            except KeyError:
+                pass
             if sid in self.counselors_available:
                 counselor_id = sid
             elif other_user in self.counselors_available:
@@ -221,10 +227,12 @@ class Web(object):
             signup_code = request.form["signup_code"]
             signature = request.form["signature"]
             signature = base64.urlsafe_b64decode(signature)
-            activator = models.CounselorSignUp.query.filter_by(passphrase=signup_code).first_or_404()
+            activator = models.CounselorSignUp.query.filter_by(
+                passphrase=signup_code
+            ).first_or_404()
             db.session.delete(activator)
             counselor = models.Counselor(name=username, key_bytes=counselor_key)
-            if  counselor.verify(signature, signup_code):
+            if counselor.verify(signature, signup_code):
                 models.db.session.add(counselor)
                 models.db.session.commit()
                 return "Good"  # TODO: add better responses
@@ -252,22 +260,19 @@ class Web(object):
                 return "user left", 404
             return "Success"
 
-        @app.route("/chat_status")
-        def chat_status():
+        @app.route("/collect_messages", methods=["GET"])
+        def collect_messages():
             user_id = request.form["user_id"]
+            messages = self.pending_messages.pop(user_id, "")
             try:
-                return (
+                chat_status = (
                     "CHAT_OVER"
                     if self.active_chat_user_map[user_id] == ""
                     else "CHAT_ACTIVE"
                 )
             except KeyError:
-                return "NO_CHAT"
-
-        @app.route("/collect_messages", methods=["GET"])
-        def collect_messages():
-            guest_id = request.form["user_id"]
-            return self.pending_messages.pop(guest_id, "")
+                chat_status = "NO_CHAT"
+            return jsonify(chat_status=chat_status, messages=messages)
 
     def error404(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
@@ -396,7 +401,9 @@ class Web(object):
                 s = socket.socket()
                 s.connect(("127.0.0.1", port))
                 s.sendall(
-                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(self.shutdown_slug).encode()
+                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(
+                        self.shutdown_slug
+                    ).encode()
                 )
             except TypeError:
                 try:

@@ -29,4 +29,5 @@ def start(debug):
     if debug:
         sys.hyperdome_dev_mode = True
     from ..main import main
+
     main()
