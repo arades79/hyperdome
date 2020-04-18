@@ -323,6 +323,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     self.get_messages_task.signals.success.connect(
                         self.on_history_added
                     )
+                    self.get_messages_task.signals.success.connect(
+                        lambda _: self.disconnect_chat()
+                    )
 
                 self.poll_guest_key_task = threads.PollForConnectedGuestTask(
                     self.session, self.server, self.uid
@@ -358,10 +361,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         pub_key = self.crypt.public_chat_key
         if self.server.is_counselor:
-            self.crypt.import_key(self.server.key, '123')  # TODO: use private key encryption
+            self.crypt.import_key(
+                self.server.key, "123"
+            )  # TODO: use private key encryption
             signature = self.crypt.sign_message(pub_key)
         else:
-            signature = ''
+            signature = ""
 
         start_chat_task = threads.StartChatTask(
             self.server, self.session, self.uid, pub_key, signature
@@ -399,9 +404,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if a.clickedButton() == settings_button:
                 # Open settings
                 self.common.log(
-                    "hyperdome",
-                    "_tor_connection_canceled",
-                    "Settings button clicked",
+                    "hyperdome", "_tor_connection_canceled", "Settings button clicked",
                 )
                 self.open_settings()
 
