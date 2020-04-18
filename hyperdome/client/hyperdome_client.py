@@ -323,7 +323,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     self.get_messages_task.signals.success.connect(
                         self.on_history_added
                     )
-                    self.get_messages_task.signals.success.connect(
+                    self.get_messages_task.signals.error.connect(
                         lambda _: self.disconnect_chat()
                     )
 
@@ -352,6 +352,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 except TypeError:
                     pass
                 self.get_messages_task.signals.success.connect(self.on_history_added)
+                self.get_messages_task.signals.error.connect(
+                    lambda _: self.disconnect_chat()
+                )
             self.timer.start()
             self.start_chat_button.setText("Disconnect")
             self.start_chat_button.clicked.disconnect()

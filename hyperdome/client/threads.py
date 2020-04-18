@@ -229,9 +229,7 @@ class GetMessagesTask(QtCore.QRunnable):
             if message_response["chat_status"] == "CHAT_ACTIVE":
                 self.signals.success.emit(message_response["messages"])
             elif message_response["chat_status"] == "CHAT_OVER":
-                self.signals.erroe.emit("chat ended")
-            elif message_response["chat_status"] == "NO_CHAT":
-                self.signals.error.emit("no chat session found")
+                self.signals.error.emit("chat ended")
         except requests.HTTPError:
             self.signals.error.emit("Counselor not in chat")
         except requests.RequestException:
