@@ -129,4 +129,3 @@ def main():
 
     # All done
     sys.exit(qtapp.exec_())
-

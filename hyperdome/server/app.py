@@ -27,6 +27,7 @@ from ..common import common
 def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
     pass
 
+
 cli.show_server_banner = stubbed_show_server_banner
 
 # The flask app
@@ -35,8 +36,8 @@ app = Flask(
     static_folder=common.get_resource_path("static"),
     template_folder=common.get_resource_path("templates"),
 )
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{common.get_resource_path("hyperdome_server.db")}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = f'sqlite:///{common.get_resource_path("hyperdome_server.db")}'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = flask_sqlalchemy.SQLAlchemy(app)
-
-
