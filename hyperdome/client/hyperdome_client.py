@@ -473,8 +473,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.get_messages_task is not None:
             self.worker.tryTake(self.get_messages_task)
             self.get_messages_task = None
-        if self.is_connected:
-            self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
+        self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
         if self.server.is_counselor:
             self.worker.start(
                 threads.CounselorSignoutTask(self.session, self.server, self.uid)
@@ -485,7 +484,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.start_chat
         )
         self.start_chat_button.setEnabled(True)
-        self.is_connected = False
 
     def save_servers(self):
         with open(get_resource_path("servers.json"), "w") as f:

@@ -284,7 +284,7 @@ class EndChatTask(QtCore.QRunnable):
         try:
             self.session.post(
                 f"{self.server.url}/counseling_complete", data={"user_id": self.uid}
-            )
+            ).raise_for_status()
             self.signals.success.emit("good")
         except:
             self.signals.error.emit("you're stuck here now")
