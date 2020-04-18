@@ -185,7 +185,10 @@ class Web(object):
             other_user = self.active_chat_user_map[sid]
             self.active_chat_user_map.pop(sid)
             self.pending_messages.pop(sid, "")
-            self.active_chat_user_map.update({other_user: ""})
+            try:
+                self.active_chat_user_map[other_user] = ""
+            except KeyError:
+                pass
             if sid in self.counselors_available:
                 counselor_id = sid
             elif other_user in self.counselors_available:
