@@ -1,4 +1,4 @@
 #!/bin/bash
 
-pyinstaller install/scripts/hyperdome_client -y
-pyinstaller install/scripts/hyperdome_server -y
+eval pyinstaller install/hyperdome_client.spec -y
+eval pyinstaller install/hyperdome_server.spec -y

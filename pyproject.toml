@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hyperdome"
-version = "0.2.0"
+version = "0.2.1"
 description = "The safest place to reach out"
 authors = ["Skyelar Craver <scravers@protonmail.com>", "Steven Pitts <makusu2@gmail.com>"]
 license = "GPL-3.0-only"
@@ -18,7 +18,7 @@ pefile = "^2019.4.18"
 flask-sqlalchemy = "^2.4.1"
 
 [tool.poetry.dev-dependencies]
-pyinstaller = "3.6"
+pyinstaller = {git = "https://github.com/pyinstaller/pyinstaller.git", tag = "v3.6"}
 setuptools = "46.1.3"
 pytest = "5.4.1"
 pytest-qt = "3.3.0"
