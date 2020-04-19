@@ -21,6 +21,7 @@ Install the needed dependencies from your distro's package manager (names may no
 * python3-pyqt5
 * python3-cryptography
 * python3-socks
+* python3-sqlalchemy
 * tor
 * obfs4proxy
 * python3-pytest
