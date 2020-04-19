@@ -28,57 +28,11 @@ import sys
 import threading
 import time
 import secrets
+import pathlib
 
 from .settings import Settings
 
-platform_str = platform.system()
-if platform_str.endswith("BSD"):
-    platform_str = "BSD"
-
-
-def get_resource_path(filename):
-    """
-    Returns the absolute path of a resource, regardless of whether
-    hyperdome is installed systemwide, and whether regardless of platform_str
-    """
-    # On Windows, and in Windows dev mode, switch slashes in incoming
-    # filename to backslackes
-    if platform_str == "Windows":
-        filename = filename.replace("/", "\\")
-
-    if getattr(sys, "hyperdome_dev_mode", False):
-        # Look for resources directory relative to python file
-        prefix = os.path.join(
-            os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
-        )
-        if not os.path.exists(prefix):
-            # While running tests during stdeb bdist_deb, look 3
-            # directories up for the share folder
-            prefix = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(prefix)))
-                ),
-                "share",
-            )
-
-    elif platform_str == "BSD" or platform_str == "Linux":
-        # Assume hyperdome is installed systemwide in Linux, since we're
-        # not running in dev mode
-        prefix = os.path.join(sys.prefix, "share/hyperdome")
-
-    elif getattr(sys, "frozen", False):
-        # Check if app is "frozen"
-        # https://pythonhosted.org/PyInstaller/#run-time-information
-        if platform_str == "Darwin":
-            prefix = os.path.join(sys._MEIPASS, "share")
-        elif platform_str == "Windows":
-            prefix = os.path.join(os.path.dirname(sys.executable), "share")
-        else:
-            raise SystemError
-    else:
-        raise SystemError
-
-    return os.path.join(prefix, filename)
+resource_path = pathlib.Path(getattr(sys, "_MEIPASS", "."), "share")
 
 
 # TODO there's a lot of platform_str-specific pathing here, we can probably
