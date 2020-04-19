@@ -3,7 +3,9 @@
 ## 0.2.1
 changed some build files so hyperdome is not flagged by antivirus on windows.
 
-Also tweaked linux build instructions and included binary linux builds
+Also tweaked linux build instructions and included binary linux builds.
+
+The linux builds included were built on WSL and could not be properly tested due to WSL limitations
 
 ## 0.2
 A considerably more viable demo release!
