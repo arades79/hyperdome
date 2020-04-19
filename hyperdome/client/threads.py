@@ -382,7 +382,7 @@ def start_chat(
         ).text
 
 
-COMPATIBLE_SERVERS = ["0.2"]
+COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
 
 
 def probe_server(server: Server, session: requests.Session):

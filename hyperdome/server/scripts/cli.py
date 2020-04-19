@@ -31,7 +31,7 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_public_key,
 )
 
-version = "0.2.0"  # TODO: import version from pyproject.toml
+version = "0.2.1"  # TODO: import version from pyproject.toml
 
 
 @click.group(invoke_without_command=True)
