@@ -40,7 +40,7 @@ version = "0.2.1"  # TODO: import version from pyproject.toml
 @click.pass_context
 def admin(ctx, debug):
     if debug:
-        sys.hyperdome_dev_mode = True
+        setattr(sys, "hyperdome_dev_mode", True)
     if ctx.invoked_subcommand is not None:
         return
 

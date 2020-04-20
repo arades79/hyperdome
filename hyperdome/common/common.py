@@ -19,14 +19,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from pathlib import Path
+import platform
+import secrets
 import socket
 import sys
 import threading
 import time
-import secrets
-from pathlib import Path
+
 from .settings import Settings
-import platform
 from .utils import bootstrap
 
 
