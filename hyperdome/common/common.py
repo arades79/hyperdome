@@ -18,9 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import base64
-import hashlib
-import os
+
 import socket
 import sys
 import threading
@@ -43,6 +41,8 @@ class Common(object):
     """
     The Common object is shared amongst all parts of hyperdome.
     """
+
+    _data_dir = None
 
     def __init__(self, debug=False):
         self.debug = debug
@@ -68,10 +68,10 @@ class Common(object):
 
     def get_tor_paths(self):
         if platform_str == "Linux":
-            tor_path = "/usr/bin/tor"
-            tor_geo_ip_file_path = "/usr/share/tor/geoip"
-            tor_geo_ipv6_file_path = "/usr/share/tor/geoip6"
-            obfs4proxy_file_path = "/usr/bin/obfs4proxy"
+            tor_path = Path("/usr/bin/tor")
+            tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
+            tor_geo_ipv6_file_path = Path("/usr/share/tor/geoip6")
+            obfs4proxy_file_path = Path("/usr/bin/obfs4proxy")
         elif platform_str == "Windows":
             base_path = resource_path.parents[1] / "tor"
             tor_path = base_path / "Tor" / "tor.exe"
@@ -99,21 +99,24 @@ class Common(object):
             obfs4proxy_file_path,
         )
 
-    def build_data_dir(self):
+    @property
+    def data_dir(self):
         """
         Returns the path of the hyperdome data directory.
         """
-        if (appdata := Path('~', "AppData", "Roaming")).exists():
-           hyperdome_data_dir = appdata / "hyperdome"
+        if self._data_dir is not None:
+            return self._data_dir
+
+        if (appdata := Path("~", "AppData", "Roaming")).exists():
+            hyperdome_data_dir = appdata / "hyperdome"
         elif platform_str == "Darwin":
-            hyperdome_data_dir = Path(
-                "~/Library/Application Support/hyperdome"
-            )
+            hyperdome_data_dir = Path("~/Library/Application Support/hyperdome")
         else:
             hyperdome_data_dir = Path("~/.config/hyperdome")
 
-        hyperdome_data_dir.mkdir( 0o700, True)
-        return hyperdome_data_dir.resolve()
+        hyperdome_data_dir.mkdir(0o700, True)
+        self._data_dir = hyperdome_data_dir.resolve()
+        return self._data_dir
 
     @staticmethod
     def get_available_port(min_port, max_port):
