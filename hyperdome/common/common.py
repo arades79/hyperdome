@@ -20,19 +20,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
 import hashlib
-import inspect
 import os
-import platform
 import socket
 import sys
 import threading
 import time
 import secrets
-import pathlib
-
+from pathlib import Path
 from .settings import Settings
+import platform
 
-resource_path = pathlib.Path(getattr(sys, "_MEIPASS", "."), "share")
+platform_str = "BSD" if platform.system().endswith("BSD") else platform.system()
+
+resource_path = Path(getattr(sys, "_MEIPASS", "."), "share").resolve(strict=True)
+
+version = Path(resource_path, "version.txt").read_text().strip()
 
 
 # TODO there's a lot of platform_str-specific pathing here, we can probably
@@ -44,12 +46,6 @@ class Common(object):
 
     def __init__(self, debug=False):
         self.debug = debug
-
-        # The platform_str hyperdome is running on
-
-        # The current version of hyperdome
-        with open(get_resource_path("version.txt")) as f:
-            self.version = f.read().strip()
 
     def load_settings(self, config=""):
         """
@@ -77,38 +73,24 @@ class Common(object):
             tor_geo_ipv6_file_path = "/usr/share/tor/geoip6"
             obfs4proxy_file_path = "/usr/bin/obfs4proxy"
         elif platform_str == "Windows":
-            base_path = os.path.join(
-                os.path.dirname(os.path.dirname(get_resource_path(""))), "tor"
-            )
-            tor_path = os.path.join(os.path.join(base_path, "Tor"), "tor.exe")
-            obfs4proxy_file_path = os.path.join(
-                os.path.join(base_path, "Tor"), "obfs4proxy.exe"
-            )
-            tor_geo_ip_file_path = os.path.join(
-                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip"
-            )
-            tor_geo_ipv6_file_path = os.path.join(
-                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip6"
-            )
+            base_path = resource_path.parents[1] / "tor"
+            tor_path = base_path / "Tor" / "tor.exe"
+            obfs4proxy_file_path = base_path / "Tor" / "obfs4proxy.exe"
+            tor_geo_ip_file_path = base_path / "Data" / "Tor" / "geoip"
+            tor_geo_ipv6_file_path = base_path / "Data" / "Tor" / "geoip6"
         elif platform_str == "Darwin":
-            base_path = os.path.dirname(
-                os.path.dirname(os.path.dirname(get_resource_path("")))
-            )
-            tor_path = os.path.join(base_path, "Resources", "Tor", "tor")
-            tor_geo_ip_file_path = os.path.join(base_path, "Resources", "Tor", "geoip")
-            tor_geo_ipv6_file_path = os.path.join(
-                base_path, "Resources", "Tor", "geoip6"
-            )
-            obfs4proxy_file_path = os.path.join(
-                base_path, "Resources", "Tor", "obfs4proxy"
-            )
+            base_path = resource_path.parents[1]
+            tor_path = base_path / "Resources" / "Tor" / "tor"
+            tor_geo_ip_file_path = base_path / "Resources" / "Tor" / "geoip"
+            tor_geo_ipv6_file_path = base_path / "Resources" / "Tor" / "geoip6"
+            obfs4proxy_file_path = base_path / "Resources" / "Tor" / "obfs4proxy"
         elif platform_str == "BSD":
-            tor_path = "/usr/local/bin/tor"
-            tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
-            tor_geo_ipv6_file_path = "/usr/local/share/tor/geoip6"
-            obfs4proxy_file_path = "/usr/local/bin/obfs4proxy"
+            tor_path = Path("/usr/local/bin/tor")
+            tor_geo_ip_file_path = Path("/usr/local/share/tor/geoip")
+            tor_geo_ipv6_file_path = Path("/usr/local/share/tor/geoip6")
+            obfs4proxy_file_path = Path("/usr/local/bin/obfs4proxy")
         else:
-            raise OSError("Host platform_str not supported")
+            raise OSError("Host platform not supported")
 
         return (
             tor_path,
@@ -121,34 +103,17 @@ class Common(object):
         """
         Returns the path of the hyperdome data directory.
         """
-        if platform_str == "Windows":
-            if "APPDATA" in os.environ:
-                appdata = os.environ["APPDATA"]
-                hyperdome_data_dir = "{}\\hyperdome".format(appdata)
-            else:
-                # If for some reason we don't have the 'APPDATA' environment
-                # variable (like running tests in Linux while pretending
-                # to be in Windows)
-                hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
+        if (appdata := Path('~', "AppData", "Roaming")).exists():
+           hyperdome_data_dir = appdata / "hyperdome"
         elif platform_str == "Darwin":
-            hyperdome_data_dir = os.path.expanduser(
+            hyperdome_data_dir = Path(
                 "~/Library/Application Support/hyperdome"
             )
         else:
-            hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
+            hyperdome_data_dir = Path("~/.config/hyperdome")
 
-        os.makedirs(hyperdome_data_dir, 0o700, True)
-        return hyperdome_data_dir
-
-    @staticmethod
-    def random_string(num_bytes, output_len=None):
-        """
-        Returns a random string with a specified number of bytes.
-        """
-        b = secrets.token_bytes(num_bytes)
-        h = hashlib.sha256(b).digest()[:16]
-        s = base64.b32encode(h).lower().replace(b"=", b"").decode("utf-8")
-        return s[:output_len] if output_len else s
+        hyperdome_data_dir.mkdir( 0o700, True)
+        return hyperdome_data_dir.resolve()
 
     @staticmethod
     def get_available_port(min_port, max_port):
