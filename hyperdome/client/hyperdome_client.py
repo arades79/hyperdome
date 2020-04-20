@@ -76,7 +76,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumWidth(500)
         self.setMinimumHeight(660)
         self.setWindowTitle("hyperdome")
-        self.setWindowIcon(QtGui.QIcon(resource_path / "images/hyperdome_logo_100.png"))
+        self.setWindowIcon(
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
+        )
 
         # make dialog for error messages
         self.error_window = Alert(self.common, "", autostart=False)
@@ -106,7 +108,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         self.system_tray.setIcon(
-            QtGui.QIcon(resource_path / "images" / "hyperdome_logo_100.png")
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
@@ -115,7 +117,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setIcon(
-            QtGui.QIcon(resource_path / "images" / "settings_black_18dp.png")
+            QtGui.QIcon(str(resource_path / "images" / "settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
 

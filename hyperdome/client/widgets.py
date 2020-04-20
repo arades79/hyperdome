@@ -43,7 +43,7 @@ class Alert(QtWidgets.QMessageBox):
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(resource_path / "images" / "hyperdome_logo_100.png")
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
         self.setText(message)
         self.setIcon(icon)

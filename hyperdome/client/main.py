@@ -71,7 +71,7 @@ def main():
     strings.load_strings(common)
 
     # Display hyperdome banner
-    print(strings._("version_string").format(version))
+    print(f"Hyperdome {version} | https://github.com/arades79/hyperdome")
 
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/
