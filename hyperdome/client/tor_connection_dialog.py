@@ -18,14 +18,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtCore, QtWidgets, QtGui
+import time
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..common import strings
+from ..common.common import resource_path
 from ..common.onion import BundledTorCanceled
-from ..common.common import get_resource_path
-
 from .widgets import Alert
-import time
 
 
 class TorConnectionDialog(QtWidgets.QProgressDialog):
@@ -49,7 +49,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
         self.setModal(True)
         self.setFixedSize(400, 150)

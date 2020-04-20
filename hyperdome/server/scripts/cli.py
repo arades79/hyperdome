@@ -19,19 +19,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import click
-import sys
-import os
-import json
 import secrets
-from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
-from cryptography.hazmat.primitives.serialization import (
-    load_ssh_public_key,
-    load_der_public_key,
-    load_pem_public_key,
-)
+import sys
 
-version = "0.2.1"  # TODO: import version from pyproject.toml
+import click
+
+from ...common.common import version
 
 
 @click.group(invoke_without_command=True)
@@ -40,7 +33,7 @@ version = "0.2.1"  # TODO: import version from pyproject.toml
 @click.pass_context
 def admin(ctx, debug):
     if debug:
-        sys.hyperdome_dev_mode = True
+        setattr(sys, "hyperdome_dev_mode", True)
     if ctx.invoked_subcommand is not None:
         return
 

@@ -18,9 +18,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import flask_sqlalchemy
 from flask import Flask, cli
-from ..common import common
+import flask_sqlalchemy
+
+from ..common.common import data_path, resource_path
 
 # Stub out flask's show_server_banner function, to avoiding showing
 # warnings that are not applicable to hyperdome
@@ -33,11 +34,10 @@ cli.show_server_banner = stubbed_show_server_banner
 # The flask app
 app = Flask(
     __name__,
-    static_folder=common.get_resource_path("static"),
-    template_folder=common.get_resource_path("templates"),
+    static_folder=str(resource_path / "static"),
+    template_folder=str(resource_path / "templates"),
 )
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = f'sqlite:///{common.get_resource_path("hyperdome_server.db")}'
+app.config["SQLALCHEMY_DATABASE_URI"] = f'sqlite:///{data_path / "hyperdome_server.db"}'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = flask_sqlalchemy.SQLAlchemy(app)

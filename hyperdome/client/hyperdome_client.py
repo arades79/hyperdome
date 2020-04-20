@@ -18,21 +18,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtCore, QtWidgets, QtGui
-
-from ..common import strings
-
-from .tor_connection_dialog import TorConnectionDialog
-from .settings_dialog import SettingsDialog
-from .widgets import Alert
-from .add_server_dialog import AddServerDialog
-from ..common.server import Server
-from . import threads
-from ..common import encryption
-from ..common.common import get_resource_path
-
-import requests
 import json
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+import requests
+
+from . import threads
+from ..common import strings
+from ..common import encryption
+from ..common.common import resource_path
+from ..common.server import Server
+from .add_server_dialog import AddServerDialog
+from .settings_dialog import SettingsDialog
+from .tor_connection_dialog import TorConnectionDialog
+from .widgets import Alert
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -78,7 +77,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setMinimumHeight(660)
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
 
         # make dialog for error messages
@@ -109,7 +108,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.system_tray = QtWidgets.QSystemTrayIcon(self)
         self.system_tray.setIcon(
-            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
         self.system_tray.setContextMenu(menu)
         self.system_tray.show()
@@ -118,7 +117,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setDefault(False)
         self.settings_button.setIcon(
-            QtGui.QIcon(get_resource_path("images/settings_black_18dp.png"))
+            QtGui.QIcon(str(resource_path / "images" / "settings_black_18dp.png"))
         )
         self.settings_button.clicked.connect(self.open_settings)
 
@@ -486,13 +485,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(True)
 
     def save_servers(self):
-        with open(get_resource_path("servers.json"), "w") as f:
-            f.write(json.dumps(self.servers, default=lambda o: o.__dict__))
+        resource_path.joinpath("servers.json").write_text(
+            json.dumps(self.servers, default=lambda o: o.__dict__)
+        )
 
     def load_servers(self):
         try:
-            with open(get_resource_path("servers.json"), "r") as f:
-                servers_str = f.read()
+            servers_str = resource_path.joinpath("servers.json").read_text()
             servers_dict = json.loads(servers_str) if servers_str else {}
             self.servers = {key: Server(**value) for key, value in servers_dict.items()}
         except FileNotFoundError:

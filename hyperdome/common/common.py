@@ -18,71 +18,244 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import base64
-import hashlib
-import inspect
-import os
+
+import json
+import locale
+from pathlib import Path
 import platform
+import secrets
 import socket
 import sys
 import threading
 import time
-import secrets
+import typing
 
-from .settings import Settings
-
-platform_str = platform.system()
-if platform_str.endswith("BSD"):
-    platform_str = "BSD"
+from .utils import bootstrap
 
 
-def get_resource_path(filename):
+platform_str = "BSD" if platform.system().endswith("BSD") else platform.system()
+
+resource_path = Path(getattr(sys, "_MEIPASS", "."), "share").resolve(strict=True)
+
+version = Path(resource_path, "version.txt").read_text().strip()
+
+
+@bootstrap
+def data_path() -> Path:
     """
-    Returns the absolute path of a resource, regardless of whether
-    hyperdome is installed systemwide, and whether regardless of platform_str
+    Returns the path of the hyperdome data directory.
     """
-    # On Windows, and in Windows dev mode, switch slashes in incoming
-    # filename to backslackes
-    if platform_str == "Windows":
-        filename = filename.replace("/", "\\")
-
-    if getattr(sys, "hyperdome_dev_mode", False):
-        # Look for resources directory relative to python file
-        prefix = os.path.join(
-            os.path.abspath(inspect.getfile(inspect.currentframe())), "share",
-        )
-        if not os.path.exists(prefix):
-            # While running tests during stdeb bdist_deb, look 3
-            # directories up for the share folder
-            prefix = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(prefix)))
-                ),
-                "share",
-            )
-
-    elif platform_str == "BSD" or platform_str == "Linux":
-        # Assume hyperdome is installed systemwide in Linux, since we're
-        # not running in dev mode
-        prefix = os.path.join(sys.prefix, "share/hyperdome")
-
-    elif getattr(sys, "frozen", False):
-        # Check if app is "frozen"
-        # https://pythonhosted.org/PyInstaller/#run-time-information
-        if platform_str == "Darwin":
-            prefix = os.path.join(sys._MEIPASS, "share")
-        elif platform_str == "Windows":
-            prefix = os.path.join(os.path.dirname(sys.executable), "share")
-        else:
-            raise SystemError
+    home = Path.home()
+    if (appdata := (home / "AppData" / "Roaming")).exists():
+        hyperdome_data_dir = appdata / "hyperdome"
+    elif platform_str == "Darwin":
+        hyperdome_data_dir = home / "Library" / "Application Support" / "hyperdome"
     else:
-        raise SystemError
+        hyperdome_data_dir = home / ".config" / "hyperdome"
+    if not hyperdome_data_dir.is_dir():
+        hyperdome_data_dir.mkdir(0o700)
+    return hyperdome_data_dir.resolve()
 
-    return os.path.join(prefix, filename)
+
+@bootstrap
+def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
+    if platform_str == "Linux":
+        tor_path = Path("/usr/bin/tor")
+        tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
+        tor_geo_ipv6_file_path = Path("/usr/share/tor/geoip6")
+        obfs4proxy_file_path = Path("/usr/bin/obfs4proxy")
+    elif platform_str == "Windows":
+        base_path = resource_path.parents[1] / "tor"
+        tor_path = base_path / "Tor" / "tor.exe"
+        obfs4proxy_file_path = base_path / "Tor" / "obfs4proxy.exe"
+        tor_geo_ip_file_path = base_path / "Data" / "Tor" / "geoip"
+        tor_geo_ipv6_file_path = base_path / "Data" / "Tor" / "geoip6"
+    elif platform_str == "Darwin":
+        base_path = resource_path.parents[1]
+        tor_path = base_path / "Resources" / "Tor" / "tor"
+        tor_geo_ip_file_path = base_path / "Resources" / "Tor" / "geoip"
+        tor_geo_ipv6_file_path = base_path / "Resources" / "Tor" / "geoip6"
+        obfs4proxy_file_path = base_path / "Resources" / "Tor" / "obfs4proxy"
+    elif platform_str == "BSD":
+        tor_path = Path("/usr/local/bin/tor")
+        tor_geo_ip_file_path = Path("/usr/local/share/tor/geoip")
+        tor_geo_ipv6_file_path = Path("/usr/local/share/tor/geoip6")
+        obfs4proxy_file_path = Path("/usr/local/bin/obfs4proxy")
+    else:
+        raise OSError("Host platform not supported")
+
+    return (
+        tor_path,
+        tor_geo_ip_file_path,
+        tor_geo_ipv6_file_path,
+        obfs4proxy_file_path,
+    )
 
 
-# TODO there's a lot of platform_str-specific pathing here, we can probably
-# just use pathlib to get rid of a lot of code
+def get_available_port(min_port: int, max_port: int) -> int:
+    """
+    Find a random available port within the given range.
+    """
+    with socket.socket() as tmpsock:
+        while True:
+            try:
+                tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
+                break
+            except OSError:
+                pass
+        _, port = tmpsock.getsockname()
+    return port
+
+
+class Settings(object):
+    """
+    This class stores all of the settings for hyperdome, specifically for how
+    to connect to Tor. If it can't find the settings file, it uses the default,
+    which is to attempt to connect automatically using default Tor Browser
+    settings.
+    """
+
+    def __init__(self, common, config: str = ""):
+        self.common = common
+
+        self.common.log("Settings", "__init__")
+
+        # If a readable config file was provided, use that
+        if config:
+            if (config_path := Path(config)).exists():
+                self.filename = config_path
+            else:
+                self.common.log(
+                    "Settings",
+                    "__init__",
+                    "Supplied config does not exist or is "
+                    "unreadable. Falling back to default location",
+                )
+        else:
+            self.filename: Path = data_path / "hyperdome.json"
+
+        # Dictionary of available languages in this version of hyperdome,
+        # mapped to the language name, in that language
+        self.available_locales = {
+            # 'bn': 'বাংলা',       # Bengali
+            # 'ca': 'Català',     # Catalan
+            # 'da': 'Dansk',      # Danish
+            "en": "English",  # English
+            # 'fr': 'Français',   # French
+            # 'el': 'Ελληνικά',   # Greek
+            # 'it': 'Italiano',   # Italian
+            # 'ja': '日本語',      # Japanese
+            # 'fa': 'فارسی',      # Persian
+            # 'pt_BR': 'Português (Brasil)',  # Portuguese Brazil
+            # 'ru': 'Русский',    # Russian
+            # 'es': 'Español',    # Spanish
+            # 'sv': 'Svenska'     # Swedish
+        }
+
+        # These are the default settings. They will get overwritten when
+        # loading from disk
+        self.default_settings = {
+            "version": version,
+            "connection_type": "automatic",
+            "control_port_address": "127.0.0.1",
+            "control_port_port": 9051,
+            "socks_address": "127.0.0.1",
+            "socks_port": 9050,
+            "socket_file_path": "/var/run/tor/control",
+            "auth_type": "no_auth",
+            "auth_password": "",
+            "shutdown_timeout": False,
+            "autoupdate_timestamp": None,
+            "no_bridges": True,
+            "tor_bridges_use_obfs4": False,
+            "tor_bridges_use_meek_lite_azure": False,
+            "tor_bridges_use_custom_bridges": "",
+            "save_private_key": True,  # should be renamed for clarity,
+            # perhaps "use ephemeral"
+            "private_key": "",
+            "hidservauth_string": "",
+            "locale": None,  # this gets defined in fill_in_defaults()
+        }
+        self._settings: dict[str] = {}
+        self.fill_in_defaults()
+
+    def fill_in_defaults(self):
+        """
+        If there are any missing settings from self._settings, replace them
+        with their default values.
+        """
+        for key in self.default_settings:
+            if key not in self._settings:
+                self._settings[key] = self.default_settings[key]
+
+        # Choose the default locale based on the OS preference, and fall-back
+        # to English
+        if self._settings["locale"] is None:
+            language_code, _ = locale.getdefaultlocale()
+
+            # Default to English
+            if not language_code:
+                language_code = "en_US"
+
+            if language_code == "pt_PT" and language_code == "pt_BR":
+                # Steven: What? How would this be possible unless
+                # it's overriding the == operator in a stupid way?
+                # Portuguese locales include country code
+                default_locale = language_code
+            else:
+                # All other locales cut off the country code
+                default_locale = language_code[:2]
+
+            if default_locale not in self.available_locales:
+                default_locale = "en"
+            self._settings["locale"] = default_locale
+
+    def load(self):
+        """
+        Load the settings from file.
+        """
+        self.common.log("Settings", "load")
+
+        # If the settings file exists, load it
+        if self.filename.exists():
+            self.common.log(
+                "Settings", "load", "Trying to load {}".format(self.filename)
+            )
+            self._settings = json.loads(self.filename.read_text())
+            self.fill_in_defaults()
+
+    def save(self):
+        """
+        Save settings to file.
+        """
+        self.common.log("Settings", "save")
+        self.filename.write_text(json.dumps(self._settings))
+        self.common.log(
+            "Settings", "save", "Settings saved in {}".format(self.filename)
+        )
+
+    def get(self, key: str):
+        return self._settings[key]
+
+    def set(self, key: str, val):
+        # If typecasting int values fails, fallback to default values
+        if key in ("control_port_port", "socks_port"):
+            try:
+                val = int(val)
+            except ValueError:
+                val = self.default_settings[key]
+
+        self._settings[key] = val
+
+    def clear(self):
+        """
+        Clear all settings and re-initialize to defaults
+        """
+        self._settings = self.default_settings
+        self.fill_in_defaults()
+        self.save()
+
+
 class Common(object):
     """
     The Common object is shared amongst all parts of hyperdome.
@@ -90,12 +263,6 @@ class Common(object):
 
     def __init__(self, debug=False):
         self.debug = debug
-
-        # The platform_str hyperdome is running on
-
-        # The current version of hyperdome
-        with open(get_resource_path("version.txt")) as f:
-            self.version = f.read().strip()
 
     def load_settings(self, config=""):
         """
@@ -115,103 +282,6 @@ class Common(object):
             if msg:
                 final_msg = "{}: {}".format(final_msg, msg)
             print(final_msg)
-
-    def get_tor_paths(self):
-        if platform_str == "Linux":
-            tor_path = "/usr/bin/tor"
-            tor_geo_ip_file_path = "/usr/share/tor/geoip"
-            tor_geo_ipv6_file_path = "/usr/share/tor/geoip6"
-            obfs4proxy_file_path = "/usr/bin/obfs4proxy"
-        elif platform_str == "Windows":
-            base_path = os.path.join(
-                os.path.dirname(os.path.dirname(get_resource_path(""))), "tor"
-            )
-            tor_path = os.path.join(os.path.join(base_path, "Tor"), "tor.exe")
-            obfs4proxy_file_path = os.path.join(
-                os.path.join(base_path, "Tor"), "obfs4proxy.exe"
-            )
-            tor_geo_ip_file_path = os.path.join(
-                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip"
-            )
-            tor_geo_ipv6_file_path = os.path.join(
-                os.path.join(os.path.join(base_path, "Data"), "Tor"), "geoip6"
-            )
-        elif platform_str == "Darwin":
-            base_path = os.path.dirname(
-                os.path.dirname(os.path.dirname(get_resource_path("")))
-            )
-            tor_path = os.path.join(base_path, "Resources", "Tor", "tor")
-            tor_geo_ip_file_path = os.path.join(base_path, "Resources", "Tor", "geoip")
-            tor_geo_ipv6_file_path = os.path.join(
-                base_path, "Resources", "Tor", "geoip6"
-            )
-            obfs4proxy_file_path = os.path.join(
-                base_path, "Resources", "Tor", "obfs4proxy"
-            )
-        elif platform_str == "BSD":
-            tor_path = "/usr/local/bin/tor"
-            tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
-            tor_geo_ipv6_file_path = "/usr/local/share/tor/geoip6"
-            obfs4proxy_file_path = "/usr/local/bin/obfs4proxy"
-        else:
-            raise OSError("Host platform_str not supported")
-
-        return (
-            tor_path,
-            tor_geo_ip_file_path,
-            tor_geo_ipv6_file_path,
-            obfs4proxy_file_path,
-        )
-
-    def build_data_dir(self):
-        """
-        Returns the path of the hyperdome data directory.
-        """
-        if platform_str == "Windows":
-            if "APPDATA" in os.environ:
-                appdata = os.environ["APPDATA"]
-                hyperdome_data_dir = "{}\\hyperdome".format(appdata)
-            else:
-                # If for some reason we don't have the 'APPDATA' environment
-                # variable (like running tests in Linux while pretending
-                # to be in Windows)
-                hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
-        elif platform_str == "Darwin":
-            hyperdome_data_dir = os.path.expanduser(
-                "~/Library/Application Support/hyperdome"
-            )
-        else:
-            hyperdome_data_dir = os.path.expanduser("~/.config/hyperdome")
-
-        os.makedirs(hyperdome_data_dir, 0o700, True)
-        return hyperdome_data_dir
-
-    @staticmethod
-    def random_string(num_bytes, output_len=None):
-        """
-        Returns a random string with a specified number of bytes.
-        """
-        b = secrets.token_bytes(num_bytes)
-        h = hashlib.sha256(b).digest()[:16]
-        s = base64.b32encode(h).lower().replace(b"=", b"").decode("utf-8")
-        return s[:output_len] if output_len else s
-
-    @staticmethod
-    def get_available_port(min_port, max_port):
-        """
-        Find a random available port within the given range.
-        """
-        with socket.socket() as tmpsock:
-            while True:
-                try:
-                    tmpsock.bind(
-                        ("127.0.0.1", secrets.choice(range(min_port, max_port)))
-                    )
-                    break
-                except OSError:
-                    pass
-            _, port = tmpsock.getsockname()
-        return port
 
 
 class ShutdownTimer(threading.Thread):

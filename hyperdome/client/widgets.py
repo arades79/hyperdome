@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtWidgets, QtGui
-from ..common.common import get_resource_path
+from ..common.common import resource_path
 
 
 class Alert(QtWidgets.QMessageBox):
@@ -43,7 +43,7 @@ class Alert(QtWidgets.QMessageBox):
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
         self.setText(message)
         self.setIcon(icon)

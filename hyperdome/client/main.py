@@ -18,13 +18,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import sys
 import argparse
 import signal
+import sys
+
 from PyQt5 import QtCore, QtWidgets
 
 from ..common import strings
-from ..common.common import Common, platform_str
+from ..common.common import Common, platform_str, version
 from ..common.onion import Onion
 from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
@@ -70,7 +71,7 @@ def main():
     strings.load_strings(common)
 
     # Display hyperdome banner
-    print(strings._("version_string").format(common.version))
+    print(f"Hyperdome {version} | https://github.com/arades79/hyperdome")
 
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/

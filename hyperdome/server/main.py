@@ -21,14 +21,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-import time
 import threading
+import time
 
 from ..common import strings
-from ..common.common import Common, platform_str, get_resource_path
-from .web import Web
-from ..common.onion import TorErrorProtocolError, TorTooOld, Onion
+from ..common.common import Common, platform_str, version
+from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
+from .web import Web
 
 
 def main(cwd=None):
@@ -48,7 +48,7 @@ def main(cwd=None):
     strings.load_strings(common)
 
     # Display Hyperdome banner
-    print(f"Hyperdome Server {common.version}")
+    print(f"Hyperdome Server {version}")
 
     # hyperdome in OSX needs to change current working directory (hyperdome #132)
     if platform_str == "Darwin" and cwd:

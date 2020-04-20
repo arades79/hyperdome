@@ -71,6 +71,3 @@ class Server:
             # TODO: add debugging logger
             # print(f"{key_len=}\t{last_char=}")
             raise self.InvalidOnionAddress()
-
-    def to_json(self) -> str:
-        return json.dumps(self, default=lambda o: o.__dict__)
