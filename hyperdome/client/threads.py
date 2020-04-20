@@ -18,26 +18,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import functools
+import json
 import time
-import requests
-from PyQt5 import QtCore
 
-from ..common.server import Server
+from PyQt5 import QtCore
+import requests
+from werkzeug.exceptions import MethodNotAllowed
+
 from ..common.onion import (
     BundledTorTimeout,
-    TorErrorProtocolError,
     TorErrorAuthError,
-    TorErrorUnreadableCookieFile,
-    TorErrorMissingPassword,
-    TorErrorSocketFile,
-    TorErrorSocketPort,
     TorErrorAutomatic,
     TorErrorInvalidSetting,
+    TorErrorMissingPassword,
+    TorErrorProtocolError,
+    TorErrorSocketFile,
+    TorErrorSocketPort,
+    TorErrorUnreadableCookieFile,
     TorTooOld,
 )
-from werkzeug.exceptions import MethodNotAllowed
-import json
-import functools
+from ..common.server import Server
 
 
 class OnionThread(QtCore.QThread):

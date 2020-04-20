@@ -19,8 +19,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import typing
 import functools
+import typing
+
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 
 bstr = typing.Union[str, bytes]

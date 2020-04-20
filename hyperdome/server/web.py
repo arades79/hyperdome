@@ -18,18 +18,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import base64
 import hmac
-from . import models
+import logging
 import os
 import queue
-import socket
-from urllib.request import urlopen
-import traceback
 import secrets
-import logging
-import base64
+import socket
+import traceback
+from urllib.request import urlopen
+
+from flask import abort, jsonify, make_response, render_template, request
+
+from . import models
 from .app import app, db
-from flask import request, render_template, abort, make_response, jsonify
 
 
 class Web(object):

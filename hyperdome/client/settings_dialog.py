@@ -18,30 +18,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtCore, QtWidgets, QtGui
-import sys
+import os
 import platform
 import re
-import os
+import sys
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from ..common import strings
-from ..common.common import Common, get_resource_path
-from ..common.settings import Settings
+from ..common.common import Common, resource_path, tor_paths, version
 from ..common.onion import (
-    BundledTorTimeout,
     BundledTorNotSupported,
-    TorErrorProtocolError,
+    BundledTorTimeout,
+    Onion,
     TorErrorAuthError,
-    TorErrorUnreadableCookieFile,
-    TorErrorMissingPassword,
-    TorErrorSocketFile,
-    TorErrorSocketPort,
     TorErrorAutomatic,
     TorErrorInvalidSetting,
-    Onion,
+    TorErrorMissingPassword,
+    TorErrorProtocolError,
+    TorErrorSocketFile,
+    TorErrorSocketPort,
+    TorErrorUnreadableCookieFile,
 )
-
-from .widgets import Alert
+from ..common.settings import Settings
 from .tor_connection_dialog import TorConnectionDialog
+from .widgets import Alert
 
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -56,7 +57,7 @@ class SettingsDialog(QtWidgets.QDialog):
         common: Common,
         onion: Onion,
         qtapp: QtWidgets.QApplication,
-        has_config: bool = False,
+        config_file: str = "",
         local_only: bool = False,
     ):
         super(SettingsDialog, self).__init__()
@@ -67,13 +68,13 @@ class SettingsDialog(QtWidgets.QDialog):
 
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
-        self.has_config: bool = has_config
+        self.has_config: str = config_file
         self.local_only: bool = local_only
 
         self.setModal(True)
         self.setWindowTitle(strings._("gui_settings_window_title"))
         self.setWindowIcon(
-            QtGui.QIcon(get_resource_path("images/hyperdome_logo_100.png"))
+            QtGui.QIcon(resource_path / "images" / "hyperdome_logo_100.png")
         )
 
         self.system = platform.system()
@@ -189,7 +190,7 @@ class SettingsDialog(QtWidgets.QDialog):
             self.tor_geo_ip_file_path,
             self.tor_geo_ipv6_file_path,
             self.obfs4proxy_file_path,
-        ) = self.common.get_tor_paths()
+        ) = tor_paths
         if not os.path.isfile(self.obfs4proxy_file_path):
             self.tor_bridges_use_obfs4_radio = QtWidgets.QRadioButton(
                 strings._(
@@ -213,7 +214,7 @@ class SettingsDialog(QtWidgets.QDialog):
             self.tor_geo_ip_file_path,
             self.tor_geo_ipv6_file_path,
             self.obfs4proxy_file_path,
-        ) = self.common.get_tor_paths()
+        ) = tor_paths
         if not os.path.isfile(self.obfs4proxy_file_path):
             self.meek_lite_bridge_radio = QtWidgets.QRadioButton(
                 strings._(
@@ -451,7 +452,7 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_settings_button_cancel")
         )
         self.cancel_button.clicked.connect(self.cancel_clicked)
-        version_label = QtWidgets.QLabel("hyperdome {0:s}".format(self.common.version))
+        version_label = QtWidgets.QLabel("hyperdome {0:s}".format(version))
         self.help_button = QtWidgets.QPushButton(strings._("gui_settings_button_help"))
         self.help_button.clicked.connect(self.help_clicked)
         self.clear_button = QtWidgets.QPushButton("Default Settings")

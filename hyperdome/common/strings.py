@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import json
 import os
 
-from .common import get_resource_path
+from .common import resource_path
 
 strings = {}
 translations = {}
@@ -36,11 +36,11 @@ def load_strings(common):
 
     # Load all translations
     translations = {}
+    locale_path = resource_path / "locale"
+
     for locale in common.settings.available_locales:
-        locale_dir = get_resource_path("locale")
-        filename = os.path.join(locale_dir, "{}.json".format(locale))
-        with open(filename, encoding="utf-8") as f:
-            translations[locale] = json.load(f)
+        filename = locale_path / f"{locale}.json"
+        translations[locale] = json.loads(filename.read_text(encoding="utf-8"))
 
     # Build strings
     default_locale = "en"

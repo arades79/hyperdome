@@ -34,12 +34,10 @@ cli.show_server_banner = stubbed_show_server_banner
 # The flask app
 app = Flask(
     __name__,
-    static_folder= str(resource_path / "static"),
-    template_folder= str(resource_path / "templates"),
+    static_folder=str(resource_path / "static"),
+    template_folder=str(resource_path / "templates"),
 )
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = f'sqlite:///{data_path / "hyperdome_server.db"}'
+app.config["SQLALCHEMY_DATABASE_URI"] = f'sqlite:///{data_path / "hyperdome_server.db"}'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = flask_sqlalchemy.SQLAlchemy(app)

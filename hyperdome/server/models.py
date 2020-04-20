@@ -19,11 +19,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.primitives.serialization as serial
-from cryptography.exceptions import InvalidSignature
-from ..common.types import key_type, bstr, arg_to_bytes
+
+from ..common.types import arg_to_bytes, bstr
 from .app import db
 
 

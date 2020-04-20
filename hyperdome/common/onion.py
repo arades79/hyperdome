@@ -32,7 +32,8 @@ import stem
 
 from distutils.version import LooseVersion as Version
 from . import strings
-from .common import platform_str, get_resource_path
+from .common import data_path, platform_str, resource_path, tor_paths
+from pathlib import Path
 
 
 class TorErrorAutomatic(Exception):
@@ -174,7 +175,7 @@ class Onion(object):
             self.tor_geo_ip_file_path,
             self.tor_geo_ipv6_file_path,
             self.obfs4proxy_file_path,
-        ) = self.common.get_tor_paths()
+        ) = tor_paths
 
         # The tor process
         self.tor_proc = None
@@ -220,9 +221,7 @@ class Onion(object):
                 )
 
             # Create a torrc for this session
-            self.tor_data_directory = tempfile.TemporaryDirectory(
-                dir=self.common.build_data_dir()
-            )
+            self.tor_data_directory = tempfile.TemporaryDirectory(dir=data_path)
             self.common.log(
                 "Onion",
                 "connect",
@@ -230,13 +229,12 @@ class Onion(object):
             )
 
             # Create the torrc
-            with open(get_resource_path("torrc_template")) as f:
-                torrc_template = f.read()
-            self.tor_cookie_auth_file = os.path.join(
+            torrc_template = resource_path.joinpath("torrc_template").read_text()
+            self.tor_cookie_auth_file = Path(
                 self.tor_data_directory.name, "cookie"
-            )
+            ).resolve()
             self.tor_socks_port = self.common.get_available_port(1000, 65535)
-            self.tor_torrc = os.path.join(self.tor_data_directory.name, "torrc")
+            self.tor_torrc = Path(self.tor_data_directory.name, "torrc").resolve()
 
             if platform_str in ("Windows", "Darwin"):
                 # Windows doesn't support unix sockets, so it must use
@@ -251,12 +249,12 @@ class Onion(object):
                 # Linux and BSD can use unix sockets
                 torrc_template += "ControlSocket {{control_socket}}\n"
                 self.tor_control_port = None
-                self.tor_control_socket = os.path.join(
+                self.tor_control_socket = Path(
                     self.tor_data_directory.name, "control_socket"
-                )
+                ).resolve()
 
             torrc_template = torrc_template.replace(
-                "{{data_directory}}", self.tor_data_directory.name
+                "{{data_directory}}", str(self.tor_data_directory)
             )
             torrc_template = torrc_template.replace(
                 "{{control_port}}", str(self.tor_control_port)
@@ -265,19 +263,19 @@ class Onion(object):
                 "{{control_socket}}", str(self.tor_control_socket)
             )
             torrc_template = torrc_template.replace(
-                "{{cookie_auth_file}}", self.tor_cookie_auth_file
+                "{{cookie_auth_file}}", str(self.tor_cookie_auth_file)
             )
             torrc_template = torrc_template.replace(
-                "{{geo_ip_file}}", self.tor_geo_ip_file_path
+                "{{geo_ip_file}}", str(self.tor_geo_ip_file_path)
             )
             torrc_template = torrc_template.replace(
-                "{{geo_ipv6_file}}", self.tor_geo_ipv6_file_path
+                "{{geo_ipv6_file}}", str(self.tor_geo_ipv6_file_path)
             )
             torrc_template = torrc_template.replace(
                 "{{socks_port}}", str(self.tor_socks_port)
             )
 
-            with open(self.tor_torrc, "w") as f:
+            with self.tor_torrc.open("w") as f:
                 f.write(torrc_template)
 
                 # Bridge support
@@ -287,18 +285,18 @@ class Onion(object):
                             self.obfs4proxy_file_path
                         )
                     )
-                    with open(get_resource_path("torrc_template-obfs4")) as o:
-                        for line in o:
-                            f.write(line)
+                    f.write(resource_path.joinpath("torrc_template-obfs4").read_text())
                 elif self.settings.get("tor_bridges_use_meek_lite_azure"):
                     f.write(
                         "ClientTransportPlugin meek_lite exec {}\n".format(
                             self.obfs4proxy_file_path
                         )
                     )
-                    with open(get_resource_path("torrc_template-meek_lite_azure")) as o:
-                        for line in o:
-                            f.write(line)
+                    f.write(
+                        resource_path.joinpath(
+                            "torrc_template-meek_lite_azure"
+                        ).read_text()
+                    )
 
                 if self.settings.get("tor_bridges_use_custom_bridges"):
                     if "obfs4" in self.settings.get("tor_bridges_use_custom_bridges"):

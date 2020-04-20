@@ -20,17 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # considering using pyca/cryptography instead
+import base64
 import functools
+
+from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-import cryptography.hazmat.primitives.serialization as serial
-from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
+from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-import base64
-from cryptography.fernet import Fernet
+import cryptography.hazmat.primitives.serialization as serial
+
 from .types import arg_to_bytes, bstr
-from .common import get_resource_path
 
 
 class LockBox:

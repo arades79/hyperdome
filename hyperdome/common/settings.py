@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import json
 import os
 import locale
+from pathlib import Path
+from .common import data_path
 
 
 class Settings(object):
@@ -37,13 +39,10 @@ class Settings(object):
 
         self.common.log("Settings", "__init__")
 
-        # Default config
-        self.filename = self.build_filename()
-
-        # If a readable config file was provided, use that instead
+        # If a readable config file was provided, use that
         if config:
-            if os.path.isfile(config):
-                self.filename = config
+            if (config_path := Path(config)).exists():
+                self.filename = config_path
             else:
                 self.common.log(
                     "Settings",
@@ -51,6 +50,8 @@ class Settings(object):
                     "Supplied config does not exist or is "
                     "unreadable. Falling back to default location",
                 )
+        else:
+            self.filename: Path = data_path / "hyperdome.json"
 
         # Dictionary of available languages in this version of hyperdome,
         # mapped to the language name, in that language
@@ -128,12 +129,6 @@ class Settings(object):
                 default_locale = "en"
             self._settings["locale"] = default_locale
 
-    def build_filename(self):
-        """
-        Returns the path of the settings file.
-        """
-        return os.path.join(self.common.build_data_dir(), "hyperdome.json")
-
     def load(self):
         """
         Load the settings from file.
@@ -141,20 +136,19 @@ class Settings(object):
         self.common.log("Settings", "load")
 
         # If the settings file exists, load it
-        if os.path.exists(self.filename):
+        if self.filename.exists():
             self.common.log(
                 "Settings", "load", "Trying to load {}".format(self.filename)
             )
-            with open(self.filename, "r") as f:
-                self._settings = json.load(f)
-                self.fill_in_defaults()
+            self._settings = json.loads(self.filename.read_text())
+            self.fill_in_defaults()
 
     def save(self):
         """
         Save settings to file.
         """
         self.common.log("Settings", "save")
-        open(self.filename, "w").write(json.dumps(self._settings))
+        self.filename.write_text(json.dumps(self._settings))
         self.common.log(
             "Settings", "save", "Settings saved in {}".format(self.filename)
         )

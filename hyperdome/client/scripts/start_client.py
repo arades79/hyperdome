@@ -19,15 +19,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import click
 import sys
+
+import click
+
+from ...common.common import version
 
 
 @click.command()
 @click.option("--debug", "-d", is_flag=True)
+@click.version_option(version, prog_name="Hyperdome Server")
 def start(debug):
     if debug:
-        sys.hyperdome_dev_mode = True
+        setattr(sys, "hyperdome_dev_mode", True)
     from ..main import main
 
     main()

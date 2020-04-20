@@ -39,7 +39,7 @@ version = Path(resource_path, "version.txt").read_text().strip()
 
 
 @bootstrap
-def data_path():
+def data_path() -> Path:
     """
     Returns the path of the hyperdome data directory.
     """
@@ -55,7 +55,7 @@ def data_path():
 
 
 @bootstrap
-def tor_paths():
+def tor_paths() -> tuple[Path]:
     if platform_str == "Linux":
         tor_path = Path("/usr/bin/tor")
         tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
@@ -89,7 +89,7 @@ def tor_paths():
     )
 
 
-def get_available_port(min_port, max_port):
+def get_available_port(min_port: int, max_port: int) -> int:
     """
     Find a random available port within the given range.
     """
