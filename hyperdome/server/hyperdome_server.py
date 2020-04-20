@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import shutil
 
-from ..common.common import ShutdownTimer
+from ..common.common import ShutdownTimer, get_available_port
 
 
 class HyperdomeServer(object):
@@ -60,7 +60,7 @@ class HyperdomeServer(object):
         """
         Choose a random port.
         """
-        self.port = self.common.get_available_port(17600, 17650)
+        self.port = get_available_port(17600, 17650)
 
     def start_onion_service(self):
         """

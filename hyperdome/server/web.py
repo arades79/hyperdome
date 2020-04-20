@@ -31,6 +31,7 @@ from urllib.request import urlopen
 from flask import abort, jsonify, make_response, render_template, request
 
 from . import models
+from ..common.common import version
 from .app import app, db
 
 
@@ -54,7 +55,7 @@ class Web(object):
     def __init__(self, common, is_gui):
         self.common = common
         self.common.log("Web", "__init__", f"is_gui={is_gui}")
-        app.secret_key = self.common.random_string(8)
+        app.secret_key = secrets.token_urlsafe(8)
 
         # Debug mode?
         if self.common.debug:
@@ -86,7 +87,7 @@ class Web(object):
 
         # shutting down the server only works within the context of flask, so
         # the easiest way to do it is over http
-        self.shutdown_slug = self.common.random_string(16)
+        self.shutdown_slug = secrets.token_urlsafe(16)
 
         # Keep track if the server is running
         self.running = False
@@ -105,7 +106,7 @@ class Web(object):
         #
         self.info = {
             "name": "hyperdome",
-            "version": self.common.version,
+            "version": version,
             "online": str(len(self.counselors_available)),
         }
 

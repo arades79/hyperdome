@@ -26,7 +26,7 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..common import strings
-from ..common.common import Common, resource_path, tor_paths, version
+from ..common.common import Common, Settings, resource_path, tor_paths, version
 from ..common.onion import (
     BundledTorNotSupported,
     BundledTorTimeout,
@@ -40,7 +40,6 @@ from ..common.onion import (
     TorErrorSocketPort,
     TorErrorUnreadableCookieFile,
 )
-from ..common.settings import Settings
 from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
