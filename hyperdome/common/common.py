@@ -27,6 +27,8 @@ import secrets
 from pathlib import Path
 from .settings import Settings
 import platform
+from .utils import bootstrap
+
 
 platform_str = "BSD" if platform.system().endswith("BSD") else platform.system()
 
@@ -35,14 +37,78 @@ resource_path = Path(getattr(sys, "_MEIPASS", "."), "share").resolve(strict=True
 version = Path(resource_path, "version.txt").read_text().strip()
 
 
+@bootstrap
+def data_path():
+    """
+    Returns the path of the hyperdome data directory.
+    """
+    if (appdata := Path("~", "AppData", "Roaming")).exists():
+        hyperdome_data_dir = appdata / "hyperdome"
+    elif platform_str == "Darwin":
+        hyperdome_data_dir = Path("~/Library/Application Support/hyperdome")
+    else:
+        hyperdome_data_dir = Path("~/.config/hyperdome")
+
+    hyperdome_data_dir.mkdir(0o700, True)
+    return hyperdome_data_dir.resolve()
+
+
+@bootstrap
+def tor_paths():
+    if platform_str == "Linux":
+        tor_path = Path("/usr/bin/tor")
+        tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
+        tor_geo_ipv6_file_path = Path("/usr/share/tor/geoip6")
+        obfs4proxy_file_path = Path("/usr/bin/obfs4proxy")
+    elif platform_str == "Windows":
+        base_path = resource_path.parents[1] / "tor"
+        tor_path = base_path / "Tor" / "tor.exe"
+        obfs4proxy_file_path = base_path / "Tor" / "obfs4proxy.exe"
+        tor_geo_ip_file_path = base_path / "Data" / "Tor" / "geoip"
+        tor_geo_ipv6_file_path = base_path / "Data" / "Tor" / "geoip6"
+    elif platform_str == "Darwin":
+        base_path = resource_path.parents[1]
+        tor_path = base_path / "Resources" / "Tor" / "tor"
+        tor_geo_ip_file_path = base_path / "Resources" / "Tor" / "geoip"
+        tor_geo_ipv6_file_path = base_path / "Resources" / "Tor" / "geoip6"
+        obfs4proxy_file_path = base_path / "Resources" / "Tor" / "obfs4proxy"
+    elif platform_str == "BSD":
+        tor_path = Path("/usr/local/bin/tor")
+        tor_geo_ip_file_path = Path("/usr/local/share/tor/geoip")
+        tor_geo_ipv6_file_path = Path("/usr/local/share/tor/geoip6")
+        obfs4proxy_file_path = Path("/usr/local/bin/obfs4proxy")
+    else:
+        raise OSError("Host platform not supported")
+
+    return (
+        tor_path,
+        tor_geo_ip_file_path,
+        tor_geo_ipv6_file_path,
+        obfs4proxy_file_path,
+    )
+
+
+def get_available_port(min_port, max_port):
+    """
+    Find a random available port within the given range.
+    """
+    with socket.socket() as tmpsock:
+        while True:
+            try:
+                tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
+                break
+            except OSError:
+                pass
+        _, port = tmpsock.getsockname()
+    return port
+
+
 # TODO there's a lot of platform_str-specific pathing here, we can probably
 # just use pathlib to get rid of a lot of code
 class Common(object):
     """
     The Common object is shared amongst all parts of hyperdome.
     """
-
-    _data_dir = None
 
     def __init__(self, debug=False):
         self.debug = debug
@@ -65,75 +131,6 @@ class Common(object):
             if msg:
                 final_msg = "{}: {}".format(final_msg, msg)
             print(final_msg)
-
-    def get_tor_paths(self):
-        if platform_str == "Linux":
-            tor_path = Path("/usr/bin/tor")
-            tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
-            tor_geo_ipv6_file_path = Path("/usr/share/tor/geoip6")
-            obfs4proxy_file_path = Path("/usr/bin/obfs4proxy")
-        elif platform_str == "Windows":
-            base_path = resource_path.parents[1] / "tor"
-            tor_path = base_path / "Tor" / "tor.exe"
-            obfs4proxy_file_path = base_path / "Tor" / "obfs4proxy.exe"
-            tor_geo_ip_file_path = base_path / "Data" / "Tor" / "geoip"
-            tor_geo_ipv6_file_path = base_path / "Data" / "Tor" / "geoip6"
-        elif platform_str == "Darwin":
-            base_path = resource_path.parents[1]
-            tor_path = base_path / "Resources" / "Tor" / "tor"
-            tor_geo_ip_file_path = base_path / "Resources" / "Tor" / "geoip"
-            tor_geo_ipv6_file_path = base_path / "Resources" / "Tor" / "geoip6"
-            obfs4proxy_file_path = base_path / "Resources" / "Tor" / "obfs4proxy"
-        elif platform_str == "BSD":
-            tor_path = Path("/usr/local/bin/tor")
-            tor_geo_ip_file_path = Path("/usr/local/share/tor/geoip")
-            tor_geo_ipv6_file_path = Path("/usr/local/share/tor/geoip6")
-            obfs4proxy_file_path = Path("/usr/local/bin/obfs4proxy")
-        else:
-            raise OSError("Host platform not supported")
-
-        return (
-            tor_path,
-            tor_geo_ip_file_path,
-            tor_geo_ipv6_file_path,
-            obfs4proxy_file_path,
-        )
-
-    @property
-    def data_dir(self):
-        """
-        Returns the path of the hyperdome data directory.
-        """
-        if self._data_dir is not None:
-            return self._data_dir
-
-        if (appdata := Path("~", "AppData", "Roaming")).exists():
-            hyperdome_data_dir = appdata / "hyperdome"
-        elif platform_str == "Darwin":
-            hyperdome_data_dir = Path("~/Library/Application Support/hyperdome")
-        else:
-            hyperdome_data_dir = Path("~/.config/hyperdome")
-
-        hyperdome_data_dir.mkdir(0o700, True)
-        self._data_dir = hyperdome_data_dir.resolve()
-        return self._data_dir
-
-    @staticmethod
-    def get_available_port(min_port, max_port):
-        """
-        Find a random available port within the given range.
-        """
-        with socket.socket() as tmpsock:
-            while True:
-                try:
-                    tmpsock.bind(
-                        ("127.0.0.1", secrets.choice(range(min_port, max_port)))
-                    )
-                    break
-                except OSError:
-                    pass
-            _, port = tmpsock.getsockname()
-        return port
 
 
 class ShutdownTimer(threading.Thread):
