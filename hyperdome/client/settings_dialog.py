@@ -42,12 +42,15 @@ from ..common.onion import (
 )
 from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
+import logging
 
 
 class SettingsDialog(QtWidgets.QDialog):
     """
     Settings dialog.
     """
+
+    logger = logging.getLogger(__name__)
 
     settings_saved = QtCore.pyqtSignal()
 
@@ -73,7 +76,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setModal(True)
         self.setWindowTitle(strings._("gui_settings_window_title"))
         self.setWindowIcon(
-            QtGui.QIcon(resource_path / "images" / "hyperdome_logo_100.png")
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
 
         self.system = platform.system()
