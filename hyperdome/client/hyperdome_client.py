@@ -61,7 +61,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
         self.local_only: bool = local_only
-        self.common.log("hyperdome", "__init__")
+        self.logger.debug("__init__")
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool.globalInstance()
@@ -385,7 +385,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         If the user cancels before Tor finishes connecting, ask if they want to
         quit, or open settings.
         """
-        self.common.log("hyperdome", "_tor_connection_canceled")
+        self.logger.debug("_tor_connection_canceled")
 
         def ask():
             a = Alert(
@@ -408,16 +408,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             if a.clickedButton() == settings_button:
                 # Open settings
-                self.common.log(
-                    "hyperdome", "_tor_connection_canceled", "Settings button clicked",
-                )
+                self.logger.debug("_tor_connection_canceled: Settings button clicked",)
                 self.open_settings()
 
             if a.clickedButton() == quit_button:
                 # Quit
-                self.common.log(
-                    "hyperdome", "_tor_connection_canceled", "Quit button clicked"
-                )
+                self.logger("_tor_connection_canceled: Quit button clicked")
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -429,7 +425,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         The TorConnectionDialog wants to open the Settings dialog
         """
-        self.common.log("hyperdome", "_tor_connection_open_settings")
+        self.logger.debug("_tor_connection_open_settings")
 
         # Wait 1ms for the event loop to finish closing the TorConnectionDialog
         QtCore.QTimer.singleShot(1, self.open_settings)
@@ -438,12 +434,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Open the SettingsDialog.
         """
-        self.common.log("hyperdome", "open_settings")
+        self.logger.debug("open_settings")
 
         def reload_settings():
-            self.common.log(
-                "hyperdome", "open_settings", "settings have changed, reloading"
-            )
+            self.logger.info("settings have changed, reloading")
             self.common.settings.load()
 
             # We might've stopped the main requests timer if
@@ -469,6 +463,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.worker.tryStart(self.poll_guest_key_task)
 
     def disconnect_chat(self):
+        self.logger.info("disconnect_chat")
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
         self.worker.clear()
@@ -488,23 +483,26 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(True)
 
     def save_servers(self):
+        self.logger.info("saving servers to servers.json")
         resource_path.joinpath("servers.json").write_text(
             json.dumps(self.servers, default=lambda o: o.__dict__)
         )
 
     def load_servers(self):
+        self.logger.debug("load_servers")
         try:
             servers_str = resource_path.joinpath("servers.json").read_text()
             servers_dict = json.loads(servers_str) if servers_str else {}
             self.servers = {key: Server(**value) for key, value in servers_dict.items()}
         except FileNotFoundError:
+            self.logger.info("no servers saved")
             self.servers = {}
 
     def closeEvent(self, event):
         """
         When the main window is closed, do some cleanup
         """
-        self.common.log("hyperdome", "closeEvent")
+        self.logger.debug("closeEvent")
         self.disconnect_chat()
 
         self.hide()
@@ -517,3 +515,4 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.app.cleanup()
 
         super().closeEvent(event)
+        self.logger.info("hyperdome client has closed")

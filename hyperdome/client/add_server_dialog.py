@@ -39,7 +39,7 @@ class AddServerDialog(QtWidgets.QDialog):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        self.logger.debug("starting add server dialog")
+        self.logger.debug("__init__")
 
         self.session = parent.session
         self.worker = parent.worker
@@ -47,7 +47,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.error_message = QtWidgets.QMessageBox(self)
 
         self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(QtGui.QIcon(resource_path / "images/hyperdome_logo_100.png"))
+        self.setWindowIcon(
+            QtGui.QIcon(str(resource_path / "images/hyperdome_logo_100.png"))
+        )
 
         self.is_counselor = False
 
@@ -104,7 +106,7 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Show or hide crediential fields based on user type selected.
         """
-        self.logger.debug(f"counselor switch toggled {is_toggled}")
+        self.logger.debug(f"counselor radio_switch {is_toggled=}")
         self.is_counselor = is_toggled
         self.counselor_credentials.setEnabled(is_toggled)
         self.counselor_username_input.setVisible(is_toggled)
@@ -114,6 +116,7 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Receiver for the add server dialog to handle the new server details.
         """
+        self.logger.debug("add_server")
         try:
             self.server = Server(
                 url=self.server_add_text.text(),
@@ -122,7 +125,7 @@ class AddServerDialog(QtWidgets.QDialog):
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
-            self.logger.error("invalid onion address")
+            self.logger.warning("invalid onion address")
             self.error_message.setText("Invalid onion address!")
             self.error_message.exec_()
             return
@@ -160,14 +163,17 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):
+        self.logger.debug(f"bad_server({err=})")
         self.add_server_button.setEnabled(True)
         self.add_server_button.setText("Add Server")
         self.error_message.setText(err)
         self.error_message.exec_()
 
     def get_server(self):
+        self.logger.debug("get_server")
         return self.server
 
     def closeEvent(self, event):
+        self.logger.debug(f"closeEvent")
         self.done(1)
         return super().closeEvent(event)

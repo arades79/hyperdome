@@ -63,3 +63,6 @@ debug_dumps/
 
 # client storage file
 share/servers.json
+
+# log files
+*.log
