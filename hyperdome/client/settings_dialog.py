@@ -577,7 +577,6 @@ class SettingsDialog(QtWidgets.QDialog):
             if not self.onion.supports_v3_onions:
                 self.logger.warning("v3 onions are required for hyperdome")
                 Alert(
-                    self.common,
                     "v3 onion support not detected, "
                     "v3 onions are required for Hyperdome",
                 )
@@ -623,7 +622,6 @@ class SettingsDialog(QtWidgets.QDialog):
             # turning it on
             if not self.old_settings.get("tor_bridges_use_meek_lite_azure"):
                 Alert(
-                    self.common,
                     strings._("gui_settings_meek_lite_expensive_warning"),
                     QtWidgets.QMessageBox.Warning,
                 )
@@ -727,7 +725,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
         try:
             # Show Tor connection status if connection type is bundled tor
-            onion = Onion(self.common)
+            onion = Onion(self.settings)
 
             if settings.get("connection_type") == "bundled":
                 self.tor_status.show()
@@ -747,7 +745,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
             # If an exception hasn't been raised yet, the Tor settings work
             Alert(
-                self.common,
                 strings._("settings_test_success").format(
                     onion.tor_version,
                     onion.supports_ephemeral,
@@ -768,7 +765,8 @@ class SettingsDialog(QtWidgets.QDialog):
             BundledTorNotSupported,
             BundledTorTimeout,
         ) as e:
-            Alert(self.common, e.args[0], QtWidgets.QMessageBox.Warning)
+            self.logger.warning("couldn't spawn tor with given settings", exc_info=True)
+            Alert(e.args[0], QtWidgets.QMessageBox.Warning)
             if settings.get("connection_type") == "bundled":
                 self.tor_status.hide()
                 self._enable_buttons()
@@ -802,7 +800,7 @@ class SettingsDialog(QtWidgets.QDialog):
                     ]
                 else:
                     notice = strings._("gui_settings_language_changed_notice")
-                Alert(self.common, notice, QtWidgets.QMessageBox.Information)
+                Alert(notice, QtWidgets.QMessageBox.Information)
 
             # Save the new settings
             settings.save()
@@ -847,7 +845,7 @@ class SettingsDialog(QtWidgets.QDialog):
                     self.onion.cleanup()
 
                     tor_con = TorConnectionDialog(
-                        self.common, self.qtapp, self.onion, settings
+                        self.settings, self.qtapp, self.onion, settings
                     )
                     tor_con.start()
 
@@ -874,9 +872,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.logger.debug("cancel_clicked")
         if not self.local_only and not self.onion.is_authenticated():
             Alert(
-                self.common,
-                strings._("gui_tor_connection_canceled"),
-                QtWidgets.QMessageBox.Warning,
+                strings._("gui_tor_connection_canceled"), QtWidgets.QMessageBox.Warning,
             )
             sys.exit()
         else:
@@ -1016,7 +1012,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 new_bridges = "".join(new_bridges)
                 settings.set("tor_bridges_use_custom_bridges", new_bridges)
             else:
-                Alert(self.common, strings._("gui_settings_tor_bridges_invalid"))
+                Alert(strings._("gui_settings_tor_bridges_invalid"))
                 settings.set("no_bridges", True)
                 return None
 

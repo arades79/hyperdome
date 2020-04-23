@@ -37,12 +37,10 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
     open_settings = QtCore.pyqtSignal()
     logger = logging.getLogger(__name__)
 
-    def __init__(self, common, qtapp, onion, custom_settings=False):
+    def __init__(self, settings, qtapp, onion, custom_settings=False):
         super(TorConnectionDialog, self).__init__(None)
 
-        self.common = common
-
-        self.settings = custom_settings or self.common.settings
+        self.settings = custom_settings or settings
 
         self.logger.debug("__init__")
 
@@ -70,7 +68,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
     def start(self):
         self.logger.debug("start")
 
-        t = TorConnectionThread(self.common, self.settings, self, self.onion)
+        t = TorConnectionThread(self.settings, self, self.onion)
         t.tor_status_update.connect(self._tor_status_update)
         t.connected_to_tor.connect(self._connected_to_tor)
         t.canceled_connecting_to_tor.connect(self._canceled_connecting_to_tor)
@@ -114,7 +112,6 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
             # Display the exception in an alert box
             self.logger.warning("couldn't connect to tor")
             Alert(
-                self.common,
                 "{}\n\n{}".format(msg, strings._("gui_tor_connection_error_settings")),
                 QtWidgets.QMessageBox.Warning,
             )
@@ -135,10 +132,8 @@ class TorConnectionThread(QtCore.QThread):
     error_connecting_to_tor = QtCore.pyqtSignal(str)
     logger = logging.getLogger(__name__ + ".TorConnectionThread")
 
-    def __init__(self, common, settings, dialog, onion):
+    def __init__(self, settings, dialog, onion):
         super(TorConnectionThread, self).__init__()
-
-        self.common = common
 
         self.logger.debug("__init__")
 

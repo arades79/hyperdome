@@ -86,7 +86,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         )
 
         # make dialog for error messages
-        self.error_window = Alert(self.common, "", autostart=False)
+        self.error_window = Alert("", autostart=False)
 
         # initialize session variables
         self.uid: str = ""
@@ -179,7 +179,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
-        tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
+        tor_con = TorConnectionDialog(self.settings, self.qtapp, self.onion)
         tor_con.canceled.connect(self._tor_connection_canceled)
         tor_con.open_settings.connect(self._tor_connection_open_settings)
         if not self.local_only:
@@ -391,7 +391,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         def ask():
             a = Alert(
-                self.common,
                 strings._("gui_tor_connection_ask"),
                 QtWidgets.QMessageBox.Question,
                 buttons=QtWidgets.QMessageBox.NoButton,
@@ -449,7 +448,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # TODO: Use more threadsafe dialog handling used for add_server_dialog here
         d = SettingsDialog(
-            self.common, self.onion, self.qtapp, self.config, self.local_only
+            self.settings, self.onion, self.qtapp, self.config, self.local_only
         )
         d.settings_saved.connect(reload_settings)
         d.exec_()

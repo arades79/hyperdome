@@ -34,15 +34,12 @@ class Alert(QtWidgets.QMessageBox):
 
     def __init__(
         self,
-        common,
         message,
         icon=QtWidgets.QMessageBox.NoIcon,
         buttons=QtWidgets.QMessageBox.Ok,
         autostart=True,
     ):
         super(Alert, self).__init__(None)
-
-        self.common = common
 
         self.logger.debug("__init__")
 
