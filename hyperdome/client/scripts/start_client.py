@@ -51,4 +51,5 @@ def start(log_level, log_file):
     logging.basicConfig(
         level=(log_level if log_level != "OFF" else 1000), filename=log_file
     )
+    click.echo(f"Hyperdome {version} | https://hyperdome.org")
     main()

@@ -32,6 +32,7 @@ from .add_server_dialog import AddServerDialog
 from .settings_dialog import SettingsDialog
 from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
+import logging
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -40,6 +41,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
     GUI elements.
     """
 
+    logger = logging.getLogger(__name__)
+
     def __init__(
         self,
         common,
@@ -47,7 +50,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         qtapp: QtWidgets.QApplication,
         app,
         filenames,
-        config: bool = False,
+        config: str = "",
         local_only: bool = False,
     ):
         super(HyperdomeClient, self).__init__()

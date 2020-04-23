@@ -18,7 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import argparse
+import logging
 import signal
 import sys
 
@@ -36,6 +36,8 @@ class Application(QtWidgets.QApplication):
     This is Qt's QApplication class. It has been overridden to support threads
     and the quick keyboard shortcut.
     """
+
+    logger = logging.getLogger(__name__ + ".Application")
 
     def __init__(self, common):
         if platform_str == "Linux" or platform_str == "BSD":
@@ -58,6 +60,7 @@ def main():
     The main() function implements all of the logic that the GUI version \
     of hyperdome uses.
     """
+    logger = logging.getLogger(__name__)
     common = Common()
 
     # Load the default settings and strings early, for the sake of
@@ -70,9 +73,6 @@ def main():
     # TODO: remove or rebuild strings
     strings.load_strings(common)
 
-    # Display hyperdome banner
-    print(f"Hyperdome {version} | https://github.com/arades79/hyperdome")
-
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -80,45 +80,14 @@ def main():
     # Start the Qt app
     qtapp = Application(common)
 
-    # Parse arguments
-    parser = argparse.ArgumentParser(
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=48)
-    )
-    parser.add_argument(
-        "--local-only",
-        action="store_true",
-        dest="local_only",
-        help=strings._("help_local_only"),
-    )
-    parser.add_argument(
-        "--debug", action="store_true", dest="debug", help=strings._("help_debug")
-    )
-    parser.add_argument(
-        # TODO: default should be empty string for consistant typing
-        "--config",
-        metavar="config",
-        default=False,
-        help=strings._("help_config"),
-    )
-    args = parser.parse_args()
-
-    config = args.config
-    if config:
-        # Re-load the strings, in case the provided config has changed locale
-        common.load_settings(config)
-        strings.load_strings(common)
-
-    local_only = bool(args.local_only)
-    common.debug = bool(args.debug)
-
     # Start the Onion
     onion = Onion(common)
 
     # Start the hyperdome app
-    app = HyperdomeServer(common, onion, local_only)
+    app = HyperdomeServer(common, onion)
 
     # Launch the gui
-    main_window = HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
+    main_window = HyperdomeClient(common, onion, qtapp, app, None)
     main_window.show()
 
     # Clean up when app quits
