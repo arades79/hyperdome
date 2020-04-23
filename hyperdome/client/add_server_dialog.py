@@ -18,6 +18,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from . import threads
@@ -31,9 +33,13 @@ class AddServerDialog(QtWidgets.QDialog):
     Dialog for entering server connection details and or credentials.
     """
 
+    logger = logging.getLogger(__name__)
+
     def __init__(self, parent):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        self.logger.debug("starting add server dialog")
 
         self.session = parent.session
         self.worker = parent.worker
@@ -98,6 +104,7 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Show or hide crediential fields based on user type selected.
         """
+        self.logger.debug(f"counselor switch toggled {is_toggled}")
         self.is_counselor = is_toggled
         self.counselor_credentials.setEnabled(is_toggled)
         self.counselor_username_input.setVisible(is_toggled)
@@ -115,6 +122,7 @@ class AddServerDialog(QtWidgets.QDialog):
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
+            self.logger.error("invalid onion address")
             self.error_message.setText("Invalid onion address!")
             self.error_message.exec_()
             return
@@ -132,10 +140,12 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def set_server(self, _):
+        self.logger.info("server added successfully")
         self.done(0)
 
     @QtCore.pyqtSlot(str)
     def signup(self, _):
+        self.logger.debug("attempting counselor signup")
         signer = LockBox()
         signer.make_signing_key()
         self.server.key = signer.export_key("123")  # TODO: use user provided password
