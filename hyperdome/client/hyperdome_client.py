@@ -19,9 +19,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
+import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import requests
+
+from hyperdome.common.common import Settings
 
 from . import threads
 from ..common import strings
@@ -32,7 +35,6 @@ from .add_server_dialog import AddServerDialog
 from .settings_dialog import SettingsDialog
 from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
-import logging
 
 
 class HyperdomeClient(QtWidgets.QMainWindow):
@@ -45,7 +47,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def __init__(
         self,
-        common,
+        settings,
         onion,
         qtapp: QtWidgets.QApplication,
         app,
@@ -56,7 +58,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
-        self.common = common
+        self.settings = settings
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
@@ -98,7 +100,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # Load settings, if a custom config was passed in
         self.config = config
         if self.config:
-            self.common.load_settings(self.config)
+            self.settings = Settings(self.config)
 
         # System tray
         menu = QtWidgets.QMenu()
@@ -413,7 +415,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             if a.clickedButton() == quit_button:
                 # Quit
-                self.logger("_tor_connection_canceled: Quit button clicked")
+                self.logger.info("_tor_connection_canceled: Quit button clicked")
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -438,7 +440,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         def reload_settings():
             self.logger.info("settings have changed, reloading")
-            self.common.settings.load()
+            self.settings.load()
 
             # We might've stopped the main requests timer if
             # a Tor connection failed.

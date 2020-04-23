@@ -21,13 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import base64
 import hmac
 import logging
-import os
 from pathlib import Path
 import queue
 import secrets
 import socket
 from time import sleep
-import traceback
 from urllib.request import urlopen
 
 from flask import abort, jsonify, make_response, render_template, request

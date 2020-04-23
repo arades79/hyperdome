@@ -25,7 +25,7 @@ import sys
 from PyQt5 import QtCore, QtWidgets
 
 from ..common import strings
-from ..common.common import Common, platform_str, version
+from ..common.common import Settings, platform_str, version
 from ..common.onion import Onion
 from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
@@ -39,7 +39,8 @@ class Application(QtWidgets.QApplication):
 
     logger = logging.getLogger(__name__ + ".Application")
 
-    def __init__(self, common):
+    def __init__(self):
+        self.logger.debug("__init__")
         if platform_str == "Linux" or platform_str == "BSD":
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
@@ -51,6 +52,7 @@ class Application(QtWidgets.QApplication):
             and event.key() == QtCore.Qt.Key_Q
             and event.modifiers() == QtCore.Qt.ControlModifier
         ):
+            self.logger.info("user quit through keyboard shortcut")
             self.quit()
         return False
 
@@ -61,7 +63,7 @@ def main():
     of hyperdome uses.
     """
     logger = logging.getLogger(__name__)
-    common = Common()
+    settings = Settings()
 
     # Load the default settings and strings early, for the sake of
     # being able to parse options.
@@ -69,29 +71,30 @@ def main():
     # we need to parse them early in order to even display the option
     # to pass alternate settings (which might contain a preferred locale).
     # If an alternate --config is passed, we'll reload strings later.
-    common.load_settings()
+
     # TODO: remove or rebuild strings
-    strings.load_strings(common)
+    strings.load_strings(settings)
 
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # Start the Qt app
-    qtapp = Application(common)
+    qtapp = Application()
 
     # Start the Onion
-    onion = Onion(common)
+    onion = Onion(settings)
 
     # Start the hyperdome app
-    app = HyperdomeServer(common, onion)
+    app = HyperdomeServer(onion)
 
     # Launch the gui
-    main_window = HyperdomeClient(common, onion, qtapp, app, None)
+    main_window = HyperdomeClient(settings, onion, qtapp, app, None)
     main_window.show()
 
     # Clean up when app quits
     def shutdown():
+        logger.debug("shutdown")
         onion.cleanup()
         app.cleanup()
 

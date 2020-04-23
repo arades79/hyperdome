@@ -53,7 +53,7 @@ def main(cwd=""):
         os.chdir(cwd)
 
     # Create the Web object
-    web = Web(is_gui=False)
+    web = Web()
 
     # Start the Onion object
     onion = Onion(settings)
@@ -72,15 +72,14 @@ def main(cwd=""):
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(common, onion, False, 0)
+        app = HyperdomeServer(onion, False, 0)
         app.choose_port()
         app.start_onion_service()
     except KeyboardInterrupt:
-        print("")
+        logger.info("keyboard interrupt during onion setup, exiting")
         sys.exit()
     except (TorTooOld, TorErrorProtocolError) as e:
-        print("")
-        print(e.args[0])
+        logger.exception("Tor incompatible")
         sys.exit()
 
     # Start hyperdome http service in new thread
@@ -120,6 +119,7 @@ def main(cwd=""):
         logger.info("application stopped from keyboard interrupt")
         web.stop(app.port)
     finally:
+        logger.debug("shutdown")
         # Shutdown
         app.cleanup()
         onion.cleanup()

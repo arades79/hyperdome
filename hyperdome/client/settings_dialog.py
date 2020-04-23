@@ -26,7 +26,7 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..common import strings
-from ..common.common import Common, Settings, resource_path, tor_paths, version
+from ..common.common import Settings, resource_path, tor_paths, version
 from ..common.onion import (
     BundledTorNotSupported,
     BundledTorTimeout,
@@ -56,7 +56,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        common: Common,
+        settings: Settings,
         onion: Onion,
         qtapp: QtWidgets.QApplication,
         config_file: str = "",
@@ -64,9 +64,9 @@ class SettingsDialog(QtWidgets.QDialog):
     ):
         super(SettingsDialog, self).__init__()
 
-        self.common = common
+        self.settings = settings
 
-        self.common.log("SettingsDialog", "__init__")
+        self.logger.debug("__init__")
 
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
