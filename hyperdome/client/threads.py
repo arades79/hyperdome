@@ -39,6 +39,7 @@ from ..common.onion import (
     TorTooOld,
 )
 from ..common.server import Server
+import logging
 
 
 class OnionThread(QtCore.QThread):
@@ -46,19 +47,21 @@ class OnionThread(QtCore.QThread):
     Starts the onion service, and waits for it to finish
     """
 
+    logger = logging.getLogger(__name__ + ".OnionThread")
+
     success = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
     def __init__(self, mode):
         super(OnionThread, self).__init__()
         self.mode = mode
-        self.mode.common.log("OnionThread", "__init__")
+        self.logger.debug("__init__")
 
         # allow this thread to be terminated
         self.setTerminationEnabled()
 
     def run(self):
-        self.mode.common.log("OnionThread", "run")
+        self.loggr.debug("run")
 
         self.mode.app.stay_open = not self.mode.common.settings.get(
             "close_after_first_download"
@@ -86,12 +89,16 @@ class OnionThread(QtCore.QThread):
             OSError,
         ) as e:
             self.error.emit(e.args[0])
+            self.logger.exception("problem starting Tor")
             return
 
 
 class TaskSignals(QtCore.QObject):
     success = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
+
+
+# TODO: implement logging in these classes post refactor
 
 
 class SendMessageTask(QtCore.QRunnable):
