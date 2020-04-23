@@ -20,12 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import json
+import logging
 
 
 class Server:
     """
     Holder class for server connection details
     """
+
+    logger = logging.getLogger(__name__)
 
     class InvalidOnionAddress(Exception):
         """
@@ -61,13 +64,14 @@ class Server:
         if not self.url.endswith(".onion"):
             self.url = f"{self.url}.onion"
 
-        # tor onion v3 addresses are always 56 characters and end with a 'd'
-        # this is guaranteed because of base32 padding and ed25519 key length
         onion_key = self.url[7:-6]
         key_len = len(onion_key)
         last_char = onion_key[-1]
+        self.logger.debug(f"onion url check: {key_len=} {last_char=}")
 
         if key_len != 56 or last_char != "d":
-            # TODO: add debugging logger
-            # print(f"{key_len=}\t{last_char=}")
-            raise self.InvalidOnionAddress()
+            bad_len = f"bad length, {key_len=} instead of 56 " if key_len != 56 else ""
+            wrong_pad = (
+                f"wrong padding, {last_char=} instead of d" if last_char != "d" else ""
+            )
+            raise self.InvalidOnionAddress(f"key had {bad_len}{wrong_pad}")

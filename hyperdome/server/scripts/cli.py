@@ -56,6 +56,8 @@ def admin(ctx, log_level, log_file):
     if ctx.invoked_subcommand is not None:
         return
     else:
+        click.echo(f"Hyperdome Server {version} | https://hyperdome.org")
+
         main()
 
 

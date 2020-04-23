@@ -19,46 +19,44 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import logging
 import os
 import sys
 import threading
 import time
 
 from ..common import strings
-from ..common.common import Common, platform_str, version
+from ..common.common import Settings, platform_str
 from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
 from .web import Web
 
+logger = logging.getLogger(__name__)
 
-def main(cwd=None):
+
+def main(cwd=""):
     """
     The main() function implements all of the logic that the command-line
     version of hyperdome uses.
     """
-    common = Common()
-
     # Load the default settings and strings early, for the sake of being able
     # to parse options.
     # These won't be in the user's chosen locale necessarily, but we need to
     # parse them early in order to even display the option to pass alternate
     # settings (which might contain a preferred locale).
     # If an alternate --config is passed, we'll reload strings later.
-    common.load_settings()
-    strings.load_strings(common)
+    settings = Settings()
+    strings.load_strings(settings)
 
-    # Display Hyperdome banner
-    print(f"Hyperdome Server {version}")
-
-    # hyperdome in OSX needs to change current working directory (hyperdome #132)
+    # hyperdome in OSX needs to change current working directory (onionshare #132)
     if platform_str == "Darwin" and cwd:
         os.chdir(cwd)
 
     # Create the Web object
-    web = Web(common, False)
+    web = Web(is_gui=False)
 
     # Start the Onion object
-    onion = Onion(common)
+    onion = Onion(settings)
     try:
         onion.connect(
             custom_settings=False,
@@ -67,7 +65,7 @@ def main(cwd=None):
             # TODO: onion should get these values from elsewhere as new CLI has moved where the values are coming from
         )
     except KeyboardInterrupt:
-        print("")
+        logger.info("keyboard interrupt during onion setup")
         sys.exit()
     except Exception as e:
         sys.exit(e.args[0])
@@ -119,6 +117,7 @@ def main(cwd=None):
             # https://stackoverflow.com/questions/3788208
             time.sleep(0.2)
     except KeyboardInterrupt:
+        logger.info("application stopped from keyboard interrupt")
         web.stop(app.port)
     finally:
         # Shutdown

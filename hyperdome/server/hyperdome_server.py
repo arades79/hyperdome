@@ -34,8 +34,7 @@ class HyperdomeServer(object):
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, common, onion, local_only=False, shutdown_timeout=0):
-        self.common = common
+    def __init__(self, onion, local_only=False, shutdown_timeout=0):
 
         self.logger.debug("__init__")
 
@@ -75,7 +74,7 @@ class HyperdomeServer(object):
             self.choose_port()
 
         if self.shutdown_timeout > 0:
-            self.shutdown_timer = ShutdownTimer(self.common, self.shutdown_timeout)
+            self.shutdown_timer = ShutdownTimer(self.shutdown_timeout)
 
         if self.local_only:
             self.onion_host = "127.0.0.1:{0:d}".format(self.port)

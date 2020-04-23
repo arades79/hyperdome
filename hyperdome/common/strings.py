@@ -19,15 +19,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
-import os
 
-from .common import resource_path
+from .common import Settings, resource_path
 
 strings = {}
 translations = {}
 
 
-def load_strings(common):
+def load_strings(settings: Settings):
     """
     Loads translated strings and fallback to English
     if the translation does not exist.
@@ -38,13 +37,13 @@ def load_strings(common):
     translations = {}
     locale_path = resource_path / "locale"
 
-    for locale in common.settings.available_locales:
+    for locale in settings.available_locales:
         filename = locale_path / f"{locale}.json"
         translations[locale] = json.loads(filename.read_text(encoding="utf-8"))
 
     # Build strings
     default_locale = "en"
-    current_locale = common.settings.get("locale")
+    current_locale = settings.get("locale")
     strings = {
         s: (
             translations[current_locale][s]
