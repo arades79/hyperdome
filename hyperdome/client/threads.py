@@ -42,7 +42,6 @@ from ..common.server import Server
 import autologging
 
 
-@autologging.traced
 @autologging.logged
 class OnionThread(QtCore.QThread):
     """

@@ -45,7 +45,6 @@ from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
 
-@autologging.traced
 @autologging.logged
 class SettingsDialog(QtWidgets.QDialog):
     """

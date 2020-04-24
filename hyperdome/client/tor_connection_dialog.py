@@ -29,7 +29,6 @@ from ..common.onion import BundledTorCanceled
 from .widgets import Alert
 
 
-@autologging.traced
 @autologging.logged
 class TorConnectionDialog(QtWidgets.QProgressDialog):
     """
@@ -120,7 +119,6 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         QtCore.QTimer.singleShot(1, self.cancel)
 
 
-@autologging.traced
 @autologging.logged
 class TorConnectionThread(QtCore.QThread):
     tor_status_update = QtCore.pyqtSignal(str, str)
