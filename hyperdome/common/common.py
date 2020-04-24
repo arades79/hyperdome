@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
 import locale
+import logging
 from pathlib import Path
 import platform
 import secrets
@@ -30,8 +31,13 @@ import threading
 import time
 import typing
 
+import autologging
+
 from .utils import bootstrap
 
+logger = logging.getLogger(__name__)
+
+logger.debug("initializing common paths")
 
 platform_str = "BSD" if platform.system().endswith("BSD") else platform.system()
 
@@ -47,12 +53,16 @@ def data_path() -> Path:
     """
     home = Path.home()
     if (appdata := (home / "AppData" / "Roaming")).exists():
+        logger.debug("using Windows data path")
         hyperdome_data_dir = appdata / "hyperdome"
     elif platform_str == "Darwin":
+        logger.debug("using macOS data path")
         hyperdome_data_dir = home / "Library" / "Application Support" / "hyperdome"
     else:
+        logger.debug("using POSIX data path")
         hyperdome_data_dir = home / ".config" / "hyperdome"
     if not hyperdome_data_dir.is_dir():
+        logger.info("creating data path")
         hyperdome_data_dir.mkdir(0o700)
     return hyperdome_data_dir.resolve()
 
@@ -60,28 +70,33 @@ def data_path() -> Path:
 @bootstrap
 def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     if platform_str == "Linux":
+        logger.debug("using Linux tor path")
         tor_path = Path("/usr/bin/tor")
         tor_geo_ip_file_path = Path("/usr/share/tor/geoip")
         tor_geo_ipv6_file_path = Path("/usr/share/tor/geoip6")
         obfs4proxy_file_path = Path("/usr/bin/obfs4proxy")
     elif platform_str == "Windows":
+        logger.debug("using Windows tor path")
         base_path = resource_path.parents[1] / "tor"
         tor_path = base_path / "Tor" / "tor.exe"
         obfs4proxy_file_path = base_path / "Tor" / "obfs4proxy.exe"
         tor_geo_ip_file_path = base_path / "Data" / "Tor" / "geoip"
         tor_geo_ipv6_file_path = base_path / "Data" / "Tor" / "geoip6"
     elif platform_str == "Darwin":
+        logger.debug("using macOS tor path")
         base_path = resource_path.parents[1]
         tor_path = base_path / "Resources" / "Tor" / "tor"
         tor_geo_ip_file_path = base_path / "Resources" / "Tor" / "geoip"
         tor_geo_ipv6_file_path = base_path / "Resources" / "Tor" / "geoip6"
         obfs4proxy_file_path = base_path / "Resources" / "Tor" / "obfs4proxy"
     elif platform_str == "BSD":
+        logger.debug("using BSD tor path")
         tor_path = Path("/usr/local/bin/tor")
         tor_geo_ip_file_path = Path("/usr/local/share/tor/geoip")
         tor_geo_ipv6_file_path = Path("/usr/local/share/tor/geoip6")
         obfs4proxy_file_path = Path("/usr/local/bin/obfs4proxy")
     else:
+        logger.error("Unsupported platform, couldn't build tor paths")
         raise OSError("Host platform not supported")
 
     return (
@@ -92,6 +107,8 @@ def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     )
 
 
+@autologging.traced
+@autologging.logged
 def get_available_port(min_port: int, max_port: int) -> int:
     """
     Find a random available port within the given range.
@@ -102,11 +119,14 @@ def get_available_port(min_port: int, max_port: int) -> int:
                 tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
                 break
             except OSError:
+                get_available_port._log.info("selected port in use, trying another")
                 pass
         _, port = tmpsock.getsockname()
     return port
 
 
+@autologging.traced
+@autologging.logged
 class Settings(object):
     """
     This class stores all of the settings for hyperdome, specifically for how
@@ -115,23 +135,20 @@ class Settings(object):
     settings.
     """
 
-    def __init__(self, common, config: str = ""):
-        self.common = common
-
-        self.common.log("Settings", "__init__")
+    def __init__(self, config: str = ""):
 
         # If a readable config file was provided, use that
         if config:
             if (config_path := Path(config)).exists():
+                self.__log.debug(f"using {config_path} for config")
                 self.filename = config_path
             else:
-                self.common.log(
-                    "Settings",
-                    "__init__",
+                self.__log.warning(
                     "Supplied config does not exist or is "
                     "unreadable. Falling back to default location",
                 )
         else:
+            self.__log.info("using hyperdome.json for config")
             self.filename: Path = data_path / "hyperdome.json"
 
         # Dictionary of available languages in this version of hyperdome,
@@ -178,6 +195,7 @@ class Settings(object):
         }
         self._settings: dict[str] = {}
         self.fill_in_defaults()
+        self.load()
 
     def fill_in_defaults(self):
         """
@@ -214,13 +232,10 @@ class Settings(object):
         """
         Load the settings from file.
         """
-        self.common.log("Settings", "load")
 
         # If the settings file exists, load it
         if self.filename.exists():
-            self.common.log(
-                "Settings", "load", "Trying to load {}".format(self.filename)
-            )
+            self.__log.info(f"loading configuration from {self.filename}")
             self._settings = json.loads(self.filename.read_text())
             self.fill_in_defaults()
 
@@ -228,11 +243,8 @@ class Settings(object):
         """
         Save settings to file.
         """
-        self.common.log("Settings", "save")
         self.filename.write_text(json.dumps(self._settings))
-        self.common.log(
-            "Settings", "save", "Settings saved in {}".format(self.filename)
-        )
+        self.__log.info(f"Settings saved in {self.filename}")
 
     def get(self, key: str):
         return self._settings[key]
@@ -243,6 +255,7 @@ class Settings(object):
             try:
                 val = int(val)
             except ValueError:
+                self.__log.warning(f"{val} is not a valid port value")
                 val = self.default_settings[key]
 
         self._settings[key] = val
@@ -251,55 +264,28 @@ class Settings(object):
         """
         Clear all settings and re-initialize to defaults
         """
+        self.__log.info("settings cleared")
         self._settings = self.default_settings
         self.fill_in_defaults()
         self.save()
 
 
-class Common(object):
-    """
-    The Common object is shared amongst all parts of hyperdome.
-    """
-
-    def __init__(self, debug=False):
-        self.debug = debug
-
-    def load_settings(self, config=""):
-        """
-        Loading settings, optionally from a custom config json file.
-        """
-        self.settings = Settings(self, config)
-        self.settings.load()
-
-    def log(self, module, func, msg=None):
-        """
-        If debug mode is on, log error messages to stdout
-        """
-        if self.debug:
-            timestamp = time.strftime("%b %d %Y %X")
-
-            final_msg = "[{}] {}.{}".format(timestamp, module, func)
-            if msg:
-                final_msg = "{}: {}".format(final_msg, msg)
-            print(final_msg)
-
-
+@autologging.traced
+@autologging.logged
 class ShutdownTimer(threading.Thread):
     """
     Background thread sleeps t hours and returns.
     """
 
-    def __init__(self, common, time):
+    def __init__(self, time):
         threading.Thread.__init__(self)
 
-        self.common = common
+        self.__log.debug("__init__")
 
         self.setDaemon(True)
         self.time = time
 
     def run(self):
-        self.common.log(
-            "Shutdown Timer", "Server will shut down after {} seconds".format(self.time)
-        )
+        self.__log.info(f"Server will shut down after {self.time} seconds")
         time.sleep(self.time)
         return 1

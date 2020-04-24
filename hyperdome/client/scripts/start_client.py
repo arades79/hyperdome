@@ -19,19 +19,45 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
+import logging
 
+from autologging import install_traced_noop
 import click
 
-from ...common.common import version
+logging.addLevelName(1000, "OFF")
 
 
 @click.command()
-@click.option("--debug", "-d", is_flag=True)
-@click.version_option(version, prog_name="Hyperdome Server")
-def start(debug):
-    if debug:
-        setattr(sys, "hyperdome_dev_mode", True)
+@click.option(
+    "--log-level",
+    "-l",
+    "log_level",
+    type=click.Choice(
+        ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "OFF"], case_sensitive=False
+    ),
+    default="ERROR",
+    help="override logging level for this run",
+    show_default=True,
+)
+@click.option(
+    "--log-file",
+    "log_file",
+    type=click.Path(exists=False,),
+    help="file to to write logs to for this run instead of stdout",
+    default=None,
+)
+def start(log_level, log_file):
+    if log_level != "TRACE":
+        install_traced_noop()
+    logging.basicConfig(
+        level=log_level,
+        filename=log_file,
+        format="%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d:\n\t%(message)s",
+    )
+
+    # hyperdome imports are done here so noop traced is used
+    from ...common.common import version
     from ..main import main
 
+    click.echo(f"Hyperdome {version} | https://hyperdome.org")
     main()

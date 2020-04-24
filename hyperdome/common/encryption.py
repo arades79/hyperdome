@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import base64
 import functools
 
+import autologging
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -34,6 +35,8 @@ import cryptography.hazmat.primitives.serialization as serial
 from .types import arg_to_bytes, bstr
 
 
+@autologging.traced
+@autologging.logged
 class LockBox:
     """
     handle key storage, generation, exchange,
@@ -77,6 +80,7 @@ class LockBox:
         return a PEM encoded serialized public key digest
         of a new ephemeral X448 key
         """
+        self.__log.info("generating new public key")
         self._send_ratchet_key = None
         self._recieve_ratchet_key = None
 

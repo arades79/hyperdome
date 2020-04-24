@@ -24,9 +24,10 @@ import re
 import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 
 from ..common import strings
-from ..common.common import Common, Settings, resource_path, tor_paths, version
+from ..common.common import Settings, resource_path, tor_paths, version
 from ..common.onion import (
     BundledTorNotSupported,
     BundledTorTimeout,
@@ -44,6 +45,7 @@ from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
 
+@autologging.logged
 class SettingsDialog(QtWidgets.QDialog):
     """
     Settings dialog.
@@ -53,7 +55,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        common: Common,
+        settings: Settings,
         onion: Onion,
         qtapp: QtWidgets.QApplication,
         config_file: str = "",
@@ -61,9 +63,9 @@ class SettingsDialog(QtWidgets.QDialog):
     ):
         super(SettingsDialog, self).__init__()
 
-        self.common = common
+        self.settings = settings
 
-        self.common.log("SettingsDialog", "__init__")
+        self.__log.debug("__init__")
 
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
@@ -73,7 +75,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setModal(True)
         self.setWindowTitle(strings._("gui_settings_window_title"))
         self.setWindowIcon(
-            QtGui.QIcon(resource_path / "images" / "hyperdome_logo_100.png")
+            QtGui.QIcon(str(resource_path / "images" / "hyperdome_logo_100.png"))
         )
 
         self.system = platform.system()
@@ -495,7 +497,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def reload_settings(self):
         # Load settings, and fill them in
-        self.old_settings = Settings(self.common, self.has_config)
+        self.old_settings = Settings(self.has_config)
         self.old_settings.load()
 
         connection_type = self.old_settings.get("connection_type")
@@ -572,11 +574,8 @@ class SettingsDialog(QtWidgets.QDialog):
 
             # If v3 onion services are not supported, report
             if not self.onion.supports_v3_onions:
-                self.common.log(
-                    "SettingsDialog", "__init__", "v3 onions are required for hyperdome"
-                )
+                self.__log.warning("v3 onions are required for hyperdome")
                 Alert(
-                    self.common,
                     "v3 onion support not detected, "
                     "v3 onions are required for Hyperdome",
                 )
@@ -589,7 +588,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Connection type bundled was toggled.
         If checked, hide authentication fields.
         """
-        self.common.log("SettingsDialog", "connection_type_bundled_toggled")
+        self.__log.info("connection_type_bundled_toggled")
         if checked:
             self.authenticate_group.hide()
             self.connection_type_socks.hide()
@@ -622,7 +621,6 @@ class SettingsDialog(QtWidgets.QDialog):
             # turning it on
             if not self.old_settings.get("tor_bridges_use_meek_lite_azure"):
                 Alert(
-                    self.common,
                     strings._("gui_settings_meek_lite_expensive_warning"),
                     QtWidgets.QMessageBox.Warning,
                 )
@@ -640,7 +638,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Connection type automatic was toggled.
         If checked, hide authentication fields.
         """
-        self.common.log("SettingsDialog", "connection_type_automatic_toggled")
+        self.__log.info("connection_type_automatic_toggled")
         if checked:
             self.authenticate_group.hide()
             self.connection_type_socks.hide()
@@ -652,7 +650,7 @@ class SettingsDialog(QtWidgets.QDialog):
         If checked, show extra fields for Tor control address and port.
         If unchecked, hide those extra fields.
         """
-        self.common.log("SettingsDialog", "connection_type_control_port_toggled")
+        self.__log.info("connection_type_control_port_toggled")
         if checked:
             self.authenticate_group.show()
             self.connection_type_control_port_extras.show()
@@ -666,7 +664,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Connection type socket file was toggled. If checked, show extra fields
         for socket file. If unchecked, hide those extra fields.
         """
-        self.common.log("SettingsDialog", "connection_type_socket_file_toggled")
+        self.__log.info("connection_type_socket_file_toggled")
         if checked:
             self.authenticate_group.show()
             self.connection_type_socket_file_extras.show()
@@ -679,7 +677,7 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Authentication option no authentication was toggled.
         """
-        self.common.log("SettingsDialog", "authenticate_no_auth_toggled")
+        self.__log.debug("authenticate_no_auth_toggled")
 
     def authenticate_password_toggled(self, checked):
         """
@@ -687,7 +685,7 @@ class SettingsDialog(QtWidgets.QDialog):
         If checked, show extra fields for password auth.
         If unchecked, hide those extra fields.
         """
-        self.common.log("SettingsDialog", "authenticate_password_toggled")
+        self.__log.debug("authenticate_password_toggled")
         if checked:
             self.authenticate_password_extras.show()
         else:
@@ -698,11 +696,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Toggle the 'Copy HidServAuth' button
         to copy the saved HidServAuth to clipboard.
         """
-        self.common.log(
-            "SettingsDialog",
-            "hidservauth_copy_button_clicked",
-            "HidServAuth was copied to clipboard",
-        )
+        self.__log.info("HidServAuth was copied to clipboard",)
         clipboard = self.qtapp.clipboard()
         clipboard.setText(self.old_settings.get("hidservauth_string"))
 
@@ -716,11 +710,7 @@ class SettingsDialog(QtWidgets.QDialog):
         )
 
         if selected_dir:
-            self.common.log(
-                "SettingsDialog",
-                "data_dir_button_clicked",
-                "selected dir: {}".format(selected_dir),
-            )
+            self.__log.info(f"selected dir: {selected_dir}")
             self.data_dir_lineedit.setText(selected_dir)
 
     def test_tor_clicked(self):
@@ -729,12 +719,12 @@ class SettingsDialog(QtWidgets.QDialog):
         With the given settings, see if we can successfully connect \
         and authenticate to Tor.
         """
-        self.common.log("SettingsDialog", "test_tor_clicked")
+        self.__log.debug("test_tor_clicked")
         settings = self.settings_from_fields()
 
         try:
             # Show Tor connection status if connection type is bundled tor
-            onion = Onion(self.common)
+            onion = Onion(self.settings)
 
             if settings.get("connection_type") == "bundled":
                 self.tor_status.show()
@@ -754,7 +744,6 @@ class SettingsDialog(QtWidgets.QDialog):
 
             # If an exception hasn't been raised yet, the Tor settings work
             Alert(
-                self.common,
                 strings._("settings_test_success").format(
                     onion.tor_version,
                     onion.supports_ephemeral,
@@ -775,7 +764,8 @@ class SettingsDialog(QtWidgets.QDialog):
             BundledTorNotSupported,
             BundledTorTimeout,
         ) as e:
-            Alert(self.common, e.args[0], QtWidgets.QMessageBox.Warning)
+            self.__log.warning("couldn't spawn tor with given settings", exc_info=True)
+            Alert(e.args[0], QtWidgets.QMessageBox.Warning)
             if settings.get("connection_type") == "bundled":
                 self.tor_status.hide()
                 self._enable_buttons()
@@ -784,7 +774,7 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Save button clicked. Save current settings to disk.
         """
-        self.common.log("SettingsDialog", "save_clicked")
+        self.__log.info("save_clicked")
 
         def changed(s1, s2, keys):
             """
@@ -809,7 +799,7 @@ class SettingsDialog(QtWidgets.QDialog):
                     ]
                 else:
                     notice = strings._("gui_settings_language_changed_notice")
-                Alert(self.common, notice, QtWidgets.QMessageBox.Information)
+                Alert(notice, QtWidgets.QMessageBox.Information)
 
             # Save the new settings
             settings.save()
@@ -819,9 +809,7 @@ class SettingsDialog(QtWidgets.QDialog):
             reboot_onion = False
             if not self.local_only:
                 if self.onion.is_authenticated():
-                    self.common.log(
-                        "SettingsDialog", "save_clicked", "Connected to Tor"
-                    )
+                    self.__log.info("save_clicked: Connected to Tor")
 
                     if changed(
                         settings,
@@ -845,30 +833,24 @@ class SettingsDialog(QtWidgets.QDialog):
                         reboot_onion = True
 
                 else:
-                    self.common.log(
-                        "SettingsDialog", "save_clicked", "Not connected to Tor"
-                    )
+                    self.__log.warning("save_clicked: Not connected to Tor")
                     # Tor isn't connected, so try connecting
                     reboot_onion = True
 
                 # Do we need to reinitialize Tor?
                 if reboot_onion:
                     # Reinitialize the Onion object
-                    self.common.log(
-                        "SettingsDialog", "save_clicked", "rebooting the Onion"
-                    )
+                    self.__log.info("save_clicked: rebooting the Onion")
                     self.onion.cleanup()
 
                     tor_con = TorConnectionDialog(
-                        self.common, self.qtapp, self.onion, settings
+                        self.settings, self.qtapp, self.onion, settings
                     )
                     tor_con.start()
 
-                    self.common.log(
-                        "SettingsDialog",
-                        "save_clicked",
-                        "Onion done rebooting, connected to Tor: "
-                        "{}".format(self.onion.connected_to_tor),
+                    self.__log.info(
+                        "save_clicked: Onion done rebooting, connected to Tor: "
+                        f"{self.onion.connected_to_tor}"
                     )
 
                     if self.onion.is_authenticated() and not tor_con.wasCanceled():
@@ -886,12 +868,10 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Cancel button clicked.
         """
-        self.common.log("SettingsDialog", "cancel_clicked")
+        self.__log.debug("cancel_clicked")
         if not self.local_only and not self.onion.is_authenticated():
             Alert(
-                self.common,
-                strings._("gui_tor_connection_canceled"),
-                QtWidgets.QMessageBox.Warning,
+                strings._("gui_tor_connection_canceled"), QtWidgets.QMessageBox.Warning,
             )
             sys.exit()
         else:
@@ -901,14 +881,14 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Help button clicked.
         """
-        self.common.log("SettingsDialog", "help_clicked")
+        self.__log.debug("help_clicked")
         SettingsDialog.open_help()
 
     def clear_clicked(self):
         """
         Default Settings button clicked.
         """
-        settings = Settings(self.common, self.has_config)
+        settings = Settings(self.has_config)
         settings.clear()
         self.reload_settings()
 
@@ -921,8 +901,8 @@ class SettingsDialog(QtWidgets.QDialog):
         """
         Return a Settings object that's populated from the settings dialog.
         """
-        self.common.log("SettingsDialog", "settings_from_fields")
-        settings = Settings(self.common, self.has_config)
+        self.__log.debug("settings_from_fields")
+        settings = Settings(self.has_config)
         settings.load()  # To get the last update timestamp
 
         # Language
@@ -1031,21 +1011,19 @@ class SettingsDialog(QtWidgets.QDialog):
                 new_bridges = "".join(new_bridges)
                 settings.set("tor_bridges_use_custom_bridges", new_bridges)
             else:
-                Alert(self.common, strings._("gui_settings_tor_bridges_invalid"))
+                Alert(strings._("gui_settings_tor_bridges_invalid"))
                 settings.set("no_bridges", True)
                 return None
 
         return settings
 
     def closeEvent(self, e):
-        self.common.log("SettingsDialog", "closeEvent")
+        self.__log.debug("closeEvent")
 
         # On close, if Tor isn't connected, then quit hyperdome altogether
         if not self.local_only:
             if not self.onion.is_authenticated():
-                self.common.log(
-                    "SettingsDialog", "closeEvent", "Closing while not connected to Tor"
-                )
+                self.__log.info("Closing while not connected to Tor")
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -1062,7 +1040,7 @@ class SettingsDialog(QtWidgets.QDialog):
             self._enable_buttons()
 
     def _disable_buttons(self):
-        self.common.log("SettingsDialog", "_disable_buttons")
+        self.__log.debug("_disable_buttons")
 
         self.check_for_updates_button.setEnabled(False)
         self.connection_type_test_button.setEnabled(False)
@@ -1070,7 +1048,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.cancel_button.setEnabled(False)
 
     def _enable_buttons(self):
-        self.common.log("SettingsDialog", "_enable_buttons")
+        self.__log.debug("_enable_buttons")
         # We can't check for updates if we're still not connected to Tor
         self.check_for_updates_button.setEnabled(self.onion.connected_to_tor)
         self.connection_type_test_button.setEnabled(True)

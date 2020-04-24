@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import time
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 
 from ..common import strings
 from ..common.common import resource_path
@@ -28,6 +29,7 @@ from ..common.onion import BundledTorCanceled
 from .widgets import Alert
 
 
+@autologging.logged
 class TorConnectionDialog(QtWidgets.QProgressDialog):
     """
     Connecting to Tor dialog.
@@ -35,14 +37,10 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
 
     open_settings = QtCore.pyqtSignal()
 
-    def __init__(self, common, qtapp, onion, custom_settings=False):
+    def __init__(self, settings, qtapp, onion, custom_settings=False):
         super(TorConnectionDialog, self).__init__(None)
 
-        self.common = common
-
-        self.settings = custom_settings or self.common.settings
-
-        self.common.log("TorConnectionDialog", "__init__")
+        self.settings = custom_settings or settings
 
         self.qtapp = qtapp
         self.onion = onion
@@ -66,9 +64,8 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         self._tor_status_update(0, "")
 
     def start(self):
-        self.common.log("TorConnectionDialog", "start")
 
-        t = TorConnectionThread(self.common, self.settings, self, self.onion)
+        t = TorConnectionThread(self.settings, self, self.onion)
         t.tor_status_update.connect(self._tor_status_update)
         t.connected_to_tor.connect(self._connected_to_tor)
         t.canceled_connecting_to_tor.connect(self._canceled_connecting_to_tor)
@@ -90,14 +87,12 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         )
 
     def _connected_to_tor(self):
-        self.common.log("TorConnectionDialog", "_connected_to_tor")
         self.active = False
 
         # Close the dialog after connecting
         self.setValue(self.maximum())
 
     def _canceled_connecting_to_tor(self):
-        self.common.log("TorConnectionDialog", "_canceled_connecting_to_tor")
         self.active = False
         self.onion.cleanup()
 
@@ -105,13 +100,12 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         QtCore.QTimer.singleShot(1, self.cancel)
 
     def _error_connecting_to_tor(self, msg):
-        self.common.log("TorConnectionDialog", "_error_connecting_to_tor")
         self.active = False
 
         def alert_and_open_settings():
             # Display the exception in an alert box
+            self.__log.warning("couldn't connect to tor")
             Alert(
-                self.common,
                 "{}\n\n{}".format(msg, strings._("gui_tor_connection_error_settings")),
                 QtWidgets.QMessageBox.Warning,
             )
@@ -125,18 +119,15 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         QtCore.QTimer.singleShot(1, self.cancel)
 
 
+@autologging.logged
 class TorConnectionThread(QtCore.QThread):
     tor_status_update = QtCore.pyqtSignal(str, str)
     connected_to_tor = QtCore.pyqtSignal()
     canceled_connecting_to_tor = QtCore.pyqtSignal()
     error_connecting_to_tor = QtCore.pyqtSignal(str)
 
-    def __init__(self, common, settings, dialog, onion):
+    def __init__(self, settings, dialog, onion):
         super(TorConnectionThread, self).__init__()
-
-        self.common = common
-
-        self.common.log("TorConnectionThread", "__init__")
 
         self.settings = settings
 
@@ -144,7 +135,6 @@ class TorConnectionThread(QtCore.QThread):
         self.onion = onion
 
     def run(self):
-        self.common.log("TorConnectionThread", "run")
 
         # Connect to the Onion
         try:
@@ -155,15 +145,11 @@ class TorConnectionThread(QtCore.QThread):
                 self.canceled_connecting_to_tor.emit()
 
         except BundledTorCanceled:
-            self.common.log(
-                "TorConnectionThread", "run", "caught exception: BundledTorCanceled"
-            )
+            self.__log.warning("Caught exception: BundledTorCanceled")
             self.canceled_connecting_to_tor.emit()
 
         except Exception as e:
-            self.common.log(
-                "TorConnectionThread", "run", "caught exception: {}".format(e.args[0])
-            )
+            self.__log.exception("unknown exception connecting to tor")
             self.error_connecting_to_tor.emit(str(e.args[0]))
 
     def _tor_status_update(self, progress, summary):

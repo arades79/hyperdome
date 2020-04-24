@@ -19,21 +19,29 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from stem.control import Controller
-from stem import ProtocolError, SocketClosed, SocketError
-from stem.connection import MissingPassword, UnreadableCookieFile, AuthenticationFailure
+from distutils.version import LooseVersion as Version
 import os
+from pathlib import Path
+import shlex
+import subprocess
 import sys
 import tempfile
-import subprocess
 import time
-import shlex
-import stem
 
-from distutils.version import LooseVersion as Version
+import autologging
+from stem import ProtocolError, SocketClosed, SocketError
+import stem
+from stem.connection import AuthenticationFailure, MissingPassword, UnreadableCookieFile
+from stem.control import Controller
+
 from . import strings
-from .common import data_path, platform_str, resource_path, tor_paths
-from pathlib import Path
+from .common import (
+    data_path,
+    get_available_port,
+    platform_str,
+    resource_path,
+    tor_paths,
+)
 
 
 class TorErrorAutomatic(Exception):
@@ -144,6 +152,8 @@ class BundledTorBroken(Exception):
     """
 
 
+@autologging.traced
+@autologging.logged
 class Onion(object):
     """
     Onion is an abstraction layer for connecting to the Tor control port and
@@ -157,10 +167,9 @@ class Onion(object):
     This is necessary for status updates to reach the GUI.
     """
 
-    def __init__(self, common):
-        self.common = common
+    def __init__(self, settings):
 
-        self.common.log("Onion", "__init__")
+        self.settings = settings
 
         self.service_id = None
 
@@ -206,10 +215,9 @@ class Onion(object):
         tor_status_update_func=None,
         connect_timeout=120,
     ):
-        self.common.log("Onion", "connect")
 
         # Either use settings that are passed in, or use them from common
-        self.settings = custom_settings or self.common.settings
+        self.settings = custom_settings or self.settings
 
         # The Tor controller
         self.c = None
@@ -222,18 +230,14 @@ class Onion(object):
 
             # Create a torrc for this session
             self.tor_data_directory = tempfile.TemporaryDirectory(dir=data_path)
-            self.common.log(
-                "Onion",
-                "connect",
-                "tor_data_directory={}".format(self.tor_data_directory.name),
-            )
+            self.__log.info(f"tor_data_directory={self.tor_data_directory.name}",)
 
             # Create the torrc
             torrc_template = resource_path.joinpath("torrc_template").read_text()
             self.tor_cookie_auth_file = Path(
                 self.tor_data_directory.name, "cookie"
             ).resolve()
-            self.tor_socks_port = self.common.get_available_port(1000, 65535)
+            self.tor_socks_port = get_available_port(1000, 65535)
             self.tor_torrc = Path(self.tor_data_directory.name, "torrc").resolve()
 
             if platform_str in ("Windows", "Darwin"):
@@ -243,7 +247,7 @@ class Onion(object):
                 # are limited to 100 chars, and the macOS sandbox forces us
                 # to put the socket file in a place with a really long path.
                 torrc_template += "ControlPort {{control_port}}\n"
-                self.tor_control_port = self.common.get_available_port(1000, 65535)
+                self.tor_control_port = get_available_port(1000, 65535)
                 self.tor_control_socket = None
             else:
                 # Linux and BSD can use unix sockets
@@ -370,17 +374,15 @@ class Onion(object):
                     end="\r",
                 )
 
-                if callable(tor_status_update_func):
-                    if not tor_status_update_func(progress, summary):
-                        # If the dialog was canceled, stop connecting to Tor
-                        self.common.log(
-                            "Onion",
-                            "connect",
-                            "tor_status_update_func returned "
-                            "false, canceling connecting to Tor",
-                        )
-                        print()
-                        return False
+                if callable(tor_status_update_func) and not tor_status_update_func(
+                    progress, summary
+                ):
+                    # If the dialog was canceled, stop connecting to Tor
+                    self.__log.warning(
+                        "tor_status_update_func returned "
+                        "false, canceling connecting to Tor",
+                    )
+                    return False
 
                 if summary == "Done":
                     print("")
@@ -399,13 +401,13 @@ class Onion(object):
                     if connect_timeout == 120:
                         connect_timeout = 150
                 if time.time() - start_ts > connect_timeout:
-                    print("")
                     try:
                         self.tor_proc.terminate()
                         raise BundledTorTimeout(
                             strings._("settings_error_bundled_tor_timeout")
                         )
                     except FileNotFoundError:
+                        self.__log.warning("", exc_info=True)
                         pass
 
         elif self.settings.get("connection_type") == "automatic":
@@ -536,9 +538,7 @@ class Onion(object):
 
         # Get the tor version
         self.tor_version = self.c.get_version().version_str
-        self.common.log(
-            "Onion", "connect", "Connected to tor {}".format(self.tor_version)
-        )
+        self.__log.info(f"Connected to tor {self.tor_version}")
 
         # Do the versions of stem and tor that I'm using support ephemeral
         # onion services?
@@ -565,7 +565,6 @@ class Onion(object):
         Start a onion service on port 80, pointing to the given port, and
         return the onion hostname.
         """
-        self.common.log("Onion", "start_onion_service")
 
         self.auth_string = None
         if not self.supports_ephemeral:
@@ -585,7 +584,7 @@ class Onion(object):
         debug_message = "key_type={}".format(key_type)
         if key_type == "NEW":
             debug_message += ", key_content={}".format(key_content)
-        self.common.log("Onion", "start_onion_service", "{}".format(debug_message))
+        self.__log.debug(f"{debug_message}")
         await_publication = True
         try:
             res = self.c.create_ephemeral_hidden_service(
@@ -619,22 +618,17 @@ class Onion(object):
         Stop onion services that were created earlier. If there's a tor
         subprocess running, kill it.
         """
-        self.common.log("Onion", "cleanup")
 
         # Cleanup the ephemeral onion services, if we have any
         if self.c:
             onions = self.c.list_ephemeral_hidden_services()
             for onion in onions:
                 try:
-                    self.common.log(
-                        "Onion", "cleanup", "trying to remove onion {}".format(onion)
-                    )
+                    self.__log.info(f"trying to remove onion {onion}")
                     self.c.remove_ephemeral_hidden_service(onion)
                 except stem.ControllerError:
-                    self.common.log(
-                        "Onion",
-                        "cleanup",
-                        "could not remove onion " "{}, continuing.".format(onion),
+                    self.__log.warning(
+                        f"could not remove onion " "{onion}, continuing.", exc_info=True
                     )
         self.service_id = None
 
@@ -654,9 +648,11 @@ class Onion(object):
                 # Delete the temporary tor data directory
                 self.tor_data_directory.cleanup()
             except AttributeError:
+                self.__log.info("temp directory was already deleted")
                 # Skip if cleanup was somehow run before connect
                 pass
             except PermissionError:
+                self.__log.warning("couldn't clean temp directory", exc_info=True)
                 # Skip if the directory is still open (#550)
                 # TODO: find a better solution
                 pass
@@ -665,7 +661,6 @@ class Onion(object):
         """
         Returns a (address, port) tuple for the Tor SOCKS port
         """
-        self.common.log("Onion", "get_tor_socks_port")
 
         if self.settings.get("connection_type") == "bundled":
             return ("127.0.0.1", self.tor_socks_port)

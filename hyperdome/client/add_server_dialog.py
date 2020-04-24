@@ -18,7 +18,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 
 from . import threads
 from ..common.common import resource_path
@@ -26,12 +28,13 @@ from ..common.encryption import LockBox
 from ..common.server import Server
 
 
+@autologging.logged
 class AddServerDialog(QtWidgets.QDialog):
     """
     Dialog for entering server connection details and or credentials.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent: QtCore.QObject):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
@@ -41,7 +44,9 @@ class AddServerDialog(QtWidgets.QDialog):
         self.error_message = QtWidgets.QMessageBox(self)
 
         self.setWindowTitle("Add Hyperdome Server")
-        self.setWindowIcon(QtGui.QIcon(resource_path / "images/hyperdome_logo_100.png"))
+        self.setWindowIcon(
+            QtGui.QIcon(str(resource_path / "images/hyperdome_logo_100.png"))
+        )
 
         self.is_counselor = False
 
@@ -115,6 +120,7 @@ class AddServerDialog(QtWidgets.QDialog):
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
+            self.__log.warning("invalid onion address")
             self.error_message.setText("Invalid onion address!")
             self.error_message.exec_()
             return

@@ -18,10 +18,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtGui, QtWidgets
+import autologging
+
 from ..common.common import resource_path
 
 
+@autologging.traced
+@autologging.logged
 class Alert(QtWidgets.QMessageBox):
     """
     An alert box dialog.
@@ -29,17 +33,12 @@ class Alert(QtWidgets.QMessageBox):
 
     def __init__(
         self,
-        common,
         message,
         icon=QtWidgets.QMessageBox.NoIcon,
         buttons=QtWidgets.QMessageBox.Ok,
         autostart=True,
     ):
         super(Alert, self).__init__(None)
-
-        self.common = common
-
-        self.common.log("Alert", "__init__")
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(

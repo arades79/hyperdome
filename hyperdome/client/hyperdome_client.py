@@ -21,7 +21,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 import requests
+
+from hyperdome.common.common import Settings
 
 from . import threads
 from ..common import strings
@@ -34,6 +37,7 @@ from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
 
+@autologging.logged
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
     hyperdome is the main window for the GUI that contains all of the
@@ -42,23 +46,22 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def __init__(
         self,
-        common,
+        settings,
         onion,
         qtapp: QtWidgets.QApplication,
         app,
         filenames,
-        config: bool = False,
+        config: str = "",
         local_only: bool = False,
     ):
         super(HyperdomeClient, self).__init__()
 
         # set application variables
-        self.common = common
+        self.settings = settings
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
         self.local_only: bool = local_only
-        self.common.log("hyperdome", "__init__")
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool.globalInstance()
@@ -81,7 +84,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         )
 
         # make dialog for error messages
-        self.error_window = Alert(self.common, "", autostart=False)
+        self.error_window = Alert("", autostart=False)
 
         # initialize session variables
         self.uid: str = ""
@@ -95,7 +98,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         # Load settings, if a custom config was passed in
         self.config = config
         if self.config:
-            self.common.load_settings(self.config)
+            self.settings = Settings(self.config)
 
         # System tray
         menu = QtWidgets.QMenu()
@@ -174,7 +177,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         # Start the "Connecting to Tor" dialog, which calls onion.connect()
-        tor_con = TorConnectionDialog(self.common, self.qtapp, self.onion)
+        tor_con = TorConnectionDialog(self.settings, self.qtapp, self.onion)
         tor_con.canceled.connect(self._tor_connection_canceled)
         tor_con.open_settings.connect(self._tor_connection_open_settings)
         if not self.local_only:
@@ -275,6 +278,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.is_connected:
             self.disconnect_chat()
         if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
+            self.__log.debug("adding new server")
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
             add_server_dialog = AddServerDialog(self)
@@ -287,8 +291,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.server_dropdown.setCurrentIndex(1)
                 self.save_servers()
         elif self.server_dropdown.currentIndex():
+            self.__log.debug("switching server")
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
+        else:
+            self.__log.debug("switched to 'select a server'")
 
     def start_chat(self):
         @QtCore.pyqtSlot(str)
@@ -382,11 +389,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         If the user cancels before Tor finishes connecting, ask if they want to
         quit, or open settings.
         """
-        self.common.log("hyperdome", "_tor_connection_canceled")
 
         def ask():
             a = Alert(
-                self.common,
                 strings._("gui_tor_connection_ask"),
                 QtWidgets.QMessageBox.Question,
                 buttons=QtWidgets.QMessageBox.NoButton,
@@ -405,16 +410,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             if a.clickedButton() == settings_button:
                 # Open settings
-                self.common.log(
-                    "hyperdome", "_tor_connection_canceled", "Settings button clicked",
-                )
+                self.__log.debug("Settings button clicked",)
                 self.open_settings()
 
             if a.clickedButton() == quit_button:
                 # Quit
-                self.common.log(
-                    "hyperdome", "_tor_connection_canceled", "Quit button clicked"
-                )
+                self.__log.debug("Quit button clicked")
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -426,7 +427,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         The TorConnectionDialog wants to open the Settings dialog
         """
-        self.common.log("hyperdome", "_tor_connection_open_settings")
 
         # Wait 1ms for the event loop to finish closing the TorConnectionDialog
         QtCore.QTimer.singleShot(1, self.open_settings)
@@ -435,13 +435,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Open the SettingsDialog.
         """
-        self.common.log("hyperdome", "open_settings")
 
         def reload_settings():
-            self.common.log(
-                "hyperdome", "open_settings", "settings have changed, reloading"
-            )
-            self.common.settings.load()
+            self.__log.info("settings have changed, reloading")
+            self.settings.load()
 
             # We might've stopped the main requests timer if
             # a Tor connection failed.
@@ -450,7 +447,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # TODO: Use more threadsafe dialog handling used for add_server_dialog here
         d = SettingsDialog(
-            self.common, self.onion, self.qtapp, self.config, self.local_only
+            self.settings, self.onion, self.qtapp, self.config, self.local_only
         )
         d.settings_saved.connect(reload_settings)
         d.exec_()
@@ -488,20 +485,23 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         resource_path.joinpath("servers.json").write_text(
             json.dumps(self.servers, default=lambda o: o.__dict__)
         )
+        self.__log.info("servers saved to servers.json")
 
     def load_servers(self):
         try:
             servers_str = resource_path.joinpath("servers.json").read_text()
             servers_dict = json.loads(servers_str) if servers_str else {}
             self.servers = {key: Server(**value) for key, value in servers_dict.items()}
+            self.__log.info("servers loaded from servers.json")
+
         except FileNotFoundError:
+            self.__log.info("no existing server settings")
             self.servers = {}
 
     def closeEvent(self, event):
         """
         When the main window is closed, do some cleanup
         """
-        self.common.log("hyperdome", "closeEvent")
         self.disconnect_chat()
 
         self.hide()
@@ -514,3 +514,4 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.app.cleanup()
 
         super().closeEvent(event)
+        self.__log.info("hyperdome client closed")

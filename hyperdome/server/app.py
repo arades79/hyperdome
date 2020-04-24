@@ -18,7 +18,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
+
 from flask import Flask, cli
+from ..common.utils import bootstrap
 import flask_sqlalchemy
 
 from ..common.common import data_path, resource_path
@@ -31,13 +34,22 @@ def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
 
 cli.show_server_banner = stubbed_show_server_banner
 
+logger = logging.getLogger(__name__)
+
 # The flask app
-app = Flask(
-    __name__,
-    static_folder=str(resource_path / "static"),
-    template_folder=str(resource_path / "templates"),
-)
-app.config["SQLALCHEMY_DATABASE_URI"] = f'sqlite:///{data_path / "hyperdome_server.db"}'
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+@bootstrap
+def app():
+    logger.info("initializing flask app")
+    app = Flask(
+        __name__,
+        static_folder=str(resource_path / "static"),
+        template_folder=str(resource_path / "templates"),
+    )
+    db_uri = f"sqlite:///{data_path / 'hyperdome_server.db'}"
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+    logger.debug(f"{db_uri=}")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    return app
+
 
 db = flask_sqlalchemy.SQLAlchemy(app)

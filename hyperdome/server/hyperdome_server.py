@@ -22,19 +22,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import shutil
 
+import autologging
+
 from ..common.common import ShutdownTimer, get_available_port
 
 
+@autologging.traced
+@autologging.logged
 class HyperdomeServer(object):
     """
     hyperdome is the main application class. Pass in options and run
     start_onion_service and it will do the magic.
     """
 
-    def __init__(self, common, onion, local_only=False, shutdown_timeout=0):
-        self.common = common
-
-        self.common.log("hyperdome", "__init__")
+    def __init__(self, onion, local_only=False, shutdown_timeout=0):
 
         # The Onion object
         self.onion = onion
@@ -66,13 +67,12 @@ class HyperdomeServer(object):
         """
         Start the hyperdome onion service.
         """
-        self.common.log("hyperdome", "start_onion_service")
 
         if not self.port:
             self.choose_port()
 
         if self.shutdown_timeout > 0:
-            self.shutdown_timer = ShutdownTimer(self.common, self.shutdown_timeout)
+            self.shutdown_timer = ShutdownTimer(self.shutdown_timeout)
 
         if self.local_only:
             self.onion_host = "127.0.0.1:{0:d}".format(self.port)
@@ -84,7 +84,6 @@ class HyperdomeServer(object):
         """
         Shut everything down and clean up temporary files, etc.
         """
-        self.common.log("hyperdome", "cleanup")
 
         # Cleanup files
         try:
@@ -95,5 +94,6 @@ class HyperdomeServer(object):
                     shutil.rmtree(filename)
         except OSError:
             # Don't crash if file is still in use
+            self.__log.info("file in use during cleanup")
             pass
         self.cleanup_filenames = []

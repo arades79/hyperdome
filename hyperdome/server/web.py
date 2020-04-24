@@ -20,12 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
 import hmac
-import logging
-import os
+import autologging
+from pathlib import Path
 import queue
 import secrets
 import socket
-import traceback
+from time import sleep
 from urllib.request import urlopen
 
 from flask import abort, jsonify, make_response, render_template, request
@@ -35,6 +35,8 @@ from ..common.common import version
 from .app import app, db
 
 
+@autologging.traced
+@autologging.logged
 class Web(object):
     """
     The Web object is the hyperdome web server, powered by flask
@@ -52,14 +54,8 @@ class Web(object):
     REQUEST_UPLOAD_CANCELED = 9
     REQUEST_ERROR_DATA_DIR_CANNOT_CREATE = 10
 
-    def __init__(self, common, is_gui):
-        self.common = common
-        self.common.log("Web", "__init__", f"is_gui={is_gui}")
+    def __init__(self):
         app.secret_key = secrets.token_urlsafe(8)
-
-        # Debug mode?
-        if self.common.debug:
-            self.debug_mode()
 
         # If the user stops the server while a transfer is in progress, it
         # should immediately stop the transfer. In order to make it
@@ -104,11 +100,6 @@ class Web(object):
         self.active_codes = []
 
         #
-        self.info = {
-            "name": "hyperdome",
-            "version": version,
-            "online": str(len(self.counselors_available)),
-        }
 
     def define_common_routes(self):
         """
@@ -142,16 +133,14 @@ class Web(object):
 
         @app.errorhandler(Exception)
         def unhandled_exception(e):
-            e_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
-            print(e_str)
+            self.__log.exception("server request exception")
             return "Exception raised", 500
 
         @app.route("/probe")
         def probe():
-            self.info["online"] = str(len(self.counselors_available))
             return jsonify(
                 name="hyperdome",
-                version=self.common.version,
+                version=version,
                 online=len(self.counselors_available),
             )
 
@@ -216,11 +205,15 @@ class Web(object):
             signature = base64.urlsafe_b64decode(signature)
             counselor = models.Counselor.query.filter_by(name=username).first_or_404()
             if not counselor.verify(signature, session_counselor_key):
+                self.__log.info(
+                    f"attempted counselor login failed verification {username=}"
+                )
                 return "Bad signature", 401
-            sid = self.common.random_string(16)
+            sid = secrets.token_urlsafe(16)
             # will use capacity variable for this later
             self.counselors_available[sid] = 1
             self.counselor_keys[sid] = session_counselor_key
+            self.__log.info(f"successful counselor login {username=}")
             return sid
 
         @app.route("/counselor_signup", methods=["POST"])
@@ -238,15 +231,20 @@ class Web(object):
             if counselor.verify(signature, signup_code):
                 models.db.session.add(counselor)
                 models.db.session.commit()
+                self.__log.info(f"new counselor {username=} added")
+
                 return "Good"  # TODO: add better responses
             else:
                 models.db.session.commit()
+                self.__log.warning(
+                    f"{username=} attempted registration but failed key verification"
+                )
                 return "User not Registered", 400
 
         @app.route("/generate_guest_id")
         def generate_guest_id():
             # TODO check for collisions
-            return self.common.random_string(16)
+            return secrets.token_urlsafe(16)
 
         @app.route("/send_message", methods=["POST"])
         def message_from_user():
@@ -316,41 +314,9 @@ class Web(object):
         """
         self.q.put({"type": request_type, "path": path, "data": data})
 
-    def generate_slug(self, persistent_slug=None):
-        self.common.log(
-            "Web", "generate_slug", "persistent_slug={}".format(persistent_slug)
-        )
-        if persistent_slug is not None and persistent_slug != "":
-            self.slug = persistent_slug
-            self.common.log(
-                "Web",
-                "generate_slug",
-                'persistent_slug sent, so slug is: "{}"'.format(self.slug),
-            )
-        else:
-            self.slug = self.common.build_slug()
-            self.common.log(
-                "Web", "generate_slug", 'built random slug: "{}"'.format(self.slug)
-            )
-
-    def debug_mode(self):
-        """
-        Turn on debugging mode, which will log flask errors to a debug file.
-        """
-        flask_debug_filename = os.path.join(
-            self.common.build_data_dir(), "flask_debug.log"
-        )
-        log_handler = logging.FileHandler(flask_debug_filename)
-        log_handler.setLevel(logging.WARNING)
-        app.logger.addHandler(log_handler)
-
     def check_shutdown_slug_candidate(self, slug_candidate):
-        self.common.log(
-            "Web",
-            "check_shutdown_slug_candidate: slug_candidate="
-            "{}".format(slug_candidate),
-        )
         if not hmac.compare_digest(self.shutdown_slug, slug_candidate):
+            self.__log.warning("slug failed verification")
             abort(404)
 
     def force_shutdown(self):
@@ -360,7 +326,9 @@ class Web(object):
         # Shutdown the flask service
         func = request.environ.get("werkzeug.server.shutdown")
         if func is None:
-            raise RuntimeError("Not running with the Werkzeug Server")
+            err = "Not running with the Werkzeug Server"
+            self.__log.error(err)
+            raise RuntimeError(err)
         func()
         self.running = False
 
@@ -368,7 +336,6 @@ class Web(object):
         """
         Start the flask web server.
         """
-        self.common.log("Web", "start", f"port={port}, stay_open={stay_open}")
 
         self.stay_open = stay_open
 
@@ -376,13 +343,15 @@ class Web(object):
         while not self.stop_q.empty():
             try:
                 self.stop_q.get(block=False)
+                self.__log.debug("startup waiting for queue to be empty...")
+                sleep(0.1)
             except queue.Empty:
                 pass
 
         # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (#220)
         host = (
             "0.0.0.0"
-            if os.path.exists("/usr/share/anon-ws-base-files/workstation")
+            if Path("/usr/share/anon-ws-base-files/workstation").exists()
             else "127.0.0.1"
         )
 
@@ -393,7 +362,7 @@ class Web(object):
         """
         Stop the flask web server by loading /shutdown.
         """
-        self.common.log("Web", "stop", "stopping server")
+        self.__log.info("stopping server")
 
         # Let the mode know that the user stopped the server
         self.stop_q.put(True)
@@ -404,16 +373,14 @@ class Web(object):
                 s = socket.socket()
                 s.connect(("127.0.0.1", port))
                 s.sendall(
-                    "GET /{0:s}/shutdown HTTP/1.1\r\n\r\n".format(
-                        self.shutdown_slug
-                    ).encode()
+                    f"GET /{self.shutdown_slug:s}/shutdown HTTP/1.1\r\n\r\n".encode()
                 )
             except TypeError:
+                self.__log.info("couldn't shutdown from socket, trying urlopen")
                 try:
                     urlopen(
-                        "http://127.0.0.1:{0:d}/{1:s}/shutdown".format(
-                            port, self.shutdown_slug
-                        )
+                        f"http://127.0.0.1:{port:d}/{self.shutdown_slug:s}/shutdown"
                     ).read()
                 except TypeError:
+                    self.__log.warning("shutdown url failed", exc_info=True)
                     pass

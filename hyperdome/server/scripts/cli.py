@@ -19,27 +19,55 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import logging
 import secrets
-import sys
 
+from autologging import install_traced_noop
 import click
 
-from ...common.common import version
+logging.addLevelName(1000, "OFF")
 
 
 @click.group(invoke_without_command=True)
-@click.option("--debug", "-d", is_flag=True)
-@click.version_option(version, prog_name="Hyperdome Server")
+@click.option(
+    "--log-level",
+    "-l",
+    "log_level",
+    type=click.Choice(
+        ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "OFF"], case_sensitive=False
+    ),
+    default="ERROR",
+    help="override logging level for this run",
+    show_default=True,
+)
+@click.option(
+    "--log-file",
+    "log_file",
+    type=click.Path(exists=False,),
+    help="file to to write logs to for this run instead of stdout",
+    default=None,
+)
 @click.pass_context
-def admin(ctx, debug):
-    if debug:
-        setattr(sys, "hyperdome_dev_mode", True)
+def admin(ctx, log_level, log_file):
+    if log_level != "TRACE":
+        install_traced_noop()
+
+    logging.basicConfig(
+        level=(log_level if log_level != "OFF" else 1000),
+        filename=log_file,
+        format="%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d:\n\t%(message)s",
+    )
     if ctx.invoked_subcommand is not None:
         return
+    else:
 
-    from ..main import main
+        # wait to import from hyperdome so noop trace can be used
+        from ...common.common import version
+        from ..main import main
 
-    main()
+        click.echo(f"Hyperdome Server {version} | https://hyperdome.org")
+
+        main()
 
 
 @admin.command()

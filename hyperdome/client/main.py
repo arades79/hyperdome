@@ -18,26 +18,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import argparse
 import signal
 import sys
 
 from PyQt5 import QtCore, QtWidgets
+import autologging
 
 from ..common import strings
-from ..common.common import Common, platform_str, version
+from ..common.common import Settings, platform_str, version
 from ..common.onion import Onion
 from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
 
 
+@autologging.logged
 class Application(QtWidgets.QApplication):
     """
     This is Qt's QApplication class. It has been overridden to support threads
     and the quick keyboard shortcut.
     """
 
-    def __init__(self, common):
+    def __init__(self):
         if platform_str == "Linux" or platform_str == "BSD":
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
@@ -49,16 +50,18 @@ class Application(QtWidgets.QApplication):
             and event.key() == QtCore.Qt.Key_Q
             and event.modifiers() == QtCore.Qt.ControlModifier
         ):
+            self.__log.info("user quit through keyboard shortcut")
             self.quit()
         return False
 
 
+@autologging.logged
 def main():
     """
     The main() function implements all of the logic that the GUI version \
     of hyperdome uses.
     """
-    common = Common()
+    settings = Settings()
 
     # Load the default settings and strings early, for the sake of
     # being able to parse options.
@@ -66,63 +69,30 @@ def main():
     # we need to parse them early in order to even display the option
     # to pass alternate settings (which might contain a preferred locale).
     # If an alternate --config is passed, we'll reload strings later.
-    common.load_settings()
-    # TODO: remove or rebuild strings
-    strings.load_strings(common)
 
-    # Display hyperdome banner
-    print(f"Hyperdome {version} | https://github.com/arades79/hyperdome")
+    # TODO: remove or rebuild strings
+    strings.load_strings(settings)
 
     # Allow Ctrl-C to quit the program without an exception
     # stackoverflow.com/questions/42814093/
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # Start the Qt app
-    qtapp = Application(common)
-
-    # Parse arguments
-    parser = argparse.ArgumentParser(
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=48)
-    )
-    parser.add_argument(
-        "--local-only",
-        action="store_true",
-        dest="local_only",
-        help=strings._("help_local_only"),
-    )
-    parser.add_argument(
-        "--debug", action="store_true", dest="debug", help=strings._("help_debug")
-    )
-    parser.add_argument(
-        # TODO: default should be empty string for consistant typing
-        "--config",
-        metavar="config",
-        default=False,
-        help=strings._("help_config"),
-    )
-    args = parser.parse_args()
-
-    config = args.config
-    if config:
-        # Re-load the strings, in case the provided config has changed locale
-        common.load_settings(config)
-        strings.load_strings(common)
-
-    local_only = bool(args.local_only)
-    common.debug = bool(args.debug)
+    qtapp = Application()
 
     # Start the Onion
-    onion = Onion(common)
+    onion = Onion(settings)
 
     # Start the hyperdome app
-    app = HyperdomeServer(common, onion, local_only)
+    app = HyperdomeServer(onion)
 
     # Launch the gui
-    main_window = HyperdomeClient(common, onion, qtapp, app, None, config, local_only)
+    main_window = HyperdomeClient(settings, onion, qtapp, app, None)
     main_window.show()
 
     # Clean up when app quits
     def shutdown():
+        main._log.info("shutting down")
         onion.cleanup()
         app.cleanup()
 
