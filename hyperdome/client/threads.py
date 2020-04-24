@@ -21,8 +21,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import functools
 import json
 import time
+import typing
 
 from PyQt5 import QtCore
+import autologging
 import requests
 from werkzeug.exceptions import MethodNotAllowed
 
@@ -39,7 +41,109 @@ from ..common.onion import (
     TorTooOld,
 )
 from ..common.server import Server
-import autologging
+
+
+class QtSignals(QtCore.QObject):
+    """
+    generic signals class for QTask callbacks
+
+    result: called on success, any object
+
+    error: called on a failure, an Exception object
+
+    finished: called when task is completely finished
+    """
+
+    result = QtCore.pyqtSignal(object)
+    error = QtCore.pyqtSignal(Exception)
+    finished = QtCore.pyqtSignal()
+
+
+@autologging.logged
+class QtTask(QtCore.QRunnable):
+    """
+    generic task to execute any function on a threadpool
+
+    fn: callable ran by the threadpool
+
+    *args, **kwargs: arguments passed to the function
+    """
+
+    def __init__(self, fn: typing.Callable, *args, **kwargs):
+        self.__log.log(autologging.TRACE, "CALL")
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = QtSignals()
+        self.__log.debug("task created")
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        self.__log.log(autologging.TRACE, "CALL")
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+            self.signals.result.emit(result)
+            self.__log.debug("task successful")
+        except Exception as error:
+            self.signals.error.emit(error)
+            # calling thread should log error
+            self.__log.debug("task failed")
+        finally:
+            self.signals.finished.emit()
+            self.__log.log(autologging.TRACE, "RETURN")
+
+
+@autologging.logged
+class QtIntervalTask(QtCore.QThread):
+    """
+    Generic thread that runs a function on a seperate thread on some interval
+
+    fn: the callable to be ran in set intervals
+
+    interval: milliseconds to wait between calling fn
+
+    *args, **kwargs: arguments passed to the function
+    """
+
+    def __init__(self, fn: typing.Callable, *args, interval: int = 1000, **kwargs):
+        self.__log.log(autologging.TRACE, "CALL")
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.interval = interval
+        self.signals = QtSignals()
+        self._stopped = False
+        self.__log.debug("interval task created")
+
+    def run(self):
+        self.__log.log(autologging.TRACE, "CALL")
+        while not self.stopped:
+            self.__log.log(autologging.TRACE, "running")
+            try:
+                result = self.fn(*self.args, **self.kwargs)
+                self.signals.result.emit(result)
+                self.__log.debug("interval loop successful")
+            except Exception as error:
+                self.signals.error.emit(error)
+                # calling thread should log error
+                self.__log.debug("interval loop failed")
+            finally:
+                self.wait(self.interval)
+        else:
+            self.__log.debug("interval task exited")
+            self.signals.finished.emit()
+
+    @QtCore.pyqtSlot()
+    def stop(self):
+        self.__log.debug("stop task requested")
+        self._stopped = True
+
+    @property
+    def stopped(self):
+        self.__log.log(autologging.TRACE, f"RETURN {self._stopped}")
+        return self._stopped
 
 
 @autologging.logged
@@ -60,7 +164,6 @@ class OnionThread(QtCore.QThread):
         self.setTerminationEnabled()
 
     def run(self):
-        self.loggr.debug("run")
 
         self.mode.app.stay_open = not self.mode.common.settings.get(
             "close_after_first_download"
@@ -68,7 +171,7 @@ class OnionThread(QtCore.QThread):
 
         # wait for modules in thread to load, preventing a thread-related
         # cx_Freeze crash
-        time.sleep(0.2)
+        self.wait(200)
 
         try:
             self.mode.app.start_onion_service()
