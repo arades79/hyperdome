@@ -19,9 +19,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
-import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 import requests
 
 from hyperdome.common.common import Settings
@@ -37,13 +37,12 @@ from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
 
+@autologging.logged
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
     hyperdome is the main window for the GUI that contains all of the
     GUI elements.
     """
-
-    logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -63,7 +62,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.qtapp: QtWidgets.QApplication = qtapp
         self.app = app
         self.local_only: bool = local_only
-        self.logger.debug("__init__")
 
         # setup threadpool and tasks for async
         self.worker = QtCore.QThreadPool.globalInstance()
@@ -280,6 +278,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if self.is_connected:
             self.disconnect_chat()
         if self.server_dropdown.currentIndex() == self.server_dropdown.count() - 1:
+            self.__log.debug("adding new server")
             self.server_dropdown.setCurrentIndex(0)
             self.start_chat_button.setEnabled(False)
             add_server_dialog = AddServerDialog(self)
@@ -292,8 +291,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.server_dropdown.setCurrentIndex(1)
                 self.save_servers()
         elif self.server_dropdown.currentIndex():
+            self.__log.debug("switching server")
             self.server = self.servers[self.server_dropdown.currentText()]
             self.get_uid()
+        else:
+            self.__log.debug("switched to 'select a server'")
 
     def start_chat(self):
         @QtCore.pyqtSlot(str)
@@ -387,7 +389,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         If the user cancels before Tor finishes connecting, ask if they want to
         quit, or open settings.
         """
-        self.logger.debug("_tor_connection_canceled")
 
         def ask():
             a = Alert(
@@ -409,12 +410,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             if a.clickedButton() == settings_button:
                 # Open settings
-                self.logger.debug("_tor_connection_canceled: Settings button clicked",)
+                self.__log.debug("Settings button clicked",)
                 self.open_settings()
 
             if a.clickedButton() == quit_button:
                 # Quit
-                self.logger.info("_tor_connection_canceled: Quit button clicked")
+                self.__log.debug("Quit button clicked")
 
                 # Wait 1ms for the event loop to finish, then quit
                 QtCore.QTimer.singleShot(1, self.qtapp.quit)
@@ -426,7 +427,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         The TorConnectionDialog wants to open the Settings dialog
         """
-        self.logger.debug("_tor_connection_open_settings")
 
         # Wait 1ms for the event loop to finish closing the TorConnectionDialog
         QtCore.QTimer.singleShot(1, self.open_settings)
@@ -435,10 +435,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Open the SettingsDialog.
         """
-        self.logger.debug("open_settings")
 
         def reload_settings():
-            self.logger.info("settings have changed, reloading")
+            self.__log.info("settings have changed, reloading")
             self.settings.load()
 
             # We might've stopped the main requests timer if
@@ -464,7 +463,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.worker.tryStart(self.poll_guest_key_task)
 
     def disconnect_chat(self):
-        self.logger.info("disconnect_chat")
         self.start_chat_button.setEnabled(False)
         self.timer.stop()
         self.worker.clear()
@@ -484,26 +482,26 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(True)
 
     def save_servers(self):
-        self.logger.info("saving servers to servers.json")
         resource_path.joinpath("servers.json").write_text(
             json.dumps(self.servers, default=lambda o: o.__dict__)
         )
+        self.__log.info("servers saved to servers.json")
 
     def load_servers(self):
-        self.logger.debug("load_servers")
         try:
             servers_str = resource_path.joinpath("servers.json").read_text()
             servers_dict = json.loads(servers_str) if servers_str else {}
             self.servers = {key: Server(**value) for key, value in servers_dict.items()}
+            self.__log.info("servers loaded from servers.json")
+
         except FileNotFoundError:
-            self.logger.info("no servers saved")
+            self.__log.info("no existing server settings")
             self.servers = {}
 
     def closeEvent(self, event):
         """
         When the main window is closed, do some cleanup
         """
-        self.logger.debug("closeEvent")
         self.disconnect_chat()
 
         self.hide()
@@ -516,4 +514,4 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.app.cleanup()
 
         super().closeEvent(event)
-        self.logger.info("hyperdome client has closed")
+        self.__log.info("hyperdome client closed")

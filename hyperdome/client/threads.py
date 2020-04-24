@@ -39,15 +39,15 @@ from ..common.onion import (
     TorTooOld,
 )
 from ..common.server import Server
-import logging
+import autologging
 
 
+@autologging.traced
+@autologging.logged
 class OnionThread(QtCore.QThread):
     """
     Starts the onion service, and waits for it to finish
     """
-
-    logger = logging.getLogger(__name__ + ".OnionThread")
 
     success = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
@@ -55,7 +55,7 @@ class OnionThread(QtCore.QThread):
     def __init__(self, mode):
         super(OnionThread, self).__init__()
         self.mode = mode
-        self.logger.debug("__init__")
+        self.__log.debug("__init__")
 
         # allow this thread to be terminated
         self.setTerminationEnabled()
@@ -89,7 +89,7 @@ class OnionThread(QtCore.QThread):
             OSError,
         ) as e:
             self.error.emit(e.args[0])
-            self.logger.exception("problem starting Tor")
+            self.__log.exception("problem starting Tor")
             return
 
 

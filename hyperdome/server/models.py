@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import autologging
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.primitives.serialization as serial
@@ -27,6 +28,8 @@ from ..common.types import arg_to_bytes, bstr
 from .app import db
 
 
+@autologging.traced
+@autologging.logged
 class Counselor(db.Model):
     """
     container for counselors also responsible for holding keys and verifying messages
@@ -46,6 +49,8 @@ class Counselor(db.Model):
             return False
 
 
+@autologging.traced
+@autologging.logged
 class CounselorSignUp(db.Model):
     """
     model for storing valid counselor signup tokens

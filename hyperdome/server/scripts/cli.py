@@ -55,7 +55,7 @@ def admin(ctx, log_level, log_file):
     logging.basicConfig(
         level=(log_level if log_level != "OFF" else 1000),
         filename=log_file,
-        format='%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d: "%(message)s"',
+        format="%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d:\n\t%(message)s",
     )
     if ctx.invoked_subcommand is not None:
         return

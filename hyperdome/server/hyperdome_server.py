@@ -19,24 +19,23 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import logging
 import os
 import shutil
+
+import autologging
 
 from ..common.common import ShutdownTimer, get_available_port
 
 
+@autologging.traced
+@autologging.logged
 class HyperdomeServer(object):
     """
     hyperdome is the main application class. Pass in options and run
     start_onion_service and it will do the magic.
     """
 
-    logger = logging.getLogger(__name__)
-
     def __init__(self, onion, local_only=False, shutdown_timeout=0):
-
-        self.logger.debug("__init__")
 
         # The Onion object
         self.onion = onion
@@ -68,7 +67,6 @@ class HyperdomeServer(object):
         """
         Start the hyperdome onion service.
         """
-        self.logger.debug("start_onion_service")
 
         if not self.port:
             self.choose_port()
@@ -86,7 +84,6 @@ class HyperdomeServer(object):
         """
         Shut everything down and clean up temporary files, etc.
         """
-        self.logger.debug("cleanup")
 
         # Cleanup files
         try:
@@ -97,6 +94,6 @@ class HyperdomeServer(object):
                     shutil.rmtree(filename)
         except OSError:
             # Don't crash if file is still in use
-            self.logger.info("file in use during cleanup")
+            self.__log.info("file in use during cleanup")
             pass
         self.cleanup_filenames = []

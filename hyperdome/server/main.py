@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import logging
+import autologging
 import os
 import sys
 import threading
@@ -31,9 +31,9 @@ from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
 from .web import Web
 
-logger = logging.getLogger(__name__)
 
-
+@autologging.traced
+@autologging.logged
 def main(cwd=""):
     """
     The main() function implements all of the logic that the command-line
@@ -65,7 +65,7 @@ def main(cwd=""):
             # TODO: onion should get these values from elsewhere as new CLI has moved where the values are coming from
         )
     except KeyboardInterrupt:
-        logger.info("keyboard interrupt during onion setup")
+        main._log.info("keyboard interrupt during onion setup")
         sys.exit()
     except Exception as e:
         sys.exit(e.args[0])
@@ -76,10 +76,10 @@ def main(cwd=""):
         app.choose_port()
         app.start_onion_service()
     except KeyboardInterrupt:
-        logger.info("keyboard interrupt during onion setup, exiting")
+        main._log.info("keyboard interrupt during onion setup, exiting")
         sys.exit()
     except (TorTooOld, TorErrorProtocolError) as e:
-        logger.exception("Tor incompatible")
+        main._log.exception("Tor incompatible")
         sys.exit()
 
     # Start hyperdome http service in new thread
@@ -116,10 +116,10 @@ def main(cwd=""):
             # https://stackoverflow.com/questions/3788208
             time.sleep(0.2)
     except KeyboardInterrupt:
-        logger.info("application stopped from keyboard interrupt")
+        main._log.info("application stopped from keyboard interrupt")
         web.stop(app.port)
     finally:
-        logger.debug("shutdown")
+        main._log.debug("shutdown")
         # Shutdown
         app.cleanup()
         onion.cleanup()

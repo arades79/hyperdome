@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
 import hmac
-import logging
+import autologging
 from pathlib import Path
 import queue
 import secrets
@@ -35,12 +35,12 @@ from ..common.common import version
 from .app import app, db
 
 
+@autologging.traced
+@autologging.logged
 class Web(object):
     """
     The Web object is the hyperdome web server, powered by flask
     """
-
-    logger = logging.getLogger(__name__)
 
     REQUEST_LOAD = 0
     REQUEST_STARTED = 1
@@ -55,7 +55,6 @@ class Web(object):
     REQUEST_ERROR_DATA_DIR_CANNOT_CREATE = 10
 
     def __init__(self):
-        self.logger.debug("__init__")
         app.secret_key = secrets.token_urlsafe(8)
 
         # If the user stops the server while a transfer is in progress, it
@@ -106,7 +105,6 @@ class Web(object):
         """
         Common web app routes between sending and receiving
         """
-        self.logger.debug("define_common_routes")
 
         @app.errorhandler(404)
         def page_not_found(e):
@@ -135,7 +133,7 @@ class Web(object):
 
         @app.errorhandler(Exception)
         def unhandled_exception(e):
-            self.logger.exception("server request exception")
+            self.__log.exception("server request exception")
             return "Exception raised", 500
 
         @app.route("/probe")
@@ -207,7 +205,7 @@ class Web(object):
             signature = base64.urlsafe_b64decode(signature)
             counselor = models.Counselor.query.filter_by(name=username).first_or_404()
             if not counselor.verify(signature, session_counselor_key):
-                self.logger.info(
+                self.__log.info(
                     f"attempted counselor login failed verification {username=}"
                 )
                 return "Bad signature", 401
@@ -215,7 +213,7 @@ class Web(object):
             # will use capacity variable for this later
             self.counselors_available[sid] = 1
             self.counselor_keys[sid] = session_counselor_key
-            self.logger.info(f"successful counselor login {username=}")
+            self.__log.info(f"successful counselor login {username=}")
             return sid
 
         @app.route("/counselor_signup", methods=["POST"])
@@ -233,12 +231,12 @@ class Web(object):
             if counselor.verify(signature, signup_code):
                 models.db.session.add(counselor)
                 models.db.session.commit()
-                self.logger.info(f"new counselor {username=} added")
+                self.__log.info(f"new counselor {username=} added")
 
                 return "Good"  # TODO: add better responses
             else:
                 models.db.session.commit()
-                self.logger.warning(
+                self.__log.warning(
                     f"{username=} attempted registration but failed key verification"
                 )
                 return "User not Registered", 400
@@ -317,9 +315,8 @@ class Web(object):
         self.q.put({"type": request_type, "path": path, "data": data})
 
     def check_shutdown_slug_candidate(self, slug_candidate):
-        self.logger.debug(f"check_shutdown_slug_candidate({slug_candidate=})",)
         if not hmac.compare_digest(self.shutdown_slug, slug_candidate):
-            self.logger.warning("slug failed verification")
+            self.__log.warning("slug failed verification")
             abort(404)
 
     def force_shutdown(self):
@@ -330,7 +327,7 @@ class Web(object):
         func = request.environ.get("werkzeug.server.shutdown")
         if func is None:
             err = "Not running with the Werkzeug Server"
-            self.logger.error(err)
+            self.__log.error(err)
             raise RuntimeError(err)
         func()
         self.running = False
@@ -339,7 +336,6 @@ class Web(object):
         """
         Start the flask web server.
         """
-        self.logger.debug(f"start({port=}, {stay_open=}")
 
         self.stay_open = stay_open
 
@@ -347,7 +343,7 @@ class Web(object):
         while not self.stop_q.empty():
             try:
                 self.stop_q.get(block=False)
-                self.logger.debug("startup waiting for queue to be empty...")
+                self.__log.debug("startup waiting for queue to be empty...")
                 sleep(0.1)
             except queue.Empty:
                 pass
@@ -366,7 +362,7 @@ class Web(object):
         """
         Stop the flask web server by loading /shutdown.
         """
-        self.logger.info("stopping server")
+        self.__log.info("stopping server")
 
         # Let the mode know that the user stopped the server
         self.stop_q.put(True)
@@ -380,11 +376,11 @@ class Web(object):
                     f"GET /{self.shutdown_slug:s}/shutdown HTTP/1.1\r\n\r\n".encode()
                 )
             except TypeError:
-                self.logger.info("couldn't shutdown from socket, trying urlopen")
+                self.__log.info("couldn't shutdown from socket, trying urlopen")
                 try:
                     urlopen(
                         f"http://127.0.0.1:{port:d}/{self.shutdown_slug:s}/shutdown"
                     ).read()
                 except TypeError:
-                    self.logger.warning("shutdown url failed", exc_info=True)
+                    self.__log.warning("shutdown url failed", exc_info=True)
                     pass

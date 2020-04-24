@@ -18,9 +18,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import autologging
 
 from . import threads
 from ..common.common import resource_path
@@ -28,18 +28,15 @@ from ..common.encryption import LockBox
 from ..common.server import Server
 
 
+@autologging.logged
 class AddServerDialog(QtWidgets.QDialog):
     """
     Dialog for entering server connection details and or credentials.
     """
 
-    logger = logging.getLogger(__name__)
-
-    def __init__(self, parent):
+    def __init__(self, parent: QtCore.QObject):
         super(AddServerDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
-        self.logger.debug("__init__")
 
         self.session = parent.session
         self.worker = parent.worker
@@ -106,7 +103,6 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Show or hide crediential fields based on user type selected.
         """
-        self.logger.debug(f"counselor radio_switch {is_toggled=}")
         self.is_counselor = is_toggled
         self.counselor_credentials.setEnabled(is_toggled)
         self.counselor_username_input.setVisible(is_toggled)
@@ -116,7 +112,6 @@ class AddServerDialog(QtWidgets.QDialog):
         """
         Receiver for the add server dialog to handle the new server details.
         """
-        self.logger.debug("add_server")
         try:
             self.server = Server(
                 url=self.server_add_text.text(),
@@ -125,7 +120,7 @@ class AddServerDialog(QtWidgets.QDialog):
                 is_counselor=self.is_counselor,
             )
         except Server.InvalidOnionAddress:
-            self.logger.warning("invalid onion address")
+            self.__log.warning("invalid onion address")
             self.error_message.setText("Invalid onion address!")
             self.error_message.exec_()
             return
@@ -143,12 +138,10 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def set_server(self, _):
-        self.logger.info("server added successfully")
         self.done(0)
 
     @QtCore.pyqtSlot(str)
     def signup(self, _):
-        self.logger.debug("attempting counselor signup")
         signer = LockBox()
         signer.make_signing_key()
         self.server.key = signer.export_key("123")  # TODO: use user provided password
@@ -163,17 +156,14 @@ class AddServerDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(str)
     def bad_server(self, err: str):
-        self.logger.debug(f"bad_server({err=})")
         self.add_server_button.setEnabled(True)
         self.add_server_button.setText("Add Server")
         self.error_message.setText(err)
         self.error_message.exec_()
 
     def get_server(self):
-        self.logger.debug("get_server")
         return self.server
 
     def closeEvent(self, event):
-        self.logger.debug(f"closeEvent")
         self.done(1)
         return super().closeEvent(event)

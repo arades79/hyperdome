@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
 import locale
+import logging
 from pathlib import Path
 import platform
 import secrets
@@ -30,12 +31,13 @@ import threading
 import time
 import typing
 
+import autologging
+
 from .utils import bootstrap
-import logging
 
 logger = logging.getLogger(__name__)
 
-logger.debug("building common paths")
+logger.debug("initializing common paths")
 
 platform_str = "BSD" if platform.system().endswith("BSD") else platform.system()
 
@@ -49,7 +51,6 @@ def data_path() -> Path:
     """
     Returns the path of the hyperdome data directory.
     """
-    logger.debug("data_path initializing")
     home = Path.home()
     if (appdata := (home / "AppData" / "Roaming")).exists():
         logger.debug("using Windows data path")
@@ -61,14 +62,13 @@ def data_path() -> Path:
         logger.debug("using POSIX data path")
         hyperdome_data_dir = home / ".config" / "hyperdome"
     if not hyperdome_data_dir.is_dir():
-        logger.debug("creating data path")
+        logger.info("creating data path")
         hyperdome_data_dir.mkdir(0o700)
     return hyperdome_data_dir.resolve()
 
 
 @bootstrap
 def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
-    logger.debug("tor_paths initializing")
     if platform_str == "Linux":
         logger.debug("using Linux tor path")
         tor_path = Path("/usr/bin/tor")
@@ -107,24 +107,26 @@ def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     )
 
 
+@autologging.traced
+@autologging.logged
 def get_available_port(min_port: int, max_port: int) -> int:
     """
     Find a random available port within the given range.
     """
-    logger.debug(f"get_available_port({min_port=},{max_port=})")
     with socket.socket() as tmpsock:
         while True:
             try:
                 tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
                 break
             except OSError:
-                logger.info("selected port in use, trying another")
+                get_available_port._log.info("selected port in use, trying another")
                 pass
         _, port = tmpsock.getsockname()
-        logger.info(f"found available {port=}")
     return port
 
 
+@autologging.traced
+@autologging.logged
 class Settings(object):
     """
     This class stores all of the settings for hyperdome, specifically for how
@@ -133,24 +135,20 @@ class Settings(object):
     settings.
     """
 
-    logger = logging.getLogger(__name__ + ".Settings")
-
     def __init__(self, config: str = ""):
-
-        self.logger.debug("Settings.__init__")
 
         # If a readable config file was provided, use that
         if config:
             if (config_path := Path(config)).exists():
-                self.logger.debug(f"using {config_path} for config")
+                self.__log.debug(f"using {config_path} for config")
                 self.filename = config_path
             else:
-                self.logger.warning(
+                self.__log.warning(
                     "Supplied config does not exist or is "
                     "unreadable. Falling back to default location",
                 )
         else:
-            self.logger.info("using hyperdome.json for config")
+            self.__log.info("using hyperdome.json for config")
             self.filename: Path = data_path / "hyperdome.json"
 
         # Dictionary of available languages in this version of hyperdome,
@@ -204,7 +202,6 @@ class Settings(object):
         If there are any missing settings from self._settings, replace them
         with their default values.
         """
-        self.logger.debug("fill_in_defaults")
         for key in self.default_settings:
             if key not in self._settings:
                 self._settings[key] = self.default_settings[key]
@@ -235,11 +232,10 @@ class Settings(object):
         """
         Load the settings from file.
         """
-        self.logger.debug("load")
 
         # If the settings file exists, load it
         if self.filename.exists():
-            self.logger.info(f"loading configuration from {self.filename}")
+            self.__log.info(f"loading configuration from {self.filename}")
             self._settings = json.loads(self.filename.read_text())
             self.fill_in_defaults()
 
@@ -247,9 +243,8 @@ class Settings(object):
         """
         Save settings to file.
         """
-        self.logger.debug("save")
         self.filename.write_text(json.dumps(self._settings))
-        self.logger.info(f"Settings saved in {self.filename}")
+        self.__log.info(f"Settings saved in {self.filename}")
 
     def get(self, key: str):
         return self._settings[key]
@@ -260,7 +255,7 @@ class Settings(object):
             try:
                 val = int(val)
             except ValueError:
-                self.logger.warning(f"{val} is not a valid port value")
+                self.__log.warning(f"{val} is not a valid port value")
                 val = self.default_settings[key]
 
         self._settings[key] = val
@@ -269,28 +264,28 @@ class Settings(object):
         """
         Clear all settings and re-initialize to defaults
         """
-        self.logger.info("settings cleared")
+        self.__log.info("settings cleared")
         self._settings = self.default_settings
         self.fill_in_defaults()
         self.save()
 
 
+@autologging.traced
+@autologging.logged
 class ShutdownTimer(threading.Thread):
     """
     Background thread sleeps t hours and returns.
     """
 
-    logger = logging.getLogger(__name__ + ".ShutdownTimer")
-
     def __init__(self, time):
         threading.Thread.__init__(self)
 
-        self.logger.debug("__init__")
+        self.__log.debug("__init__")
 
         self.setDaemon(True)
         self.time = time
 
     def run(self):
-        self.logger.info(f"Server will shut down after {self.time} seconds")
+        self.__log.info(f"Server will shut down after {self.time} seconds")
         time.sleep(self.time)
         return 1

@@ -52,7 +52,7 @@ def start(log_level, log_file):
     logging.basicConfig(
         level=log_level,
         filename=log_file,
-        format='%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d: "%(message)s"',
+        format="%(levelname)s\t%(name)s.%(funcName)s:%(lineno)d:\n\t%(message)s",
     )
 
     # hyperdome imports are done here so noop traced is used

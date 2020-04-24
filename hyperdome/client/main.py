@@ -18,11 +18,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import logging
 import signal
 import sys
 
 from PyQt5 import QtCore, QtWidgets
+import autologging
 
 from ..common import strings
 from ..common.common import Settings, platform_str, version
@@ -31,16 +31,14 @@ from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
 
 
+@autologging.logged
 class Application(QtWidgets.QApplication):
     """
     This is Qt's QApplication class. It has been overridden to support threads
     and the quick keyboard shortcut.
     """
 
-    logger = logging.getLogger(__name__ + ".Application")
-
     def __init__(self):
-        self.logger.debug("__init__")
         if platform_str == "Linux" or platform_str == "BSD":
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
@@ -52,17 +50,17 @@ class Application(QtWidgets.QApplication):
             and event.key() == QtCore.Qt.Key_Q
             and event.modifiers() == QtCore.Qt.ControlModifier
         ):
-            self.logger.info("user quit through keyboard shortcut")
+            self.__log.info("user quit through keyboard shortcut")
             self.quit()
         return False
 
 
+@autologging.logged
 def main():
     """
     The main() function implements all of the logic that the GUI version \
     of hyperdome uses.
     """
-    logger = logging.getLogger(__name__)
     settings = Settings()
 
     # Load the default settings and strings early, for the sake of
@@ -94,7 +92,7 @@ def main():
 
     # Clean up when app quits
     def shutdown():
-        logger.debug("shutdown")
+        main._log.info("shutting down")
         onion.cleanup()
         app.cleanup()
 

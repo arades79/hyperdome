@@ -22,8 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # considering using pyca/cryptography instead
 import base64
 import functools
-import logging
 
+import autologging
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -35,13 +35,13 @@ import cryptography.hazmat.primitives.serialization as serial
 from .types import arg_to_bytes, bstr
 
 
+@autologging.traced
+@autologging.logged
 class LockBox:
     """
     handle key storage, generation, exchange,
     encryption and decryption
     """
-
-    logger = logging.getLogger(__name__)
 
     _chat_key = None
     _signing_key = None
@@ -58,7 +58,6 @@ class LockBox:
 
     @arg_to_bytes
     def encrypt_outgoing_message(self, message: bstr) -> str:
-        self.logger.debug("encrypt_outgoing_message")
 
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
@@ -68,7 +67,6 @@ class LockBox:
 
     @arg_to_bytes
     def decrypt_incoming_message(self, message: bstr) -> str:
-        self.logger.debug("decrypt_incoming_message")
 
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._recieve_ratchet_key = new_base_key[:32]
@@ -82,7 +80,7 @@ class LockBox:
         return a PEM encoded serialized public key digest
         of a new ephemeral X448 key
         """
-        self.logger.info("generating new public key")
+        self.__log.info("generating new public key")
         self._send_ratchet_key = None
         self._recieve_ratchet_key = None
 
@@ -98,7 +96,6 @@ class LockBox:
         return a PEM encoded serialized public key digest
         of the ed448 signing key
         """
-        self.logger.debug("getting public key")
         key = self._signing_key.public_key()
         key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes.decode("utf-8")
@@ -110,7 +107,6 @@ class LockBox:
         created by a Diffie-Helman key exchange result being passed into
         a key-derivation and used to create a fernet instance
         """
-        self.logger.debug(f"perform_key_exchange({chirality=})")
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
         shared = self._chat_key.exchange(public_key)
         # TODO consider customizing symmetric encryption for larger key or authentication
@@ -125,18 +121,15 @@ class LockBox:
         self._recieve_ratchet_key = new_chat_key[recieve_slice]
 
     def make_signing_key(self):
-        self.logger.debug("make_signing_key")
         self._signing_key = Ed448PrivateKey.generate()
 
     @arg_to_bytes
     def sign_message(self, message: bstr) -> str:
-        self.logger.debug("sign_message")
         sig = self._signing_key.sign(message)
         return base64.urlsafe_b64encode(sig).decode("utf-8")
 
     @arg_to_bytes
     def export_key(self, passphrase: bstr):
-        self.logger.debug("export_key")
         key_bytes = self._signing_key.private_bytes(
             self._ENCODING,
             self._PRIVATE_FORMAT,
@@ -146,7 +139,6 @@ class LockBox:
 
     @arg_to_bytes
     def import_key(self, key_bytes: bstr, passphrase: bstr):
-        self.logger.debug("import_key")
         key_bytes = base64.urlsafe_b64decode(key_bytes)
         self._signing_key = serial.load_pem_private_key(
             key_bytes, passphrase, self._BACKEND
