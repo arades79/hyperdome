@@ -445,6 +445,7 @@ class PollForConnectedGuestTask(QtCore.QRunnable):
             self.signals.error.emit("problem getting guest pubkey")
 
 
+@autologging.traced
 def send_message(server: Server, session: requests.Session, uid: str, message: str):
     """
     Send message to server provided using session for given user
@@ -454,6 +455,7 @@ def send_message(server: Server, session: requests.Session, uid: str, message: s
     )
 
 
+@autologging.traced
 def get_uid(server: Server, session: requests.Session):
     """
     Ask server for a new UID for a new user session
@@ -461,6 +463,7 @@ def get_uid(server: Server, session: requests.Session):
     return session.get(f"{server.url}/generate_guest_id").text
 
 
+@autologging.traced
 def get_messages(server: Server, session: requests.Session, uid: str):
     """
     collect new messages waiting on server for active session
@@ -468,6 +471,7 @@ def get_messages(server: Server, session: requests.Session, uid: str):
     return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).json()
 
 
+@autologging.traced
 def start_chat(
     server: Server,
     session: requests.Session,
@@ -495,6 +499,7 @@ def start_chat(
 COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
 
 
+@autologging.traced
 def probe_server(server: Server, session: requests.Session):
     info = json.loads(session.get(f"{server.url}/probe").text)
     if info["name"] != "hyperdome":
@@ -504,12 +509,14 @@ def probe_server(server: Server, session: requests.Session):
     return ""
 
 
+@autologging.traced
 def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
     return session.get(
         f"{server.url}/poll_connected_guest", data={"counselor_id": uid}
     ).text
 
 
+@autologging.traced
 def signup_counselor(
     server: Server,
     session: requests.Session,
