@@ -425,72 +425,32 @@ def get_messages(server: Server, session: requests.Session, uid: str):
         pass
 
 
-class Methods(enum.Enum):
-    GET = "get"
-    POST = "post"
-    PUT = "put"
-    PATCH = "patch"
-    OPTIONS = "options"
-    DELETE = "delete"
+def handle_requests_errors(fn: typing.Callable):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            getattr(fn, "_log")
+        except AttributeError:
+            return fn(*args, **kwargs)
+        try:
+            response = fn(*args, **kwargs)
+        except requests.ConnectionError:
+            handle_requests_errors._log.warning("couldn't connect to server")
+            raise
+        except requests.Timeout:
+            handle_requests_errors._log.warning("server timed out during request")
+            raise
+        except requests.HTTPError:
+            raise
+        else:
+            return response
+
+    return wrapper
 
 
 @autologging.traced
 @autologging.logged
-class Client:
-
-    __log: autologging.logging.Logger  # makes linters happy about autologging
-
-    def __init__(self, server: Server, session: requests.session):
-        self.server = server
-        self.session = session
-        self._methods = {
-            Methods.GET: self.session.get,
-            Methods.POST: self.session.post,
-            Methods.DELETE: self.session.delete,
-            Methods.PUT: self.session.put,
-            Methods.PATCH: self.session.patch,
-            Methods.OPTIONS: self.session.options,
-        }
-
-    def json_http_call(self, endpoint: str, method: Methods, args):
-
-        http_method = self._methods[method]
-        self.__log.debug(f"using {method=} for {endpoint=}")
-        endpoint = endpoint.lstrip("/")
-        url = f"{self.server.url}/{endpoint}"
-
-        def decorator(fn: typing.Callable):
-            @functools.wraps(fn)
-            def wrapper(**kwargs):
-                try:
-                    with http_method(url, json=kwargs) as response:
-                        if response.ok:
-                            fn(response=response.json())
-                        else:
-                            self.__log.info(f"{response.status_code} {response.text}")
-                            response.raise_for_status()
-                except requests.ConnectionError:
-                    self.__log.warning("couldn't connect to server")
-                    raise
-                except requests.Timeout:
-                    self.__log.warning("server timed out during request")
-                    raise
-
-            return wrapper
-
-        return decorator
-
-
-def make_hyperdome_client(server: Server, session: requests.Session):
-    client = Client(server, session)
-
-    @client.json_http_call("signup_counselor", Methods.GET, args=[])
-    def signup_counselor(response):
-        response
-
-
-@autologging.logged
-@autologging.traced
+@handle_requests_errors
 def start_chat(
     server: Server,
     session: requests.Session,
@@ -519,6 +479,8 @@ COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
 
 
 @autologging.traced
+@autologging.logged
+@handle_requests_errors
 def probe_server(server: Server, session: requests.Session):
     info = json.loads(session.get(f"{server.url}/probe").text)
     if info["name"] != "hyperdome":
@@ -529,6 +491,8 @@ def probe_server(server: Server, session: requests.Session):
 
 
 @autologging.traced
+@autologging.logged
+@handle_requests_errors
 def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
     return session.get(
         f"{server.url}/poll_connected_guest", data={"counselor_id": uid}
@@ -536,6 +500,8 @@ def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
 
 
 @autologging.traced
+@autologging.logged
+@handle_requests_errors
 def signup_counselor(
     server: Server,
     session: requests.Session,
