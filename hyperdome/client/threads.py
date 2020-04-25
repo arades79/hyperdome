@@ -19,8 +19,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import functools
+from hyperdome.client.hyperdome_client import HyperdomeClient
 import json
-import time
 import typing
 
 from PyQt5 import QtCore
@@ -41,6 +41,7 @@ from ..common.onion import (
     TorTooOld,
 )
 from ..common.server import Server
+import enum
 
 
 class QtSignals(QtCore.QObject):
@@ -282,43 +283,6 @@ class StartChatTask(QtCore.QRunnable):
             self.signals.error.emit("Couldn't start a chat session")
 
 
-class SignUpTask(QtCore.QRunnable):
-    """
-    sign up a counselor on a server
-    """
-
-    def __init__(
-        self,
-        server: Server,
-        session: requests.Session,
-        pub_key: str,
-        passcode: str,
-        signature: str,
-    ):
-        super().__init__()
-        self.signals = TaskSignals()
-        self.server = server
-        self.session = session
-        self.pub_key = pub_key
-        self.passcode = passcode
-        self.signature = signature
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            self.signals.success.emit(
-                signup_counselor(
-                    self.server,
-                    self.session,
-                    self.passcode,
-                    self.pub_key,
-                    self.signature,
-                )
-            )
-        except requests.RequestException:
-            self.signals.error.emit("Couldn't sign up the counselor")
-
-
 class GetMessagesTask(QtCore.QRunnable):
     """
     retrieve new messages on a fixed interval
@@ -348,31 +312,6 @@ class GetMessagesTask(QtCore.QRunnable):
             self.signals.error.emit("not allowed")
         except KeyError:
             self.signals.error.emit("API error")
-
-
-class ProbeServerTask(QtCore.QRunnable):
-    """
-    probe server for confirmation of hyperdome api
-    and api version compatibility
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, session: requests.Session, server: Server):
-        super(ProbeServerTask, self).__init__()
-        self.session = session
-        self.server = server
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            status = probe_server(self.server, self.session)
-            if status:
-                raise Exception()
-
-            self.signals.success.emit("good")
-        except:
-            self.signals.error.emit("server incompatible")
 
 
 class EndChatTask(QtCore.QRunnable):
@@ -446,6 +385,7 @@ class PollForConnectedGuestTask(QtCore.QRunnable):
 
 
 @autologging.traced
+@autologging.logged
 def send_message(server: Server, session: requests.Session, uid: str, message: str):
     """
     Send message to server provided using session for given user
@@ -456,11 +396,19 @@ def send_message(server: Server, session: requests.Session, uid: str, message: s
 
 
 @autologging.traced
+@autologging.logged
 def get_uid(server: Server, session: requests.Session):
     """
     Ask server for a new UID for a new user session
     """
-    return session.get(f"{server.url}/generate_guest_id").text
+    response = session.get(f"{server.url}/generate_guest_id")
+    try:
+        response.raise_for_status()
+    except requests.HTTPError:
+        get_uid._log.exception(response.text)
+        raise
+    else:
+        return response.text
 
 
 @autologging.traced
@@ -468,9 +416,80 @@ def get_messages(server: Server, session: requests.Session, uid: str):
     """
     collect new messages waiting on server for active session
     """
-    return session.get(f"{server.url}/collect_messages", data={"user_id": uid}).json()
+    response = session.get(
+        f"{server.url}/collect_messages", data={"user_id": uid}
+    ).json()
+    try:
+        response.raise_for_status()
+    except requests.HTTPError:
+        pass
 
 
+class Methods(enum.Enum):
+    GET = "get"
+    POST = "post"
+    PUT = "put"
+    PATCH = "patch"
+    OPTIONS = "options"
+    DELETE = "delete"
+
+
+@autologging.traced
+@autologging.logged
+class Client:
+
+    __log: autologging.logging.Logger  # makes linters happy about autologging
+
+    def __init__(self, server: Server, session: requests.session):
+        self.server = server
+        self.session = session
+        self._methods = {
+            Methods.GET: self.session.get,
+            Methods.POST: self.session.post,
+            Methods.DELETE: self.session.delete,
+            Methods.PUT: self.session.put,
+            Methods.PATCH: self.session.patch,
+            Methods.OPTIONS: self.session.options,
+        }
+
+    def json_http_call(self, endpoint: str, method: Methods, args):
+
+        http_method = self._methods[method]
+        self.__log.debug(f"using {method=} for {endpoint=}")
+        endpoint = endpoint.lstrip("/")
+        url = f"{self.server.url}/{endpoint}"
+
+        def decorator(fn: typing.Callable):
+            @functools.wraps(fn)
+            def wrapper(**kwargs):
+                try:
+                    with http_method(url, json=kwargs) as response:
+                        if response.ok:
+                            fn(response=response.json())
+                        else:
+                            self.__log.info(f"{response.status_code} {response.text}")
+                            response.raise_for_status()
+                except requests.ConnectionError:
+                    self.__log.warning("couldn't connect to server")
+                    raise
+                except requests.Timeout:
+                    self.__log.warning("server timed out during request")
+                    raise
+
+            return wrapper
+
+        return decorator
+
+
+def make_hyperdome_client(server: Server, session: requests.Session):
+    client = Client(server, session)
+
+    @client.json_http_call("signup_counselor", Methods.GET, args=[])
+    def signup_counselor(response):
+        response
+
+
+@autologging.logged
 @autologging.traced
 def start_chat(
     server: Server,

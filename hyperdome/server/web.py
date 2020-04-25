@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
 import hmac
-import autologging
 from pathlib import Path
 import queue
 import secrets
@@ -28,6 +27,7 @@ import socket
 from time import sleep
 from urllib.request import urlopen
 
+import autologging
 from flask import abort, jsonify, make_response, render_template, request
 
 from . import models
@@ -37,10 +37,12 @@ from .app import app, db
 
 @autologging.traced
 @autologging.logged
-class Web(object):
+class Web:
     """
     The Web object is the hyperdome web server, powered by flask
     """
+
+    __log: autologging.logging.Logger  # makes linter happy about autologging
 
     REQUEST_LOAD = 0
     REQUEST_STARTED = 1

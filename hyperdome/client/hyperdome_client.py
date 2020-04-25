@@ -68,7 +68,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.get_messages_task: threads.GetMessagesTask = None
         self.send_message_task: threads.SendMessageTask = None
         self.get_uid_task: threads.GetUidTask = None
-        self.probe_server_task: threads.ProbeServerTask = None
         self.poll_guest_key_task: threads.PollForConnectedGuestTask = None
 
         self.timer = QtCore.QTimer()
