@@ -118,22 +118,23 @@ class QtIntervalTask(QtCore.QThread):
         self.interval = interval
         self.__log.debug(f"interval task {self} created")
 
-    @QtCore.pyqtSlot()
-    def process(self):
-        try:
-            result = self.fn(*self.args, **self.kwargs)
-            self.signals.result.emit(result)
-            self.__log.debug(f"interval task {self} successful")
-        except Exception as error:
-            self.signals.error.emit(error)
-            # calling thread should log error
-            self.__log.debug(f"interval task {self} failed")
-
     def run(self):
         self.__log.debug(f"interval task {self} started")
+
+        @QtCore.pyqtSlot()
+        def process():
+            try:
+                result = self.fn(*self.args, **self.kwargs)
+                self.signals.result.emit(result)
+                self.__log.debug(f"interval task {self} successful")
+            except Exception as error:
+                self.signals.error.emit(error)
+                # calling thread should log error
+                self.__log.debug(f"interval task {self} failed")
+
         timer = QtCore.QTimer()
         timer.setInterval(self.interval)
-        timer.timeout.connect(self.process)
+        timer.timeout.connect(process)
         timer.start()
         self.exec_()
         self.__log.debug(f"interval task {self} finished")
