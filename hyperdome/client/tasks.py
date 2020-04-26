@@ -89,36 +89,8 @@ class QtTask(QtCore.QRunnable):
             self.signals.finished.emit()
             self.__log.log(autologging.TRACE, "RETURN")
 
-
-@autologging.logged
-def run_after_task(
-    task: QtTask,
-    error_handler: QtCore.pyqtSlot = None,
-    finished_handler: QtCore.pyqtSlot = None,
-):
-    if error_handler is not None:
-        task.signals.error.connect(error_handler)
-        run_after_task._log.debug(
-            f"{error_handler.__name__}"
-            " set as failure callback for "
-            f"{task.__name__}"
-        )
-    if finished_handler is not None:
-        task.signals.finished.connect
-        run_after_task._log.debug(
-            f"{finished_handler.__name__}"
-            " set as finished callback for "
-            f"{task.__name__}"
-        )
-
-    def decorator(fn: QtCore.pyqtSlot):
-        task.signals.result.connect(fn)
-        run_after_task._log.debug(
-            f"{fn.__name__} set as result callback for {task.__name__}"
-        )
-        return fn
-
-    return decorator
+    def __str__(self):
+        return f"QtTask({self.fn.__name__})"
 
 
 @autologging.logged
@@ -172,6 +144,9 @@ class QtIntervalTask(QtCore.QThread):
         self.__log.log(autologging.TRACE, f"RETURN {self._stopped}")
         return self._stopped
 
+    def __str__(self):
+        return f"QtIntervalTask({self.fn.__name__})"
+
 
 @autologging.logged
 class OnionThread(QtCore.QThread):
@@ -220,3 +195,46 @@ class OnionThread(QtCore.QThread):
             self.error.emit(e.args[0])
             self.__log.exception("problem starting Tor")
             return
+
+
+@autologging.logged
+def run_after_task(
+    task: typing.Union[QtTask, QtIntervalTask],
+    error_handler: QtCore.pyqtSlot = None,
+    finished_handler: QtCore.pyqtSlot = None,
+    auto_run=True,
+):
+    """
+    connects signals to provided handlers
+    and returns a function that will register the input function
+    as the result signal handler and optionally begin running the task
+    on the global threadpool instance.
+    Can be used as a decorator.
+    """
+    if error_handler is not None:
+        task.signals.error.connect(error_handler)
+        run_after_task._log.debug(
+            f"{error_handler.__name__} set as failure callback for {task}"
+        )
+    if finished_handler is not None:
+        task.signals.finished.connect(finished_handler)
+        run_after_task._log.debug(
+            f"{finished_handler} set as finished callback for {task}"
+        )
+
+    def register_and_run(fn: QtCore.pyqtSlot):
+        task.signals.result.connect(fn)
+        run_after_task._log.debug(f"{fn} set as result callback for {task}")
+        if auto_run and isinstance(task, QtTask):
+            run_after_task._log.debug(f"starting {task} on the global threadpool")
+            QtCore.QThreadPool.globalInstance().start(task)
+        elif auto_run and isinstance(task, QtIntervalTask):
+            run_after_task._log.debug(f"starting {task} in its own thread")
+            task.start()
+        else:
+            err_str = f"{task} is not an accepted task type"
+            run_after_task._log.error(err_str)
+            raise TypeError(err_str)
+        return fn
+
+    return register_and_run
