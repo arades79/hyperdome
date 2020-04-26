@@ -217,8 +217,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
-        if self.timer.isActive():
-            self.timer.stop()
+        self.stop_intervals()
 
         if self.server.is_counselor:
             # user is a counselor which will get uid later
@@ -332,8 +331,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     if not guest_key:
                         return
                     self.__log.info("counselor got assigned to guest")
-                    tasks.stop_interval(self.poll_guest_key_task)
-                    self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
+                    self.poll_guest_key_task.stop()
+                    self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
                     self.get_messages_task = tasks.QtIntervalTask(
                         self.client.get_messages, self.uid, interval=3500
                     )
@@ -427,28 +426,18 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
-    @QtCore.pyqtSlot()
-    def _timer_callback(self):
-        """
-        Passed to timer to continually check for new messages on the server
-        """
-        if self.get_messages_task is not None:
-            self.worker.tryStart(self.get_messages_task)
-        elif self.poll_guest_key_task is not None:
-            self.worker.tryStart(self.poll_guest_key_task)
+    def stop_intervals(self):
+        stop_task = self.get_messages_task or self.poll_guest_key_task or None
+        if stop_task is not None:
+            stop_task.stop()
+            stop_task.wait(250)
+            self.__log.info(f"stopped {stop_task}")
+        else:
+            self.__log.info("no chat to disconnect from")
 
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
-        if self.get_messages_task is not None:
-            tasks.stop_interval(self.get_messages_task)
-            self.get_messages_task = None
-            self.__log.info("stopped polling for messages")
-        elif self.poll_guest_key_task is not None:
-            tasks.stop_interval(self.poll_guest_key_task)
-            self.poll_guest_key_task = None
-            self.__log.info("stopped polling for guest")
-        else:
-            self.__log.info("no chat to disconnect from")
+        self.stop_intervals()
 
         @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
         @QtCore.pyqtSlot(object)
@@ -493,6 +482,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.disconnect_chat()
 
         self.hide()
+
+        # wait for any pending tasks to complete
+        # allows client to signout from server gracefully
+        QtCore.QThreadPool.globalInstance().waitForDone(5000)
 
         if self.onion:
             self.onion.cleanup()

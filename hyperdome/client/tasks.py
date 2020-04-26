@@ -36,6 +36,7 @@ from ..common.onion import (
     TorErrorUnreadableCookieFile,
     TorTooOld,
 )
+from typing import Type, get_type_hints
 
 
 class QtSignals(QtCore.QObject):
@@ -65,28 +66,25 @@ class QtTask(QtCore.QRunnable):
     """
 
     def __init__(self, fn: typing.Callable, *args, **kwargs):
-        self.__log.log(autologging.TRACE, "CALL")
         super().__init__()
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
         self.signals = QtSignals()
-        self.__log.debug("task created")
+        self.__log.debug(f"task {self} created")
 
     @QtCore.pyqtSlot()
     def run(self):
-        self.__log.log(autologging.TRACE, "CALL")
         try:
             result = self.fn(*self.args, **self.kwargs)
             self.signals.result.emit(result)
-            self.__log.debug("task successful")
+            self.__log.debug(f"task {self} successful")
         except Exception as error:
             self.signals.error.emit(error)
             # calling thread should log error
-            self.__log.debug("task failed")
+            self.__log.debug(f"task {self} failed")
         finally:
             self.signals.finished.emit()
-            self.__log.log(autologging.TRACE, "RETURN")
 
     def __str__(self):
         return f"QtTask({self.fn.__name__})"
@@ -99,49 +97,51 @@ class QtIntervalTask(QtCore.QThread):
 
     fn: the callable to be ran in set intervals
 
-    interval: milliseconds to wait between calling fn
+    interval: integer seconds to wait between runs
 
     *args, **kwargs: arguments passed to the function
     """
 
-    def __init__(self, fn: typing.Callable, *args, interval: int = 1000, **kwargs):
-        self.__log.log(autologging.TRACE, "CALL")
-        super().__init__()
+    def __init__(
+        self,
+        fn: typing.Callable,
+        *args,
+        parent: QtCore.QObject = None,
+        interval: int = 1000,
+        **kwargs,
+    ):
+        super().__init__(parent)
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
-        self.interval = interval
         self.signals = QtSignals()
-        self._stopped = False
-        self.__log.debug("interval task created")
+        self.interval = interval
+        self.__log.debug(f"interval task {self} created")
+
+    @QtCore.pyqtSlot()
+    def process(self):
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+            self.signals.result.emit(result)
+            self.__log.debug(f"interval task {self} successful")
+        except Exception as error:
+            self.signals.error.emit(error)
+            # calling thread should log error
+            self.__log.debug(f"interval task {self} failed")
 
     def run(self):
-        self.__log.log(autologging.TRACE, "CALL")
-        while not self.stopped:
-            self.__log.log(autologging.TRACE, "running")
-            try:
-                result = self.fn(*self.args, **self.kwargs)
-                self.signals.result.emit(result)
-                self.__log.debug("interval loop successful")
-            except Exception as error:
-                self.signals.error.emit(error)
-                # calling thread should log error
-                self.__log.debug("interval loop failed")
-            finally:
-                self.sleep(self.interval)
-        else:
-            self.__log.debug("interval task exited")
-            self.signals.finished.emit()
+        self.__log.debug(f"interval task {self} started")
+        timer = QtCore.QTimer()
+        timer.setInterval(self.interval)
+        timer.timeout.connect(self.process)
+        timer.start()
+        self.exec_()
+        self.__log.debug(f"interval task {self} finished")
 
     @QtCore.pyqtSlot()
     def stop(self):
-        self.__log.debug("stop task requested")
-        self._stopped = True
-
-    @property
-    def stopped(self):
-        self.__log.log(autologging.TRACE, f"RETURN {self._stopped}")
-        return self._stopped
+        self.__log.debug(f"stop requested for {self}")
+        self.quit()
 
     def __str__(self):
         return f"QtIntervalTask({self.fn.__name__})"
@@ -208,6 +208,7 @@ def run_after_task(
     and returns a function that will register the input function
     as the result signal handler and optionally begin running the task
     on the global threadpool instance.
+
     Can be used as a decorator.
     """
     if error_handler is not None:
@@ -224,26 +225,20 @@ def run_after_task(
     def register_and_run(fn: QtCore.pyqtSlot):
         task.signals.result.connect(fn)
         run_after_task._log.debug(f"{fn.__name__} set as result callback for {task}")
-        if auto_run and isinstance(task, QtTask):
-            run_after_task._log.debug(f"starting {task} on the global threadpool")
-            QtCore.QThreadPool.globalInstance().start(task)
-        elif auto_run and isinstance(task, QtIntervalTask):
-            run_after_task._log.debug(f"starting {task} in its own thread")
-            task.start()
-        else:
-            err_str = (
-                f"{type(task)} is not an accepted task type [QtTask, QtIntervalTask]"
-            )
-            run_after_task._log.error(err_str)
-            raise TypeError(err_str)
+        if auto_run:
+            if isinstance(task, QtTask):
+                run_after_task._log.debug(f"starting {task} on the global threadpool")
+                QtCore.QThreadPool.globalInstance().start(task)
+            elif isinstance(task, QtIntervalTask):
+                run_after_task._log.debug(f"starting {task} in its own thread")
+                task.start()
+            else:
+                err_str = (
+                    f"{type(task)} is not an accepted task type: "
+                    f"{get_type_hints(register_and_run)}"
+                )
+                run_after_task._log.error(err_str)
+                raise TypeError(err_str)
         return fn
 
     return register_and_run
-
-
-def stop_interval(task: QtIntervalTask):
-    class stopper(QtCore.QObject):
-        stop = QtCore.pyqtSignal()
-
-    stopper.stop.connect(task.stop)
-    stopper.stop.emit()
