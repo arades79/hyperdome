@@ -18,7 +18,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import functools
 import typing
 
 from PyQt5 import QtCore
@@ -232,7 +231,9 @@ def run_after_task(
             run_after_task._log.debug(f"starting {task} in its own thread")
             task.start()
         else:
-            err_str = f"{task} is not an accepted task type"
+            err_str = (
+                f"{type(task)} is not an accepted task type [QtTask, QtIntervalTask]"
+            )
             run_after_task._log.error(err_str)
             raise TypeError(err_str)
         return fn

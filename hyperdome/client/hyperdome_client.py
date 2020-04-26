@@ -26,7 +26,7 @@ import requests
 
 from hyperdome.common.common import Settings
 
-from . import threads
+from . import tasks
 from ..common import strings
 from ..common import encryption
 from ..common.common import resource_path
