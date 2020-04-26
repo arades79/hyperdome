@@ -26,7 +26,7 @@ import requests
 
 from hyperdome.common.common import Settings
 
-from . import threads
+from . import api, tasks
 from ..common import strings
 from ..common import encryption
 from ..common.common import resource_path
@@ -63,17 +63,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.app = app
         self.local_only: bool = local_only
 
-        # setup threadpool and tasks for async
-        self.worker = QtCore.QThreadPool.globalInstance()
-        self.get_messages_task: threads.GetMessagesTask = None
-        self.send_message_task: threads.SendMessageTask = None
-        self.get_uid_task: threads.GetUidTask = None
-        self.probe_server_task: threads.ProbeServerTask = None
-        self.poll_guest_key_task: threads.PollForConnectedGuestTask = None
-
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self._timer_callback)
-        self.timer.setInterval(3500)
+        # setup interval task attributes
+        self.poll_guest_key_task: tasks.QtIntervalTask = None
+        self.get_messages_task: tasks.QtIntervalTask = None
 
         # set window constants
         self.setMinimumWidth(500)
@@ -193,19 +185,21 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.message_text_field.clear()
 
         if not (self.is_connected or self.uid):
-            return self.handle_error("not in an active chat")
+            return self.handle_error(Exception("not in an active chat"))
 
         enc_message = self.crypt.encrypt_outgoing_message(message)
-
-        send_message = threads.SendMessageTask(
-            self.server, self.session, self.uid, enc_message
+        send_message_task = tasks.QtTask(
+            self.client.send_message, self.uid, enc_message
         )
-        send_message.signals.error.connect(self.handle_error)
 
-        self.worker.start(send_message)
+        @tasks.run_after_task(send_message_task, error_handler=self.handle_error)
+        @QtCore.pyqtSlot(object)
+        def message_send_success(_):
+            self.__log.debug("message sent successfully")
+
         self.chat_window.addItem(f"You: {message}")
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot(object)
     def on_history_added(self, messages: str):
         """
         Update UI with messages retrieved from server.
@@ -223,30 +217,31 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         Ask server for a new UID for a new user session
         """
+        self.stop_intervals()
 
-        @QtCore.pyqtSlot(str)
-        def after_id(uid: str):
-            self.uid = uid
+        if self.server.is_counselor:
+            # user is a counselor which will get uid later
+            self.__log.debug("User is counselor, skipping get_uid")
             self.start_chat_button.setEnabled(True)
 
-        if self.timer.isActive():
-            self.timer.stop()
-        if not self.server.is_counselor:
-            get_uid_task = threads.GetUidTask(self.server, self.session)
-            get_uid_task.signals.success.connect(after_id, QtCore.Qt.UniqueConnection)
-            get_uid_task.signals.error.connect(self.handle_error)
-            self.worker.start(get_uid_task)
-        else:  # user is a counselor which will get uid later
-            after_id("")  # use same callback without uid
+        else:
 
-    @QtCore.pyqtSlot(str)
-    def handle_error(self, error: str):
+            @tasks.run_after_task(tasks.QtTask(self.client.get_uid), self.handle_error)
+            @QtCore.pyqtSlot(object)
+            def after_id(uid):
+                self.__log.debug("Guest got uid successfully")
+                self.uid = uid
+                self.start_chat_button.setEnabled(True)
+
+    @QtCore.pyqtSlot(Exception)
+    def handle_error(self, error: Exception):
         """
         take error string and assign it to the created alert window
         changes active window with new text
         and brings to focus if currently in the background.
         """
-        self.error_window.setText(error)
+        self.error_window.setText(error.args[0] or "no error description provided")
+        self.__log.debug(f'Received "{type(error)}" from task')
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
         else:
@@ -284,88 +279,21 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             add_server_dialog = AddServerDialog(self)
             dialog_error = add_server_dialog.exec_()
             if not dialog_error:
-                server = add_server_dialog.get_server()
-                self.server = server
-                self.servers[server.nick] = self.server
-                self.server_dropdown.insertItem(1, server.nick)
+                self.server = add_server_dialog.get_server()
+                self.client = api.HyperdomeClientApi(self.server, self.session)
+                self.servers[self.server.nick] = self.server
+                self.server_dropdown.insertItem(1, self.server.nick)
                 self.server_dropdown.setCurrentIndex(1)
                 self.save_servers()
         elif self.server_dropdown.currentIndex():
             self.__log.debug("switching server")
             self.server = self.servers[self.server_dropdown.currentText()]
+            self.client = api.HyperdomeClientApi(self.server, self.session)
             self.get_uid()
         else:
             self.__log.debug("switched to 'select a server'")
 
     def start_chat(self):
-        @QtCore.pyqtSlot(str)
-        def after_start(counselor: str):
-            if not self.server.is_counselor and not counselor:
-                self.handle_error("No counselors available.")
-                self.start_chat_button.setEnabled(True)
-                return
-            if self.server.is_counselor:
-                self.uid = counselor
-
-                @QtCore.pyqtSlot(str)
-                def counselor_got_guest(guest_key: str):
-                    if not guest_key:
-                        return
-                    self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
-                    self.poll_guest_key_task = None
-                    self.get_messages_task = threads.GetMessagesTask(
-                        self.session, self.server, self.uid
-                    )
-                    self.get_messages_task.setAutoDelete(False)
-                    try:
-                        # if no connections exist, which happens on first connection,
-                        # .disconnect() raises a TypeError.
-                        # the disconnect is needed because of setAutoDelete properties,
-                        # which was causing slots to be bound recursively,
-                        # and duplicating callback actions
-                        self.get_messages_task.signals.disconnect()
-                    except TypeError:
-                        pass
-                    self.get_messages_task.signals.success.connect(
-                        self.on_history_added
-                    )
-                    self.get_messages_task.signals.error.connect(
-                        lambda _: self.disconnect_chat()
-                    )
-
-                self.poll_guest_key_task = threads.PollForConnectedGuestTask(
-                    self.session, self.server, self.uid
-                )
-                self.poll_guest_key_task.setAutoDelete(False)
-                self.poll_guest_key_task.signals.success.connect(counselor_got_guest)
-                self.poll_guest_key_task.signals.error.connect(
-                    self.handle_error
-                    # TODO: there should be a connection status enum for better state understanding
-                )
-            else:
-                self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
-                self.get_messages_task = threads.GetMessagesTask(
-                    self.session, self.server, self.uid
-                )
-                self.get_messages_task.setAutoDelete(False)
-                try:
-                    # if no connections exist, which happens on first connection,
-                    # .disconnect() raises a TypeError.
-                    # the disconnect is needed because of setAutoDelete properties,
-                    # which was causing slots to be bound recursively,
-                    # and duplicating callback actions
-                    self.get_messages_task.signals.disconnect()
-                except TypeError:
-                    pass
-                self.get_messages_task.signals.success.connect(self.on_history_added)
-                self.get_messages_task.signals.error.connect(
-                    lambda _: self.disconnect_chat()
-                )
-            self.timer.start()
-            self.start_chat_button.setText("Disconnect")
-            self.start_chat_button.clicked.disconnect()
-            self.start_chat_button.clicked.connect(self.disconnect_chat)
-            self.start_chat_button.setEnabled(True)
 
         self.start_chat_button.setEnabled(False)
         pub_key = self.crypt.public_chat_key
@@ -377,12 +305,58 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         else:
             signature = ""
 
-        start_chat_task = threads.StartChatTask(
-            self.server, self.session, self.uid, pub_key, signature
+        start_chat_task = tasks.QtTask(
+            self.client.start_chat, self.uid, pub_key, signature
         )
-        start_chat_task.signals.success.connect(after_start)
-        start_chat_task.signals.error.connect(self.handle_error)
-        self.worker.start(start_chat_task)
+
+        @tasks.run_after_task(start_chat_task, self.handle_error)
+        @QtCore.pyqtSlot(object)
+        def after_start(counselor):
+            if not self.server.is_counselor and not counselor:
+                self.__log.info("no counselors logged in to server")
+                self.handle_error(Exception("No counselors available."))
+                self.start_chat_button.setEnabled(True)
+                return
+            if self.server.is_counselor:
+                self.uid = counselor
+                self.__log.info("counselor got uid")
+
+                self.poll_guest_key_task = tasks.QtIntervalTask(
+                    self.client.get_guest_pub_key, self.uid, interval=5000
+                )
+
+                @tasks.run_after_task(self.poll_guest_key_task, self.handle_error)
+                @QtCore.pyqtSlot(object)
+                def counselor_got_guest(guest_key: str):
+                    if not guest_key:
+                        return
+                    self.__log.info("counselor got assigned to guest")
+                    self.poll_guest_key_task.stop()
+                    self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
+                    self.get_messages_task = tasks.QtIntervalTask(
+                        self.client.get_messages, self.uid, interval=3500
+                    )
+
+                    run_on_interval = tasks.run_after_task(
+                        self.get_messages_task, lambda _: self.disconnect_chat()
+                    )
+                    run_on_interval(self.on_history_added)
+
+            else:
+                self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
+                self.get_messages_task = tasks.QtIntervalTask(
+                    self.client.get_messages, self.uid, interval=3500
+                )
+
+                run_on_interval = tasks.run_after_task(
+                    self.get_messages_task, lambda _: self.disconnect_chat()
+                )
+                run_on_interval(self.on_history_added)
+
+            self.start_chat_button.setText("Disconnect")
+            self.start_chat_button.clicked.disconnect()
+            self.start_chat_button.clicked.connect(self.disconnect_chat)
+            self.start_chat_button.setEnabled(True)
 
     def _tor_connection_canceled(self):
         """
@@ -452,28 +426,31 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         d.settings_saved.connect(reload_settings)
         d.exec_()
 
-    @QtCore.pyqtSlot()
-    def _timer_callback(self):
-        """
-        Passed to timer to continually check for new messages on the server
-        """
-        if self.get_messages_task is not None:
-            self.worker.tryStart(self.get_messages_task)
-        elif self.poll_guest_key_task is not None:
-            self.worker.tryStart(self.poll_guest_key_task)
+    def stop_intervals(self):
+        stop_task = self.get_messages_task or self.poll_guest_key_task or None
+        if stop_task is not None:
+            stop_task.stop()
+            stop_task.wait(250)
+            self.__log.info(f"stopped {stop_task}")
+        else:
+            self.__log.info("no chat to disconnect from")
 
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
-        self.timer.stop()
-        self.worker.clear()
-        if self.get_messages_task is not None:
-            self.worker.tryTake(self.get_messages_task)
-            self.get_messages_task = None
-        self.worker.start(threads.EndChatTask(self.session, self.server, self.uid))
+        self.stop_intervals()
+
+        @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
+        @QtCore.pyqtSlot(object)
+        def disconnected(_):
+            self.__log.info("counseling completed")
+
         if self.server.is_counselor:
-            self.worker.start(
-                threads.CounselorSignoutTask(self.session, self.server, self.uid)
-            )
+
+            @tasks.run_after_task(tasks.QtTask(self.client.signout_counselor, self.uid))
+            @QtCore.pyqtSlot(object)
+            def signed_out(_):
+                self.__log.info("counselor signed out")
+
         self.start_chat_button.setText("Start Chat")
         self.start_chat_button.clicked.disconnect()
         self.start_chat_button_connection = self.start_chat_button.clicked.connect(
@@ -506,7 +483,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         self.hide()
 
-        self.worker.waitForDone(1000)
+        # wait for any pending tasks to complete
+        # allows client to signout from server gracefully
+        QtCore.QThreadPool.globalInstance().waitForDone(5000)
 
         if self.onion:
             self.onion.cleanup()

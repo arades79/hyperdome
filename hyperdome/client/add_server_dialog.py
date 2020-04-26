@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from PyQt5 import QtCore, QtGui, QtWidgets
 import autologging
 
-from . import threads
+from . import tasks, api
 from ..common.common import resource_path
 from ..common.encryption import LockBox
 from ..common.server import Server
@@ -39,7 +39,6 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.session = parent.session
-        self.worker = parent.worker
 
         self.error_message = QtWidgets.QMessageBox(self)
 
@@ -128,37 +127,48 @@ class AddServerDialog(QtWidgets.QDialog):
         self.add_server_button.setEnabled(False)
         self.add_server_button.setText("Checking...")
 
-        probe = threads.ProbeServerTask(self.session, self.server)
-        if self.server.is_counselor:
-            probe.signals.success.connect(self.signup)
-        else:
-            probe.signals.success.connect(self.set_server)
-        probe.signals.error.connect(self.bad_server)
-        self.worker.start(probe)
+        self.client = api.HyperdomeClientApi(self.server, self.session)
 
-    @QtCore.pyqtSlot(str)
+        run_probe_then = tasks.run_after_task(
+            tasks.QtTask(self.client.probe_server), self.bad_server
+        )
+
+        if self.server.is_counselor:
+            run_probe_then(self.signup)
+        else:
+            run_probe_then(self.set_server)
+
+    @QtCore.pyqtSlot(object)
     def set_server(self, _):
         self.done(0)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot(object)
     def signup(self, _):
         signer = LockBox()
         signer.make_signing_key()
         self.server.key = signer.export_key("123")  # TODO: use user provided password
         passcode = self.counselor_password_input.text()
         signature = signer.sign_message(passcode)
-        signup_task = threads.SignUpTask(
-            self.server, self.session, signer.public_signing_key, passcode, signature
+        run_signup_then = tasks.run_after_task(
+            tasks.QtTask(
+                self.client.signup_counselor,
+                passcode,
+                signer.public_signing_key,
+                signature,
+            ),
+            self.bad_server,
         )
-        signup_task.signals.error.connect(self.bad_server)
-        signup_task.signals.success.connect(self.set_server)
-        self.worker.start(signup_task)
+        run_signup_then(self.set_server)
 
-    @QtCore.pyqtSlot(str)
-    def bad_server(self, err: str):
+    @QtCore.pyqtSlot(Exception)
+    def bad_server(self, err: Exception):
+        try:
+            raise err
+        except Exception as err:
+            self.__log.exception("exception from add server task")
         self.add_server_button.setEnabled(True)
         self.add_server_button.setText("Add Server")
-        self.error_message.setText(err)
+        self.error_message.setText("bad server")
         self.error_message.exec_()
 
     def get_server(self):
