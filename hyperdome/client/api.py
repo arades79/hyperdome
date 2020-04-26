@@ -30,21 +30,27 @@ from ..common.server import Server
 
 
 def handle_requests_errors(fn: typing.Callable):
+    """
+    wraps a requests call to provide exception handling boilerplate
+    for errors which are generic to any requests call
+    """
+
+    @autologging.logged
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         try:
-            getattr(fn, "_log")
-        except AttributeError:
-            return fn(*args, **kwargs)
-        try:
             response = fn(*args, **kwargs)
         except requests.ConnectionError:
-            handle_requests_errors._log.warning("couldn't connect to server")
+            wrapper._log.warning("couldn't connect to server")
             raise
         except requests.Timeout:
-            handle_requests_errors._log.warning("server timed out during request")
+            wrapper._log.warning("server timed out during request")
             raise
-        except requests.HTTPError:
+        except requests.HTTPError as e:
+            wrapper._log.warning(f"server responded {e.args[0]} {e.args[1]}")
+            raise
+        except:
+            wrapper._log.exception("unexpected exception during request handling")
             raise
         else:
             return response
@@ -54,116 +60,113 @@ def handle_requests_errors(fn: typing.Callable):
 
 @autologging.traced
 @autologging.logged
-@handle_requests_errors
-def send_message(server: Server, session: requests.Session, uid: str, message: str):
+class HyperdomeClientApi:
     """
-    Send message to server provided using session for given user
+    container class for hyperdome server API calls
+    uses a requests session and server variable
     """
-    session.post(
-        f"{server.url}/send_message", data={"message": message, "user_id": uid}
-    )
 
+    COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
 
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def get_uid(server: Server, session: requests.Session):
-    """
-    Ask server for a new UID for a new user session
-    """
-    response = session.get(f"{server.url}/generate_guest_id")
-    try:
-        response.raise_for_status()
-    except requests.HTTPError:
-        get_uid._log.exception(response.text)
-        raise
-    else:
-        return response.text
+    __log: autologging.logging.Logger  # makes linter happy about autologging
 
+    def __init__(self, server: Server, session: requests.Session) -> None:
+        self.server = server
+        self.session = session
 
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def get_messages(server: Server, session: requests.Session, uid: str):
-    """
-    collect new messages waiting on server for active session
-    """
-    response = session.get(
-        f"{server.url}/collect_messages", data={"user_id": uid}
-    ).json()
-    try:
-        response.raise_for_status()
-    except requests.HTTPError:
-        pass
+    @handle_requests_errors
+    def signout_counselor(self, user_id: str):
+        self.session.post(
+            f"{self.server.url}/counselor_signout", data={"user_id": user_id}
+        )
 
+    @handle_requests_errors
+    def counseling_complete(self, user_id: str):
+        self.session.post(
+            f"{self.server.url}/counseling_complete", data={"user_id": user_id}
+        )
 
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def start_chat(
-    server: Server,
-    session: requests.Session,
-    uid: str,
-    pub_key: str,
-    signature: str = "",
-):
-    if server.is_counselor:
-        return session.post(
-            f"{server.url}/counselor_signin",
+    @handle_requests_errors
+    def send_message(self, uid: str, message: str):
+        """
+        Send message to server provided using session for given user
+        """
+        self.session.post(
+            f"{self.server.url}/send_message", data={"message": message, "user_id": uid}
+        )
+
+    @handle_requests_errors
+    def get_uid(self):
+        """
+        Ask server for a new UID for a new user session
+        """
+        response = self.session.get(f"{self.server.url}/generate_guest_id")
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            self.__log.exception(response.text)
+            raise
+        else:
+            return response.text
+
+    @handle_requests_errors
+    def get_messages(self, uid: str):
+        """
+        collect new messages waiting on server for active session
+        """
+        response = self.session.get(
+            f"{self.server.url}/collect_messages", data={"user_id": uid}
+        ).json()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            pass
+
+    @handle_requests_errors
+    def start_chat(
+        self, uid: str, pub_key: str, signature: str = "",
+    ):
+        if self.server.is_counselor:
+            return self.session.post(
+                f"{self.server.url}/counselor_signin",
+                data={
+                    "pub_key": pub_key,
+                    "signature": signature,
+                    "username": self.server.username,
+                },
+            ).text
+
+        else:
+            return self.session.post(
+                f"{self.server.url}/request_counselor",
+                data={"guest_id": uid, "pub_key": pub_key},
+            ).text
+
+    @handle_requests_errors
+    def probe_server(self):
+        info = json.loads(self.session.get(f"{self.server.url}/probe").text)
+        if info["name"] != "hyperdome":
+            return "not hyperdome"
+        if info["version"] not in self.COMPATIBLE_SERVERS:
+            return "bad version"
+        return ""
+
+    @handle_requests_errors
+    def get_guest_pub_key(self, uid: str):
+        return self.session.get(
+            f"{self.server.url}/poll_connected_guest", data={"counselor_id": uid}
+        ).text
+
+    @handle_requests_errors
+    def signup_counselor(
+        self, passcode: str, pub_key: str, signature: str,
+    ):
+        return self.session.post(
+            f"{self.server.url}/counselor_signup",
             data={
+                "username": self.server.username,
                 "pub_key": pub_key,
+                "signup_code": passcode,
                 "signature": signature,
-                "username": server.username,
             },
         ).text
-
-    else:
-        return session.post(
-            f"{server.url}/request_counselor",
-            data={"guest_id": uid, "pub_key": pub_key},
-        ).text
-
-
-COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
-
-
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def probe_server(server: Server, session: requests.Session):
-    info = json.loads(session.get(f"{server.url}/probe").text)
-    if info["name"] != "hyperdome":
-        return "not hyperdome"
-    if info["version"] not in COMPATIBLE_SERVERS:
-        return "bad version"
-    return ""
-
-
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def get_guest_pub_key(server: Server, session: requests.Session, uid: str):
-    return session.get(
-        f"{server.url}/poll_connected_guest", data={"counselor_id": uid}
-    ).text
-
-
-@autologging.traced
-@autologging.logged
-@handle_requests_errors
-def signup_counselor(
-    server: Server,
-    session: requests.Session,
-    passcode: str,
-    pub_key: str,
-    signature: str,
-):
-    return session.post(
-        f"{server.url}/counselor_signup",
-        data={
-            "username": server.username,
-            "pub_key": pub_key,
-            "signup_code": passcode,
-            "signature": signature,
-        },
-    ).text
