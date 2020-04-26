@@ -40,7 +40,6 @@ class AddServerDialog(QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.session = parent.session
-        self.worker = parent.worker
 
         self.error_message = QtWidgets.QMessageBox(self)
 

@@ -306,7 +306,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             signature = ""
 
         start_chat_task = tasks.QtTask(
-            self.client.start_chat(self.uid, pub_key, signature)
+            self.client.start_chat, self.uid, pub_key, signature
         )
 
         @tasks.run_after_task(start_chat_task, self.handle_error)
@@ -342,12 +342,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     )
                     run_on_interval(self.on_history_added)
 
-                self.poll_guest_key_task.setAutoDelete(False)
-                self.poll_guest_key_task.signals.success.connect(counselor_got_guest)
-                self.poll_guest_key_task.signals.error.connect(
-                    self.handle_error
-                    # TODO: there should be a connection status enum for better state understanding
-                )
             else:
                 self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
                 self.get_messages_task = tasks.QtIntervalTask(
@@ -444,8 +438,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
-        if task := getattr(self, "get_messages_task"):
-            tasks.stop_interval(task)
+        try:
+            tasks.stop_interval(self.get_messages_task)
+            self.__log.info("stopped polling for messages")
+        except AttributeError:
+            self.__log.info("no chat to disconnect from")
 
         @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
         @QtCore.pyqtSlot(object)
