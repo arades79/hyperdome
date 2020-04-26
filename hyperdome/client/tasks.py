@@ -239,3 +239,11 @@ def run_after_task(
         return fn
 
     return register_and_run
+
+
+def stop_interval(task: QtIntervalTask):
+    class stopper(QtCore.QObject):
+        stop = QtCore.pyqtSignal()
+
+    stopper.stop.connect(task.stop)
+    stopper.stop.emit()

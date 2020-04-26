@@ -35,8 +35,8 @@ def handle_requests_errors(fn: typing.Callable):
     for errors which are generic to any requests call
     """
 
-    @autologging.logged
     @functools.wraps(fn)
+    @autologging.logged
     def wrapper(*args, **kwargs):
         try:
             response = fn(*args, **kwargs)
