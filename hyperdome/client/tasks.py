@@ -23,8 +23,7 @@ import typing
 
 from PyQt5 import QtCore
 import autologging
-import requests
-from werkzeug.exceptions import MethodNotAllowed
+
 
 from ..common.onion import (
     BundledTorTimeout,
@@ -38,7 +37,6 @@ from ..common.onion import (
     TorErrorUnreadableCookieFile,
     TorTooOld,
 )
-from ..common.server import Server
 
 
 class QtSignals(QtCore.QObject):
@@ -90,6 +88,37 @@ class QtTask(QtCore.QRunnable):
         finally:
             self.signals.finished.emit()
             self.__log.log(autologging.TRACE, "RETURN")
+
+
+@autologging.logged
+def run_after_task(
+    task: QtTask,
+    error_handler: QtCore.pyqtSlot = None,
+    finished_handler: QtCore.pyqtSlot = None,
+):
+    if error_handler is not None:
+        task.signals.error.connect(error_handler)
+        run_after_task._log.debug(
+            f"{error_handler.__name__}"
+            " set as failure callback for "
+            f"{task.__name__}"
+        )
+    if finished_handler is not None:
+        task.signals.finished.connect
+        run_after_task._log.debug(
+            f"{finished_handler.__name__}"
+            " set as finished callback for "
+            f"{task.__name__}"
+        )
+
+    def decorator(fn: QtCore.pyqtSlot):
+        task.signals.result.connect(fn)
+        run_after_task._log.debug(
+            f"{fn.__name__} set as result callback for {task.__name__}"
+        )
+        return fn
+
+    return decorator
 
 
 @autologging.logged
@@ -191,191 +220,3 @@ class OnionThread(QtCore.QThread):
             self.error.emit(e.args[0])
             self.__log.exception("problem starting Tor")
             return
-
-
-class TaskSignals(QtCore.QObject):
-    success = QtCore.pyqtSignal(str)
-    error = QtCore.pyqtSignal(str)
-
-
-# TODO: implement logging in these classes post refactor
-
-
-class SendMessageTask(QtCore.QRunnable):
-    """
-    send client message to server
-    """
-
-    signals = TaskSignals()
-
-    def __init__(
-        self, server: Server, session: requests.Session, uid: str, message: str
-    ):
-        super(SendMessageTask, self).__init__()
-        self.server = server
-        self.session = session
-        self.uid = uid
-        self.message = message
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            send_message(self.server, self.session, self.uid, self.message)
-        except requests.RequestException:
-            self.signals.error.emit("Couldn't send message")
-
-
-class GetUidTask(QtCore.QRunnable):
-    """
-    Get a UID from the server
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, server: Server, session: requests.Session):
-        super(GetUidTask, self).__init__()
-        self.server = server
-        self.session = session
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            uid = get_uid(self.server, self.session)
-            self.signals.success.emit(uid)
-        except requests.RequestException:
-            self.signals.error.emit("couldn't get UID")
-
-
-class StartChatTask(QtCore.QRunnable):
-    """
-    Signin counselor, or request counselor session if user
-    """
-
-    signals = TaskSignals()
-
-    def __init__(
-        self,
-        server: Server,
-        session: requests.Session,
-        uid: str,
-        pub_key: str,
-        signature: str = "",
-    ):
-        super(StartChatTask, self).__init__()
-        self.server = server
-        self.session = session
-        self.uid = uid
-        self.pub_key = pub_key
-        self.signature = signature
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            self.signals.success.emit(
-                start_chat(
-                    self.server, self.session, self.uid, self.pub_key, self.signature
-                )
-            )
-        except requests.RequestException:
-            self.signals.error.emit("Couldn't start a chat session")
-
-
-class GetMessagesTask(QtCore.QRunnable):
-    """
-    retrieve new messages on a fixed interval
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, session: requests.Session, server: Server, uid: str):
-        super(GetMessagesTask, self).__init__()
-        self.session = session
-        self.server = server
-        self.uid = uid
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            message_response = get_messages(self.server, self.session, self.uid)
-            if message_response["chat_status"] == "CHAT_ACTIVE":
-                self.signals.success.emit(message_response["messages"])
-            elif message_response["chat_status"] == "CHAT_OVER":
-                self.signals.error.emit("chat ended")
-        except requests.HTTPError:
-            self.signals.error.emit("Counselor not in chat")
-        except requests.RequestException:
-            self.signals.error.emit("Error in get messages request")
-        except MethodNotAllowed:
-            self.signals.error.emit("not allowed")
-        except KeyError:
-            self.signals.error.emit("API error")
-
-
-class EndChatTask(QtCore.QRunnable):
-    """
-    inform the server that the current chat session is concluded,
-    freeing up the counselor for a new guest, and disconnecting the guest
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, session: requests.Session, server: Server, uid: str):
-        super(EndChatTask, self).__init__()
-        self.session = session
-        self.server = server
-        self.uid = uid
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            self.session.post(
-                f"{self.server.url}/counseling_complete", data={"user_id": self.uid}
-            ).raise_for_status()
-            self.signals.success.emit("good")
-        except:
-            self.signals.error.emit("you're stuck here now")
-
-
-class CounselorSignoutTask(QtCore.QRunnable):
-    """
-    deregister counselor identified from active list,
-    stopping them from receiving additional guests
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, session: requests.Session, server: Server, uid: str):
-        super(CounselorSignoutTask, self).__init__()
-        self.session = session
-        self.server = server
-        self.uid = uid
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            self.session.post(
-                f"{self.server.url}/counselor_signout", data={"user_id": self.uid}
-            )
-            self.signals.success.emit("good")
-        except:
-            self.signals.error.emit("you're stuck here now")
-
-
-class PollForConnectedGuestTask(QtCore.QRunnable):
-    """
-    ask server if a guest has requested to connect yet
-    and return the public key when they have
-    """
-
-    signals = TaskSignals()
-
-    def __init__(self, session: requests.Session, server: Server, uid: str):
-        super(PollForConnectedGuestTask, self).__init__()
-        self.task = functools.partial(get_guest_pub_key, server, session, uid)
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            self.signals.success.emit(self.task())
-        except:
-            self.signals.error.emit("problem getting guest pubkey")
