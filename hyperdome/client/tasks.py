@@ -128,7 +128,7 @@ class QtIntervalTask(QtCore.QThread):
                 # calling thread should log error
                 self.__log.debug("interval loop failed")
             finally:
-                self.wait(self.interval)
+                self.sleep(self.interval)
         else:
             self.__log.debug("interval task exited")
             self.signals.finished.emit()
@@ -223,7 +223,7 @@ def run_after_task(
 
     def register_and_run(fn: QtCore.pyqtSlot):
         task.signals.result.connect(fn)
-        run_after_task._log.debug(f"{fn} set as result callback for {task}")
+        run_after_task._log.debug(f"{fn.__name__} set as result callback for {task}")
         if auto_run and isinstance(task, QtTask):
             run_after_task._log.debug(f"starting {task} on the global threadpool")
             QtCore.QThreadPool.globalInstance().start(task)

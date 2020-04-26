@@ -63,9 +63,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.app = app
         self.local_only: bool = local_only
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self._timer_callback)
-        self.timer.setInterval(3500)
+        # setup interval task attributes
+        self.poll_guest_key_task: tasks.QtIntervalTask = None
+        self.get_messages_task: tasks.QtIntervalTask = None
 
         # set window constants
         self.setMinimumWidth(500)
@@ -241,7 +241,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         changes active window with new text
         and brings to focus if currently in the background.
         """
-        self.error_window.setText(str(error))
+        self.error_window.setText(error.args[0] or "no error description provided")
+        self.__log.debug(f'Received "{type(error)}" from task')
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
         else:
@@ -321,11 +322,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 self.uid = counselor
                 self.__log.info("counselor got uid")
 
-                poll_guest_key_task = tasks.QtTask(
-                    self.client.get_guest_pub_key, self.uid
+                self.poll_guest_key_task = tasks.QtIntervalTask(
+                    self.client.get_guest_pub_key, self.uid, interval=5000
                 )
 
-                @tasks.run_after_task(poll_guest_key_task, self.handle_error)
+                @tasks.run_after_task(self.poll_guest_key_task, self.handle_error)
                 @QtCore.pyqtSlot(object)
                 def counselor_got_guest(guest_key: str):
                     if not guest_key:
@@ -438,10 +439,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
-        try:
+        if self.get_messages_task is not None:
             tasks.stop_interval(self.get_messages_task)
+            self.get_messages_task = None
             self.__log.info("stopped polling for messages")
-        except AttributeError:
+        elif self.poll_guest_key_task is not None:
+            tasks.stop_interval(self.poll_guest_key_task)
+            self.poll_guest_key_task = None
+            self.__log.info("stopped polling for guest")
+        else:
             self.__log.info("no chat to disconnect from")
 
         @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
@@ -487,8 +493,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.disconnect_chat()
 
         self.hide()
-
-        self.worker.waitForDone(1000)
 
         if self.onion:
             self.onion.cleanup()
