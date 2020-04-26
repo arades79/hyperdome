@@ -47,7 +47,7 @@ def handle_requests_errors(fn: typing.Callable):
             wrapper._log.warning("server timed out during request")
             raise
         except requests.HTTPError as e:
-            wrapper._log.warning(f"server responded {e.args[0]} {e.args[1]}")
+            wrapper._log.warning(f"{e.args[0]}")
             raise
         except:
             wrapper._log.exception("unexpected exception during request handling")
@@ -84,14 +84,14 @@ class HyperdomeClientApi:
     def counseling_complete(self, user_id: str):
         self.session.post(
             f"{self.server.url}/counseling_complete", data={"user_id": user_id}
-        )
+        ).raise_for_status
 
     @handle_requests_errors
     def send_message(self, uid: str, message: str):
         """
         Send message to server provided using session for given user
         """
-        self.session.post(
+        return self.session.post(
             f"{self.server.url}/send_message", data={"message": message, "user_id": uid}
         )
 
@@ -101,13 +101,8 @@ class HyperdomeClientApi:
         Ask server for a new UID for a new user session
         """
         response = self.session.get(f"{self.server.url}/generate_guest_id")
-        try:
-            response.raise_for_status()
-        except requests.HTTPError:
-            self.__log.exception(response.text)
-            raise
-        else:
-            return response.text
+        response.raise_for_status()
+        return response.text
 
     @handle_requests_errors
     def get_messages(self, uid: str):
@@ -116,11 +111,12 @@ class HyperdomeClientApi:
         """
         response = self.session.get(
             f"{self.server.url}/collect_messages", data={"user_id": uid}
-        ).json()
-        try:
-            response.raise_for_status()
-        except requests.HTTPError:
-            pass
+        )
+        response_json = response.json()
+        if response_json["chat_status"] == "CHAT_ACTIVE":
+            return response_json["messages"]
+        elif response["chat_status"] == "CHAT_OVER":
+            raise requests.HTTPError(f"chat over", response)
 
     @handle_requests_errors
     def start_chat(
