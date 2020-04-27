@@ -275,8 +275,10 @@ class Web:
                     if self.active_chat_user_map[user_id] == ""
                     else "CHAT_ACTIVE"
                 )
+
             except KeyError:
                 chat_status = "NO_CHAT"
+            self.__log.debug(chat_status)
             return jsonify(chat_status=chat_status, messages=messages)
 
     def error404(self):
