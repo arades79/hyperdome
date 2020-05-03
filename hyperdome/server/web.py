@@ -152,16 +152,6 @@ class Web:
             self.counselors[counselor_id]["connected_guest"] = guest_id
             return jsonify(counselor=self.counselors[counselor_id])
 
-        @app.route("/hyperdome/api/v1/guests/<string:counselor_id>", methods=["GET"])
-        def poll_connected_guest(counselor_id):
-            try:
-                guest_id = self.counselors[counselor_id]["connected_guest"]
-                guest = self.guests[guest_id]
-            except KeyError:
-                abort(404, message="Connected guest not found")
-            else:
-                return jsonify(guest=guest)
-
         @app.route("/hyperdome/api/v1/counselors/", methods=["POST"])
         def counselor_login():
             username = request.json["username"]
@@ -183,7 +173,7 @@ class Web:
                 "session_key": session_counselor_key,
             }
             self.__log.info(f"successful counselor login {username=}")
-            return jsonify(user_id=sid), 201
+            return jsonify(user_id=sid, counselor=self.counselors[sid]), 201
 
         # TODO: memoize
         @app.route("/hyperdome/api/v1/counselors/", methods=["GET"])
@@ -220,7 +210,13 @@ class Web:
                 models.db.session.commit()
                 self.__log.info(f"new counselor {username=} added")
 
-                return jsonify(message=f"successfully signed up as {username}"), 201
+                return (
+                    jsonify(
+                        message="Success",
+                        counselor={"username": username, "pub_key": counselor_key},
+                    ),
+                    201,
+                )
             else:
                 models.db.session.commit()
                 self.__log.warning(
@@ -238,7 +234,17 @@ class Web:
             sig = request.json["signature"]
             # TODO: Verify signature
             self.guests[sid] = {"pub_key": key}
-            return jsonify(user_id=sid), 201
+            return jsonify(user_id=sid, guest=self.guests[sid]), 201
+
+        @app.route("/hyperdome/api/v1/guests/<string:counselor_id>", methods=["GET"])
+        def poll_connected_guest(counselor_id):
+            try:
+                guest_id = self.counselors[counselor_id]["connected_guest"]
+                guest = self.guests[guest_id]
+            except KeyError:
+                abort(404, message="Connected guest not found")
+            else:
+                return jsonify(guest=guest)
 
         @app.route("/hyperdome/api/v1/chats/<string:user_id>", methods=["POST"])
         def start_chat(user_id):
@@ -248,6 +254,7 @@ class Web:
                 "messages": [],
                 "sequence": 0,
             }
+            return jsonify(chat=self.chats[user_id]), 201
 
         @app.route("/hyperdome/api/v1/chats/<string:user_id>", methods=["GET"])
         def get_key_data(user_id):
@@ -258,66 +265,65 @@ class Web:
                     partner_id = self.guests[user_id]["connected_counselor"]
                 else:
                     abort(404, message="no user found for user id")
-                    return
+                    assert False, "code should be unreachable"
             except KeyError:
                 abort(404, message="user has no chat partner")
-                return
+                assert False, "code should be unreachable"
             try:
                 chat = self.chats[partner_id]
                 key_data = chat["key_data"]
                 signature = chat["signature"]
             except:
                 abort(404, message="partner has not yet initialized chat")
-                return
             else:
                 return jsonify(key_data=key_data, signature=signature)
 
         @app.route(
-            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_num>/",
             methods=["POST"],
         )
-        def message_from_user(user_id, message_no):
+        def message_from_user(user_id, message_num):
             messages: list = request.json["messages"]
             try:
                 chat_partner = self.chats[user_id]["partner"]
                 self.chats[chat_partner]["messages"] += messages
-                self.chats[chat_partner]["sequence"] = message_no
+                self.chats[chat_partner]["sequence"] = message_num
             except KeyError:
                 abort(404, message="couldn't find message destination")
-            return jsonify(message="Success", no_messages=len(messages))
+            return jsonify(message="Success", num_messages=len(messages))
 
         @app.route(
-            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_num>/",
             methods=["GET"],
         )
-        def collect_messages(user_id, message_no):
+        def collect_messages(user_id, message_num):
             try:
-                messages = self.chats[user_id]["messages"][message_no:]
-                no_messages = len(messages)
-                next_message = message_no + no_messages
+                messages = self.chats[user_id]["messages"][message_num:]
+                num_messages = len(messages)
+                next_message = message_num + num_messages
             except KeyError:
                 abort(404, message="no chat")
                 return  # should be inaccessible
             except IndexError:
                 messages = []
-                no_messages = 0
-                next_message = message_no
+                num_messages = 0
+                next_message = message_num
                 pass
             return jsonify(
-                no_messages=no_messages,
+                num_messages=num_messages,
                 messages=messages,
                 next_message=next_message,
                 sequence=self.chats[user_id]["sequence"],
             )
 
         @app.route(
-            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_num>/",
             methods=["DELETE"],
         )
-        def clear_read_messages(user_id, message_no):
+        def clear_read_messages(user_id, message_num):
             try:
                 messages = self.chats[user_id]["messages"]
-                self.chats[user_id]["messages"] = messages[message_no:]
+                self.chats[user_id]["messages"] = messages[message_num:]
             except KeyError:
                 abort(404, message="no chat")
             except IndexError:
