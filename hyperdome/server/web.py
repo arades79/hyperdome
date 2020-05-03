@@ -94,12 +94,9 @@ class Web:
         self.define_common_routes()
 
         # hyperdome server user tracking variables
-        self.counselors_available = {}
-        self.active_chat_user_map = {}
-        self.pending_messages = {}
-        self.guest_keys = {}
-        self.counselor_keys = {}
-        self.active_codes = []
+        self.counselors = {}
+        self.guests = {}
+        self.chats = {}
 
         #
 
@@ -109,13 +106,13 @@ class Web:
         """
 
         @app.errorhandler(404)
-        def page_not_found(e):
+        def page_not_found(message=""):
             """
-            404 error page.
+            404 error message.
             """
-            return self.error404()
+            return jsonify(error=message), 404
 
-        @app.route("/<slug_candidate>/shutdown")
+        @app.route("/<string:slug_candidate>/shutdown")
         def shutdown(slug_candidate):
             """
             Stop the flask web server, from the context of an http request.
@@ -124,106 +121,93 @@ class Web:
             self.force_shutdown()
             return ""
 
-        @app.route("/noscript-xss-instructions")
-        def noscript_xss_instructions():
-            """
-            Display instructions for disabling Tor Browser's
-            NoScript XSS setting
-            """
-            r = make_response(render_template("receive_noscript_xss.html"))
-            return self.add_security_headers(r)
-
         @app.errorhandler(Exception)
         def unhandled_exception(e):
             self.__log.exception("server request exception")
-            return jsonify(error="Unhandled exception during request"), 500
+            return jsonify(error="Unhandled server error during request"), 500
 
-        @app.route("/hyperdome/info")
-        def info():
+        @app.route("/hyperdome/api")
+        def api():
             return jsonify(
                 name="hyperdome",  # TODO: admin configuable name that's set as nick in client
                 version=version,
                 api=["v1"],
-                base_url="/hyperdome/api/",
-                online=len(self.counselors_available),
             )
 
-        @app.route("/hyperdome/api/v1/counselor", "counselor", methods=["GET"])
-        def request_counselor():
-            guest_id = request.form["guest_id"]
-            guest_key = request.form["pub_key"]
+        @app.route("/hyperdome/api/v1/counselors/<string:guest_id>", methods=["GET"])
+        def request_counselor(guest_id):
+            if guest_id not in self.guests:
+                abort(404, message="guest data not found")
             counselors = [
                 counselor
-                for counselor, capacity in self.counselors_available.items()
-                if capacity
+                for counselor in self.counselors
+                if not (
+                    counselor in self.chats or counselor.get("connected_guest", None)
+                )
             ]
             if not counselors:
-                return ""
-            chosen_counselor = secrets.choice(counselors)
-            self.counselors_available[chosen_counselor] -= 1
-            self.active_chat_user_map[guest_id] = chosen_counselor
-            self.active_chat_user_map[chosen_counselor] = guest_id
-            self.guest_keys[chosen_counselor] = guest_key
-            counselor_key = self.counselor_keys.pop(chosen_counselor)
-            return counselor_key
+                return jsonify(error="no counselors available")
+                # TODO: implement guest queue
+            counselor_id = secrets.choice(counselors)
+            self.counselors[counselor_id]["connected_guest"] = guest_id
+            return jsonify(counselor=self.counselors[counselor_id])
 
-        @app.route("/hyperdome/api/v1/guest/<counselor_id>", "guest", methods=["GET"])
+        @app.route("/hyperdome/api/v1/guests/<string:counselor_id>", methods=["GET"])
         def poll_connected_guest(counselor_id):
-            guest_key = self.guest_keys.pop(counselor_id, "")
-            return jsonify(guest_key=guest_key)
-
-        @app.route(
-            "/hyperdome/api/v1/messages/<user_id>", "messages", methods=["DELETE"]
-        )
-        def counseling_complete(user_id):
-            if user_id not in self.active_chat_user_map:
-                return jsonify(error="no active chat"), 404
-            other_user = self.active_chat_user_map[user_id]
-            self.active_chat_user_map.pop(user_id)
-            self.pending_messages.pop(user_id, "")
             try:
-                self.active_chat_user_map[other_user] = ""
+                guest_id = self.counselors[counselor_id]["connected_guest"]
+                guest = self.guests[guest_id]
             except KeyError:
-                self.__log.debug("other user already left chat")
-                pass
-            finally:
-                return jsonify(message="chat ended"), 200
+                abort(404, message="Connected guest not found")
+            else:
+                return jsonify(guest=guest)
 
-        @app.route("/hyperdome/api/v1/counselor/", "counselor")
+        @app.route("/hyperdome/api/v1/counselors/", methods=["POST"])
+        def counselor_login():
+            username = request.json["username"]
+            session_counselor_key = request.json["pub_key"]
+            signature = request.json["signature"]
+            signature = base64.urlsafe_b64decode(signature)
+            counselor = models.Counselor.query.filter_by(name=username).first_or_404()
+            if not counselor.verify(signature, session_counselor_key):
+                self.__log.warning(
+                    f"attempted counselor login failed verification {username=}"
+                )
+                request
+                return jsonify(error="Bad signature"), 403
+            sid = secrets.token_urlsafe(16)
+            # will use capacity variable for this later
+            self.counselors[sid] = {
+                "username": username,
+                "public_key": counselor.key_bytes,
+                "session_key": session_counselor_key,
+            }
+            self.__log.info(f"successful counselor login {username=}")
+            return jsonify(user_id=sid), 201
+
+        # TODO: memoize
+        @app.route("/hyperdome/api/v1/counselors/", methods=["GET"])
+        def get_counselor_keys():
+            keys = models.Counselor.query.add_columns(models.Counselor.key_bytes).all()
+            return jsonify(counselor_pub_keys=keys)
+
         @app.route(
-            "/hyperdome/api/v1/counselor/<counselor_id>", "counselor", methods=["PUT"]
+            "/hyperdome/api/v1/counselors/<string:counselor_id>",
+            methods=["PUT", "DELETE"],
         )
-        def counselor_login(counselor_id=None):
+        def counselor_logout(counselor_id=None):
             if counselor_id is not None:
-                self.counselors_available.pop(counselor_id, "")
-                self.counselor_keys.pop(counselor_id, "")
+                self.counselors.pop(counselor_id, "")
+                self.chats.pop(counselor_id, "")
                 self.__log.info("counselor logged out")
                 return jsonify(message="Successful logout"), 200
-            else:
-                username = request.json["username"]
-                session_counselor_key = request.json["pub_key"]
-                signature = request.json["signature"]
-                signature = base64.urlsafe_b64decode(signature)
-                counselor = models.Counselor.query.filter_by(
-                    name=username
-                ).first_or_404()
-                if not counselor.verify(signature, session_counselor_key):
-                    self.__log.warning(
-                        f"attempted counselor login failed verification {username=}"
-                    )
-                    return "Bad signature", 403
-                sid = secrets.token_urlsafe(16)
-                # will use capacity variable for this later
-                self.counselors_available[sid] = 1
-                self.counselor_keys[sid] = session_counselor_key
-                self.__log.info(f"successful counselor login {username=}")
-                return jsonify(user_id=sid), 200
 
-        @app.route("/hyperdome/api/v1/counselor/", "counselor", methods=["POST"])
-        def counselor_signup():
+        @app.route(
+            "/hyperdome/api/v1/counselors/<string:signup_code>", methods=["POST"]
+        )
+        def counselor_signup(signup_code):
             username = request.json["username"]
             counselor_key = request.json["pub_key"]
-            signup_code = request.json["signup_code"]
             signature = request.json["signature"]
             signature = base64.urlsafe_b64decode(signature)
             activator = models.CounselorSignUp.query.filter_by(
@@ -247,53 +231,121 @@ class Web:
                     403,
                 )
 
-        @app.route("/hyperdome/api/v1/guest", "guest", methods=["POST"])
+        @app.route("/hyperdome/api/v1/guests", methods=["POST"])
         def generate_guest_id():
-            # TODO check for collisions
-            return jsonify(user_id=secrets.token_urlsafe(16)), 201
+            sid = self.get_unique_sid()
+            key = request.json["pub_key"]
+            sig = request.json["signature"]
+            # TODO: Verify signature
+            self.guests[sid] = {"pub_key": key}
+            return jsonify(user_id=sid), 201
 
-        @app.route("/hyperdome/api/v1/messages/<user_id>", "messages", methods=["PUT"])
-        def message_from_user(user_id):
-            if user_id not in self.active_chat_user_map:
-                return jsonify(error="no chat"), 404
-            messages: list = request.json["messages"]
-            other_user = self.active_chat_user_map[user_id]
-            if other_user in self.pending_messages:
-                self.pending_messages[other_user] += messages
-            elif other_user:  # may be empty string if other disconnected
-                self.pending_messages[other_user] = messages
-            else:
-                return jsonify(error="user left"), 404
-            return jsonify(message="Success")
+        @app.route("/hyperdome/api/v1/chats/<string:user_id>", methods=["POST"])
+        def start_chat(user_id):
+            self.chats[user_id] = {
+                "key_data": request.json["key_data"],
+                "signature": request.json["signature"],
+                "messages": [],
+                "sequence": 0,
+            }
 
-        @app.route("/hyperdome/api/v1/messages/<user_id>", methods=["GET"])
-        def collect_messages(user_id):
-            messages = self.pending_messages.pop(user_id, "")
+        @app.route("/hyperdome/api/v1/chats/<string:user_id>", methods=["GET"])
+        def get_key_data(user_id):
             try:
-                chat_status = (
-                    "CHAT_OVER"
-                    if self.active_chat_user_map[user_id] == ""
-                    else "CHAT_ACTIVE"
-                )
-
+                if user_id in self.counselors:
+                    partner_id = self.counselors[user_id]["connected_guest"]
+                elif user_id in self.guests:
+                    partner_id = self.guests[user_id]["connected_counselor"]
+                else:
+                    abort(404, message="no user found for user id")
+                    return
             except KeyError:
-                chat_status = "NO_CHAT"
-            self.__log.debug(chat_status)
-            return jsonify(chat_status=chat_status, messages=messages)
+                abort(404, message="user has no chat partner")
+                return
+            try:
+                chat = self.chats[partner_id]
+                key_data = chat["key_data"]
+                signature = chat["signature"]
+            except:
+                abort(404, message="partner has not yet initialized chat")
+                return
+            else:
+                return jsonify(key_data=key_data, signature=signature)
 
-    def error404(self):
-        self.add_request(Web.REQUEST_OTHER, request.path)
-        if request.path != "/favicon.ico":
-            self.error404_count += 1
+        @app.route(
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            methods=["POST"],
+        )
+        def message_from_user(user_id, message_no):
+            messages: list = request.json["messages"]
+            try:
+                chat_partner = self.chats[user_id]["partner"]
+                self.chats[chat_partner]["messages"] += messages
+                self.chats[chat_partner]["sequence"] = message_no
+            except KeyError:
+                abort(404, message="couldn't find message destination")
+            return jsonify(message="Success", no_messages=len(messages))
 
-            # In receive mode, with public mode enabled, skip rate limiting
-            # 404s
-            if self.error404_count == 20:
-                self.add_request(Web.REQUEST_RATE_LIMIT, request.path)
-                self.force_shutdown()
+        @app.route(
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            methods=["GET"],
+        )
+        def collect_messages(user_id, message_no):
+            try:
+                messages = self.chats[user_id]["messages"][message_no:]
+                no_messages = len(messages)
+                next_message = message_no + no_messages
+            except KeyError:
+                abort(404, message="no chat")
+                return  # should be inaccessible
+            except IndexError:
+                messages = []
+                no_messages = 0
+                next_message = message_no
+                pass
+            return jsonify(
+                no_messages=no_messages,
+                messages=messages,
+                next_message=next_message,
+                sequence=self.chats[user_id]["sequence"],
+            )
 
-        r = make_response(render_template("404.html"), 404)
-        return self.add_security_headers(r)
+        @app.route(
+            "/hyperdome/api/v1/chats/<string:user_id>/<int:message_no>/",
+            methods=["DELETE"],
+        )
+        def clear_read_messages(user_id, message_no):
+            try:
+                messages = self.chats[user_id]["messages"]
+                self.chats[user_id]["messages"] = messages[message_no:]
+            except KeyError:
+                abort(404, message="no chat")
+            except IndexError:
+                self.chats[user_id]["messages"] = []
+                pass
+            return jsonify(message="Success", next_message=0)
+
+        @app.route("/hyperdome/api/v1/chats/<string:user_id>/", methods=["DELETE"])
+        def counseling_complete(user_id):
+            try:
+                self.chats.pop(user_id)
+            except KeyError:
+                abort(404, message="No chat found for user id")
+            if user_id in self.guests:
+                self.guests[user_id].pop("connected_counselor")
+            elif user_id in self.counselors:
+                self.counselors[user_id].pop("connected_guest")
+            return jsonify(message="chat ended")
+
+    def get_unique_sid(self):
+        sid_candidates = [secrets.token_urlsafe(20) for i in range(5)]
+        unique_sids = [
+            sid
+            for sid in sid_candidates
+            if not (sid in self.counselors or sid in self.guests or sid in self.chats)
+        ]
+        sid = secrets.choice(unique_sids)
+        return sid
 
     def error403(self):
         self.add_request(Web.REQUEST_OTHER, request.path)
