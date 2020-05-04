@@ -21,29 +21,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import hyperdome.common.encryption as enc
 import pytest
-from typing import Tuple
+from typing import Tuple, Callable
+from hypothesis import given
+import hypothesis.strategies as st
+import cryptography
 
-user_fixture = Tuple[enc.LockBox, enc.LockBox]
-
-
-@pytest.fixture
-def pre_exchanged_users():
-    user_1_crypto = enc.LockBox()
-    user_2_crypto = enc.LockBox()
-
-    user_1_pub_key = user_1_crypto.public_chat_key
-    user_2_pub_key = user_2_crypto.public_chat_key
-
-    user_2_crypto.perform_key_exchange(user_1_pub_key, False)
-    user_1_crypto.perform_key_exchange(user_2_pub_key, True)
-
-    return user_1_crypto, user_2_crypto
+user_fixture = Callable[..., Tuple[enc.LockBox, enc.LockBox]]
 
 
-def test_encrypt_decrypt_message(pre_exchanged_users: user_fixture):
-    user_1_crypto, user_2_crypto = pre_exchanged_users
+@pytest.fixture(scope="module")
+def pre_exchanged_user_factory():
+    def factory():
+        user_1_crypto = enc.LockBox()
+        user_2_crypto = enc.LockBox()
 
-    message = "eat pant"
+        user_1_pub_key = user_1_crypto.public_chat_key
+        user_2_pub_key = user_2_crypto.public_chat_key
+
+        user_2_crypto.perform_key_exchange(user_1_pub_key, False)
+        user_1_crypto.perform_key_exchange(user_2_pub_key, True)
+
+        return user_1_crypto, user_2_crypto
+
+    return factory
+
+
+@given(message=st.text())
+def test_encrypt_decrypt_message(
+    pre_exchanged_user_factory: user_fixture, message: str
+):
+    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
     enc_message_1 = user_1_crypto.encrypt_outgoing_message(message)
     enc_message_2 = user_2_crypto.encrypt_outgoing_message(message)
@@ -56,10 +63,9 @@ def test_encrypt_decrypt_message(pre_exchanged_users: user_fixture):
     assert message == dec_message_1 == dec_message_2
 
 
-def test_key_rotation(pre_exchanged_users: user_fixture):
-    user_1_crypto, user_2_crypto = pre_exchanged_users
-
-    message = "eat pant"
+@given(message=st.text())
+def test_key_rotation(pre_exchanged_user_factory: user_fixture, message: str):
+    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
     sent_message_1 = user_1_crypto.encrypt_outgoing_message(message)
     sent_message_2 = user_1_crypto.encrypt_outgoing_message(message)
@@ -72,33 +78,35 @@ def test_key_rotation(pre_exchanged_users: user_fixture):
     assert recieved_message_1 == recieved_message_2 == message
 
 
-def test_no_double_decrypt(pre_exchanged_users: user_fixture):
+@given(message=st.text())
+def test_no_double_decrypt(pre_exchanged_user_factory: user_fixture, message: str):
+    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    message = "eat pant"
+    enc_message = user_1_crypto.encrypt_outgoing_message(message)
 
-    enc_message = pre_exchanged_users[0].encrypt_outgoing_message(message)
-
-    pre_exchanged_users[1].decrypt_incoming_message(enc_message)
+    user_2_crypto.decrypt_incoming_message(enc_message)
 
     # TODO use more specific exception and use info
-    with pytest.raises(Exception) as e:
-        pre_exchanged_users[1].decrypt_incoming_message(enc_message)
+    with pytest.raises(cryptography.fernet.InvalidToken) as e:
+        user_2_crypto.decrypt_incoming_message(enc_message)
 
 
-def test_rotation_cannot_decrypt(pre_exchanged_users: user_fixture):
+@given(message=st.text())
+def test_rotation_cannot_decrypt(
+    pre_exchanged_user_factory: user_fixture, message: str
+):
+    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    message = "eat pant"
+    enc_message = user_1_crypto.encrypt_outgoing_message(message)
 
-    enc_message = pre_exchanged_users[0].encrypt_outgoing_message(message)
+    prev_chat_key = user_2_crypto._chat_key
 
-    prev_chat_key = pre_exchanged_users[1]._chat_key
+    _ = user_2_crypto.public_chat_key
 
-    _ = pre_exchanged_users[1].public_chat_key
-
-    new_chat_key = pre_exchanged_users[1]._chat_key
+    new_chat_key = user_2_crypto._chat_key
 
     assert prev_chat_key != new_chat_key
 
     # TODO use more specific exception and use info
-    with pytest.raises(Exception) as e:
-        pre_exchanged_users[1].decrypt_incoming_message(enc_message)
+    with pytest.raises(TypeError) as e:
+        user_2_crypto.decrypt_incoming_message(enc_message)

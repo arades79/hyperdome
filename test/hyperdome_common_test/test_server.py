@@ -36,8 +36,8 @@ def test_good_urls():
     assert full_url_server.url == key_only_server.url
 
 
-@given(text())
-def test_random_text_fails(url):
-    assume(url.strip().strip("/") != "")
+@given(text(max_size=55))
+def test_random_text_fails(url: str):
+    assume(url.strip().strip("/"))
     with pytest.raises(svr.Server.InvalidOnionAddress) as e:
         _ = svr.Server(url=url)
