@@ -86,7 +86,6 @@ def test_no_double_decrypt(pre_exchanged_user_factory: user_fixture, message: st
 
     user_2_crypto.decrypt_incoming_message(enc_message)
 
-    # TODO use more specific exception and use info
     with pytest.raises(cryptography.fernet.InvalidToken) as e:
         user_2_crypto.decrypt_incoming_message(enc_message)
 
@@ -107,6 +106,6 @@ def test_rotation_cannot_decrypt(
 
     assert prev_chat_key != new_chat_key
 
-    # TODO use more specific exception and use info
+    # key is set to None, so TypeError is raised
     with pytest.raises(TypeError) as e:
         user_2_crypto.decrypt_incoming_message(enc_message)
