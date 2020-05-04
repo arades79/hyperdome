@@ -33,7 +33,7 @@ import typing
 
 import autologging
 
-from .utils import bootstrap
+from .bootstrap import bootstrap
 
 logger = logging.getLogger(__name__)
 

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import logging
 
 from flask import Flask, cli
-from ..common.utils import bootstrap
+from ..common.bootstrap import bootstrap
 import flask_sqlalchemy
 
 from ..common.common import data_path, resource_path
