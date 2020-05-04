@@ -44,7 +44,7 @@ class Server:
         key: str = "",
         is_counselor=False,
     ):
-        self.url = url.strip()
+        self.url = url.strip().strip("/")
         if url:
             self._check_url()
         self.nick = nick

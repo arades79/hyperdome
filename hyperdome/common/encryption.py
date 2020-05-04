@@ -56,6 +56,8 @@ class LockBox:
         HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
     )
 
+    __log: autologging.logging.Logger  # helps linter to detect autologging
+
     @arg_to_bytes
     def encrypt_outgoing_message(self, message: bstr) -> str:
 
