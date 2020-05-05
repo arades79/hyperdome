@@ -24,11 +24,13 @@ import pytest
 from hypothesis import given, assume
 from hypothesis.strategies import text
 
+# CIA onion v3 address - known working as of 05/04/20
+KNOWN_GOOD_ONIONV3_KEY = "ciadotgov4sjwlzihbbgxnqg3xiyrg7so2r2o3lt5wz5ypk4sxyjstad"
+
 
 def test_good_urls():
-    # CIA onion v3 address - known working as of 05/04/20
-    full_url = "http://ciadotgov4sjwlzihbbgxnqg3xiyrg7so2r2o3lt5wz5ypk4sxyjstad.onion/"
-    key_only = "ciadotgov4sjwlzihbbgxnqg3xiyrg7so2r2o3lt5wz5ypk4sxyjstad"
+    full_url = f"http://{KNOWN_GOOD_ONIONV3_KEY}.onion/"
+    key_only = KNOWN_GOOD_ONIONV3_KEY
 
     full_url_server = svr.Server(url=full_url)
     key_only_server = svr.Server(url=key_only)

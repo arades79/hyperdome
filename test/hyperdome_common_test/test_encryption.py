@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import hyperdome.common.encryption as enc
 import pytest
 from typing import Tuple, Callable
-from hypothesis import given
+from hypothesis import given, assume
 import hypothesis.strategies as st
 import cryptography
 
@@ -109,3 +109,47 @@ def test_rotation_cannot_decrypt(
     # key is set to None, so TypeError is raised
     with pytest.raises(TypeError) as e:
         user_2_crypto.decrypt_incoming_message(enc_message)
+
+
+def test_signing_key_rotation():
+    user = enc.LockBox()
+    user.make_signing_key()
+    pub_key_1 = user.public_signing_key
+    user.make_signing_key()
+    pub_key_2 = user.public_signing_key
+
+    assert pub_key_1 != pub_key_2
+
+
+@given(st.text(), st.text())
+def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
+    assume(passphrase_1 != passphrase_2)
+    assume(passphrase_1 and passphrase_2)
+    user = enc.LockBox()
+    user.make_signing_key()
+
+    user_key = user.export_key(passphrase_1)
+
+    with pytest.raises(ValueError) as e:
+        user.import_key(user_key, passphrase_2)
+
+    user.import_key(user_key, passphrase_1)
+
+
+@given(st.text())
+def test_import_export_same_pub_key(passphrase: str):
+    assume(passphrase)
+
+    user = enc.LockBox()
+    user.make_signing_key()
+    initial_pub_key = user.public_signing_key
+
+    exported_key = user.export_key(passphrase)
+
+    user.make_signing_key()
+
+    assert user.public_signing_key != initial_pub_key
+
+    user.import_key(exported_key, passphrase)
+
+    assert user.public_signing_key == initial_pub_key
