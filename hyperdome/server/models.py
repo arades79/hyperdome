@@ -39,6 +39,7 @@ class Counselor(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     key_bytes = db.Column(db.String(64), unique=True, nullable=False)
 
+    # TODO: this should be in the cryptography common module and take pub_key as an argument
     @arg_to_bytes
     def verify(self, signature: bstr, message: bstr) -> bool:
         pub_key = serial.load_pem_public_key(self.key_bytes.encode(), default_backend())
