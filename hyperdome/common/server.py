@@ -29,6 +29,8 @@ class Server:
     Holder class for server connection details
     """
 
+    __log: autologging.logging.Logger  # stop linter errors from autologging
+
     class InvalidOnionAddress(Exception):
         """
         The onion address provided does not contain a valid v3 public key
