@@ -151,6 +151,8 @@ class Settings(object):
     settings.
     """
 
+    __log: autologging.logging.Logger  # to help linters that don't recognize autologging
+
     def __init__(self, config: str = ""):
 
         # If a readable config file was provided, use that
@@ -292,6 +294,8 @@ class ShutdownTimer(threading.Thread):
     """
     Background thread sleeps t hours and returns.
     """
+
+    __log: autologging.logging.Logger  # to help linters that don't recognize autologging
 
     def __init__(self, time):
         threading.Thread.__init__(self)
