@@ -107,20 +107,36 @@ def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     )
 
 
+MAX_PORT = 65535
+MIN_PORT = 0
+MAX_PORT_RETRY = 100
+
+
 @autologging.traced
 @autologging.logged
 def get_available_port(min_port: int, max_port: int) -> int:
     """
     Find a random available port within the given range.
     """
+    if not (isinstance(min_port, int) and isinstance(max_port, int)):
+        raise TypeError("ports must be integers")
+    if not (
+        MIN_PORT < min_port < MAX_PORT
+        and MIN_PORT < max_port < MAX_PORT
+        and min_port < max_port - 1
+    ):
+        raise ValueError(
+            "ports must be between 0 and 65535, and minimum must be less than maximum"
+        )
     with socket.socket() as tmpsock:
-        while True:
+        for i in range(MAX_PORT_RETRY):
             try:
                 tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
                 break
             except OSError:
                 get_available_port._log.info("selected port in use, trying another")
-                pass
+                if i >= MAX_PORT_RETRY - 1:
+                    raise
         _, port = tmpsock.getsockname()
     return port
 
