@@ -288,6 +288,7 @@ class Settings(object):
         self.save()
 
 
+# TODO #95 Replace with threading.Timer()
 @autologging.traced
 @autologging.logged
 class ShutdownTimer(threading.Thread):
