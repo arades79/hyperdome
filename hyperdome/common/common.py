@@ -33,7 +33,7 @@ import typing
 
 import autologging
 
-from .utils import bootstrap
+from .bootstrap import bootstrap
 
 logger = logging.getLogger(__name__)
 
@@ -107,20 +107,34 @@ def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     )
 
 
+MAX_PORT = 65535
+MIN_PORT = 0
+MAX_PORT_RETRY = 100
+
+
 @autologging.traced
 @autologging.logged
 def get_available_port(min_port: int, max_port: int) -> int:
     """
     Find a random available port within the given range.
     """
+    if not (isinstance(min_port, int) and isinstance(max_port, int)):
+        raise TypeError("ports must be integers")
+    if not (MIN_PORT < min_port < max_port < MAX_PORT):
+        raise ValueError(
+            "ports must be between 0 and 65535, and minimum must be less than maximum"
+        )
     with socket.socket() as tmpsock:
-        while True:
+        for i in range(MAX_PORT_RETRY + 1):
             try:
-                tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
+                tmpsock.bind(
+                    ("127.0.0.1", secrets.choice(range(min_port, max_port + 1)))
+                )
                 break
             except OSError:
                 get_available_port._log.info("selected port in use, trying another")
-                pass
+                if i >= MAX_PORT_RETRY:
+                    raise
         _, port = tmpsock.getsockname()
     return port
 
@@ -134,6 +148,8 @@ class Settings(object):
     which is to attempt to connect automatically using default Tor Browser
     settings.
     """
+
+    __log: autologging.logging.Logger  # to help linters that don't recognize autologging
 
     def __init__(self, config: str = ""):
 
@@ -270,12 +286,15 @@ class Settings(object):
         self.save()
 
 
+# TODO #95 Replace with threading.Timer()
 @autologging.traced
 @autologging.logged
 class ShutdownTimer(threading.Thread):
     """
     Background thread sleeps t hours and returns.
     """
+
+    __log: autologging.logging.Logger  # to help linters that don't recognize autologging
 
     def __init__(self, time):
         threading.Thread.__init__(self)

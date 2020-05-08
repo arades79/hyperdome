@@ -26,10 +26,16 @@ pytest-qt = "^3.3.0"
 bandit = "^1.6.2"
 black = "^19.10b0"
 pywin32-ctypes = {version = "^0.2.0", platform = "windows"}
+hypothesis = "^5.10.4"
+coverage = {extras = ["toml"], version = "^5.1"}
 
 [tool.poetry.scripts]
 hyperdome_client = "hyperdome.client.scripts.start_client:start"
 hyperdome_server = "hyperdome.server.scripts.cli:admin"
+
+[tool.coverage.run]
+source = ["hyperdome"]
+command_line = "-m pytest ."
 
 [build-system]
 requires = ["poetry>=0.12"]

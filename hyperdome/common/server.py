@@ -29,6 +29,8 @@ class Server:
     Holder class for server connection details
     """
 
+    __log: autologging.logging.Logger  # stop linter errors from autologging
+
     class InvalidOnionAddress(Exception):
         """
         The onion address provided does not contain a valid v3 public key
@@ -44,7 +46,7 @@ class Server:
         key: str = "",
         is_counselor=False,
     ):
-        self.url = url.strip()
+        self.url = url.strip().strip("/")
         if url:
             self._check_url()
         self.nick = nick

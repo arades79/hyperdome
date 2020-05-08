@@ -35,6 +35,8 @@ class HyperdomeServer(object):
     start_onion_service and it will do the magic.
     """
 
+    __log: autologging.logging.Logger  # stop linter errors from autologging
+
     def __init__(self, onion, local_only=False, shutdown_timeout=0):
 
         # The Onion object

@@ -167,6 +167,8 @@ class Onion(object):
     This is necessary for status updates to reach the GUI.
     """
 
+    __log: autologging.logging.Logger  # stop linter errors from autologging
+
     def __init__(self, settings):
 
         self.settings = settings
