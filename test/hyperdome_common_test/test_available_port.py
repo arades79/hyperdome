@@ -38,7 +38,7 @@ MIN_UNUSED_PORT = 63105
 @pytest.fixture(scope="session")
 def bound_ports():
     sockets = []
-    for i in range(MIN_USED_PORT, MAX_USED_PORT):
+    for i in range(MIN_USED_PORT, MAX_USED_PORT + 1):
         try:
             s = socket.socket()
             s.bind(("127.0.0.1", i))
@@ -77,7 +77,6 @@ def test_not_integer_error(min_port, max_port):
 
 @given(min_port=st.just(MIN_USED_PORT), max_port=st.just(MAX_USED_PORT))
 def test_bound_ports_error(bound_ports, min_port, max_port):
-    bound_ports
 
     with pytest.raises(OSError) as e:
         get_available_port(min_port, max_port)

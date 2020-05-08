@@ -120,22 +120,20 @@ def get_available_port(min_port: int, max_port: int) -> int:
     """
     if not (isinstance(min_port, int) and isinstance(max_port, int)):
         raise TypeError("ports must be integers")
-    if not (
-        MIN_PORT < min_port < MAX_PORT
-        and MIN_PORT < max_port < MAX_PORT
-        and min_port < max_port - 1
-    ):
+    if not (MIN_PORT < min_port < max_port < MAX_PORT):
         raise ValueError(
             "ports must be between 0 and 65535, and minimum must be less than maximum"
         )
     with socket.socket() as tmpsock:
-        for i in range(MAX_PORT_RETRY):
+        for i in range(MAX_PORT_RETRY + 1):
             try:
-                tmpsock.bind(("127.0.0.1", secrets.choice(range(min_port, max_port))))
+                tmpsock.bind(
+                    ("127.0.0.1", secrets.choice(range(min_port, max_port + 1)))
+                )
                 break
             except OSError:
                 get_available_port._log.info("selected port in use, trying another")
-                if i >= MAX_PORT_RETRY - 1:
+                if i >= MAX_PORT_RETRY:
                     raise
         _, port = tmpsock.getsockname()
     return port
