@@ -58,6 +58,12 @@ def handle_requests_errors(fn: typing.Callable):
     return wrapper
 
 
+class ServerNotSupported(Exception):
+    """
+    client does not support the server's API version
+    """
+
+
 @autologging.traced
 @autologging.logged
 class HyperdomeClientApi:
@@ -66,7 +72,8 @@ class HyperdomeClientApi:
     uses a requests session and server variable
     """
 
-    COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
+    COMPATIBLE_SERVERS = ["0.2.1"]
+    API_VERSION = "v1"
 
     __log: autologging.logging.Logger  # makes linter happy about autologging
 
@@ -136,16 +143,21 @@ class HyperdomeClientApi:
             return self.session.post(
                 f"{self.server.url}/request_counselor",
                 data={"guest_id": uid, "pub_key": pub_key},
-            ).text
+            ).json()
 
     @handle_requests_errors
     def probe_server(self):
-        info = json.loads(self.session.get(f"{self.server.url}/probe").text)
-        if info["name"] != "hyperdome":
-            return "not hyperdome"
-        if info["version"] not in self.COMPATIBLE_SERVERS:
-            return "bad version"
-        return ""
+        info = self.session.get(f"{self.server.host}/hyperdome/api/").json()
+        api_versions: list = info.get("api", [])
+        hyperdome_version = info.get("version", "")
+        if (
+            hyperdome_version in self.COMPATIBLE_SERVERS
+            or self.API_VERSION in api_versions
+        ):
+            self.url = f"{self.server.host}/hyperdome/api/v1/"
+            return self.url
+        else:
+            raise ServerNotSupported("this client only supports hyperdome api v1")
 
     @handle_requests_errors
     def get_guest_pub_key(self, uid: str):
