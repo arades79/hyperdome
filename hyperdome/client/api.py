@@ -78,71 +78,75 @@ class HyperdomeClientApi:
     __log: autologging.logging.Logger  # makes linter happy about autologging
 
     def __init__(self, server: Server, session: requests.Session) -> None:
-        self.server = server
+        self.host = server.url
+        self.user = "counselors" if server.is_counselor else "guests"
         self.session = session
+        self.url = ""
+        self.uid = ""
 
     @handle_requests_errors
-    def signout_counselor(self, user_id: str):
-        self.session.post(
-            f"{self.server.url}/counselor_signout", data={"user_id": user_id}
-        )
+    def end_session(self, user_id: str):
+        self.session.delete(f"{self.url}/{self.user}/{self.uid}").raise_for_status()
+
+    @handle_requests_errors
+    def signout_guest(self, user_id: str):
+        self.session.delete(f"{self.url}/guests/{self.uid}").raise_for_status()
 
     @handle_requests_errors
     def counseling_complete(self, user_id: str):
         self.session.post(
-            f"{self.server.url}/counseling_complete", data={"user_id": user_id}
-        ).raise_for_status
+            f"{self.url}/counseling_complete", data={"user_id": user_id}
+        ).raise_for_status()
 
     @handle_requests_errors
-    def send_message(self, uid: str, message: str):
+    def send_message(self, message: str):
         """
         Send message to server provided using session for given user
         """
         return self.session.post(
-            f"{self.server.url}/send_message", data={"message": message, "user_id": uid}
+            f"{self.url}/{self.user}/{self.uid}/chat", json={"message": message}
         )
 
     @handle_requests_errors
-    def get_uid(self):
+    def get_uid(self, pub_key: str, signature: str):
         """
         Ask server for a new UID for a new user session
         """
-        response = self.session.get(f"{self.server.url}/generate_guest_id")
+        response = self.session.post(
+            f"{self.url}/guests", json={"pub_key": pub_key, "signature": signature}
+        )
         response.raise_for_status()
-        return response.text
+        return response.json()["guest"]
 
     @handle_requests_errors
-    def get_messages(self, uid: str):
+    def get_messages(self):
         """
         collect new messages waiting on server for active session
         """
         response = self.session.get(
-            f"{self.server.url}/collect_messages", data={"user_id": uid}
+            f"{self.url}/{self.user}/{self.uid}/chat/{self.count}"
         )
-        response_json = response.json()
-        if response_json["chat_status"] == "CHAT_ACTIVE":
-            return response_json["messages"]
-        elif response["chat_status"] == "CHAT_OVER":
-            raise requests.HTTPError(f"chat over", response)
+        response.raise_for_status()
+        return response.json()["messages"]
 
     @handle_requests_errors
-    def start_chat(
-        self, uid: str, pub_key: str, signature: str = "",
+    def signin_counselor(
+        self, pub_key: str, signature: str = "",
     ):
         if self.server.is_counselor:
-            return self.session.post(
-                f"{self.server.url}/counselor_signin",
-                data={
-                    "pub_key": pub_key,
+            self.session.post(
+                f"{self.url}/counselors/",
+                json={
+                    "pub_key": chat_key,
                     "signature": signature,
                     "username": self.server.username,
                 },
-            ).text
+            )
 
         else:
             return self.session.post(
-                f"{self.server.url}/request_counselor",
-                data={"guest_id": uid, "pub_key": pub_key},
+                f"{self.server.url}/guests/",
+                data={"guest_id": uid, "pub_key": chat_key},
             ).json()
 
     @handle_requests_errors
@@ -160,17 +164,15 @@ class HyperdomeClientApi:
             raise ServerNotSupported("this client only supports hyperdome api v1")
 
     @handle_requests_errors
-    def get_guest_pub_key(self, uid: str):
-        return self.session.get(
-            f"{self.server.url}/poll_connected_guest", data={"counselor_id": uid}
-        ).text
+    def get_guest_pub_key(self):
+        return self.session.get(f"{self.server.url}/guests/{self.uid}/").json()["guest"]
 
     @handle_requests_errors
     def signup_counselor(
         self, passcode: str, pub_key: str, signature: str,
     ):
         return self.session.post(
-            f"{self.server.url}/counselor_signup",
+            f"{self.server.url}/counselors",
             data={
                 "username": self.server.username,
                 "pub_key": pub_key,

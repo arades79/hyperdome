@@ -182,15 +182,14 @@ class Web:
             return jsonify(counselor_pub_keys=keys)
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:counselor_id>",
+            "/hyperdome/api/v1/counselors/<string:counselor_id>/",
             methods=["PUT", "DELETE"],
         )
-        def counselor_logout(counselor_id=None):
-            if counselor_id is not None:
-                self.counselors.pop(counselor_id, "")
-                self.chats.pop(counselor_id, "")
-                self.__log.info("counselor logged out")
-                return jsonify(message="Successful logout"), 200
+        def counselor_logout(counselor_id):
+            self.counselors.pop(counselor_id, "")
+            self.chats.pop(counselor_id, "")
+            self.__log.info("counselor logged out")
+            return jsonify(message="Successful logout"), 200
 
         @app.route(
             "/hyperdome/api/v1/counselors/<string:signup_code>", methods=["POST"]

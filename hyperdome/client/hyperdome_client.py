@@ -25,12 +25,14 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import autologging
 import requests
 
+
 from hyperdome.common.common import Settings
 
 from . import api, tasks
 from ..common import strings
 from ..common import encryption
-from ..common.common import resource_path
+from ..common.onion import Onion
+from ..common.common import resource_path, Settings
 from ..common.server import Server
 from .add_server_dialog import AddServerDialog
 from .settings_dialog import SettingsDialog
@@ -47,8 +49,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def __init__(
         self,
-        settings,
-        onion,
+        settings: Settings,
+        onion: Onion,
         qtapp: QtWidgets.QApplication,
         app,
         filenames,
