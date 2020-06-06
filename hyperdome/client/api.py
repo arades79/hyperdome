@@ -80,6 +80,9 @@ class HyperdomeClientApi:
     def __init__(self, server: Server, session: requests.Session) -> None:
         self.host = server.url
         self.user = "counselors" if server.is_counselor else "guests"
+        self.is_counselor = server.is_counselor
+        self.username = server.username
+        self.pub_key = server.key
         self.session = session
         self.url = ""
         self.uid = ""
@@ -130,24 +133,18 @@ class HyperdomeClientApi:
         return response.json()["messages"]
 
     @handle_requests_errors
-    def signin_counselor(
-        self, pub_key: str, signature: str = "",
+    def sign_in(
+        self, signature: str, pub_key = ""
     ):
-        if self.server.is_counselor:
-            self.session.post(
-                f"{self.url}/counselors/",
-                json={
-                    "pub_key": chat_key,
+        data = {
+                    "pub_key": self.pub_key,
                     "signature": signature,
-                    "username": self.server.username,
-                },
+                    "username": self.username,
+                } if self.is_counselor else {"pub_key": pub_key, "signature": signature}
+            self.session.post(
+                f"{self.url}/{self.user}/",
+                json=data
             )
-
-        else:
-            return self.session.post(
-                f"{self.server.url}/guests/",
-                data={"guest_id": uid, "pub_key": chat_key},
-            ).json()
 
     @handle_requests_errors
     def probe_server(self):
