@@ -141,35 +141,35 @@ class HyperdomeClientApi:
                     "signature": signature,
                     "username": self.username,
                 } if self.is_counselor else {"pub_key": pub_key, "signature": signature}
-            self.session.post(
-                f"{self.url}/{self.user}/",
-                json=data
-            )
+        self.session.post(
+            f"{self.url}/{self.user}/",
+            json=data
+        )
 
     @handle_requests_errors
     def probe_server(self):
-        info = self.session.get(f"{self.server.host}/hyperdome/api/").json()
+        info = self.session.get(f"{self.host}/hyperdome/api/").json()
         api_versions: list = info.get("api", [])
         hyperdome_version = info.get("version", "")
         if (
             hyperdome_version in self.COMPATIBLE_SERVERS
             or self.API_VERSION in api_versions
         ):
-            self.url = f"{self.server.host}/hyperdome/api/v1/"
+            self.url = f"{self.host}/hyperdome/api/v1/"
             return self.url
         else:
             raise ServerNotSupported("this client only supports hyperdome api v1")
 
     @handle_requests_errors
     def get_guest_pub_key(self):
-        return self.session.get(f"{self.server.url}/guests/{self.uid}/").json()["guest"]
+        return self.session.get(f"{self.url}/guests/{self.uid}/").json()["guest"]
 
     @handle_requests_errors
     def signup_counselor(
         self, passcode: str, pub_key: str, signature: str,
     ):
         return self.session.post(
-            f"{self.server.url}/counselors",
+            f"{self.url}/counselors",
             data={
                 "username": self.server.username,
                 "pub_key": pub_key,
