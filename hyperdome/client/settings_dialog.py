@@ -1018,12 +1018,11 @@ class SettingsDialog(QtWidgets.QDialog):
         self.__log.debug("closeEvent")
 
         # On close, if Tor isn't connected, then quit hyperdome altogether
-        if not self.local_only:
-            if not self.onion.is_authenticated():
-                self.__log.info("Closing while not connected to Tor")
+        if not (self.local_only or self.onion.is_authenticated()):
+            self.__log.info("Closing while not connected to Tor")
 
-                # Wait 1ms for the event loop to finish, then quit
-                QtCore.QTimer.singleShot(1, self.qtapp.quit)
+            # Wait 1ms for the event loop to finish, then quit
+            QtCore.QTimer.singleShot(1, self.qtapp.quit)
 
     def _tor_status_update(self, progress, summary):
         self.tor_status.setText(
@@ -1039,7 +1038,6 @@ class SettingsDialog(QtWidgets.QDialog):
     def _disable_buttons(self):
         self.__log.debug("_disable_buttons")
 
-        self.check_for_updates_button.setEnabled(False)
         self.connection_type_test_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.cancel_button.setEnabled(False)
@@ -1047,7 +1045,6 @@ class SettingsDialog(QtWidgets.QDialog):
     def _enable_buttons(self):
         self.__log.debug("_enable_buttons")
         # We can't check for updates if we're still not connected to Tor
-        self.check_for_updates_button.setEnabled(self.onion.connected_to_tor)
         self.connection_type_test_button.setEnabled(True)
         self.save_button.setEnabled(True)
         self.cancel_button.setEnabled(True)
