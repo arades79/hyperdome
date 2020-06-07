@@ -176,9 +176,11 @@ class Onion(object):
         self.service_id = None
 
         # Is bundled tor supported?
-        self.bundle_tor_supported = platform_str in ("Windows", "Darwin",) and getattr(
+        dev_mode = getattr(
             sys, "hyperdome_dev_mode", False
         )
+        self.__log.debug(f"{platform_str=}, {dev_mode=}")
+        self.bundle_tor_supported = not (platform_str in ("Windows", "Darwin",) and dev_mode)
 
         # Set the path of the tor binary, for bundled tor
         (
@@ -225,6 +227,7 @@ class Onion(object):
         self.c = None
 
         if self.settings.get("connection_type") == "bundled":
+            self.__log.info(f"{self.bundle_tor_supported=}")
             if not self.bundle_tor_supported:
                 raise BundledTorNotSupported(
                     strings._("settings_error_bundled_tor_not_supported")
@@ -351,8 +354,10 @@ class Onion(object):
                     self.c = Controller.from_port(port=self.tor_control_port)
                     self.c.authenticate()
                 else:
-                    self.c = Controller.from_socket_file(path=self.tor_control_socket)
+                    self.c = Controller.from_socket_file(path=str(self.tor_control_socket))
                     self.c.authenticate()
+            except TypeError:
+                raise
             except Exception as e:
                 raise BundledTorBroken(
                     strings._("settings_error_bundled_tor_broken").format(e.args[0])
