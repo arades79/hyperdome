@@ -501,13 +501,17 @@ class SettingsDialog(QtWidgets.QDialog):
         self.old_settings.load()
 
         connection_type = self.old_settings.get("connection_type")
-        if connection_type == "bundled":
-            if self.connection_type_bundled_radio.isEnabled():
-                self.connection_type_bundled_radio.setChecked(True)
-            else:
-                # If bundled tor is disabled, fallback to automatic
-                self.connection_type_automatic_radio.setChecked(True)
-        elif connection_type == "automatic":
+        if (
+            connection_type == "bundled"
+            and self.connection_type_bundled_radio.isEnabled()
+        ):
+            self.connection_type_bundled_radio.setChecked(True)
+        elif (
+            connection_type == "bundled"
+            and not self.connection_type_bundled_radio.isEnabled()
+            or connection_type == "automatic"
+        ):
+            # If bundled tor is disabled, fallback to automatic
             self.connection_type_automatic_radio.setChecked(True)
         elif connection_type == "control_port":
             self.connection_type_control_port_radio.setChecked(True)
@@ -866,7 +870,7 @@ class SettingsDialog(QtWidgets.QDialog):
         Cancel button clicked.
         """
         self.__log.debug("cancel_clicked")
-        if not self.local_only and not self.onion.is_authenticated():
+        if not (self.local_only or self.onion.is_authenticated()):
             Alert(
                 strings._("gui_tor_connection_canceled"), QtWidgets.QMessageBox.Warning,
             )
