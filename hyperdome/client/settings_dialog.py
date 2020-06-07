@@ -743,12 +743,9 @@ class SettingsDialog(QtWidgets.QDialog):
                 onion.connect(custom_settings=settings, config=self.has_config)
 
             # If an exception hasn't been raised yet, the Tor settings work
+            # TODO: strings will need translation support
             Alert(
-                strings._("settings_test_success").format(
-                    onion.tor_version,
-                    onion.supports_ephemeral,
-                    onion.supports_v3_onions,
-                ),
+                f"Connected to the Tor controller.\nTor Version: {onion.tor_version}"
             )
             onion.cleanup()
 
