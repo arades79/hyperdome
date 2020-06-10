@@ -479,8 +479,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         When the main window is closed, do some cleanup
         """
-        self.disconnect_chat()
-
+        self.__log.info("main window recieved closeEvent, cleaning up")
+        try:
+            self.disconnect_chat()
+        except AttributeError:
+            pass
+        except Exception:
+            self.__log.exception("Unexpected error during client cleanup")
         self.hide()
 
         # wait for any pending tasks to complete

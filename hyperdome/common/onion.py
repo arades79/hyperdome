@@ -261,6 +261,8 @@ class Onion(object):
                 self.tor_control_socket = Path(
                     self.tor_data_directory.name, "control_socket"
                 ).resolve()
+                self.tor_control_socket.touch()
+                self.__log.info(f"{self.tor_control_socket=}")
 
             torrc_template = torrc_template.replace(
                 "{{data_directory}}", str(self.tor_data_directory)
@@ -327,20 +329,21 @@ class Onion(object):
 
             # Execute a tor subprocess
             start_ts = time.time()
+
             if platform_str == "Windows":
                 # In Windows, hide console window when opening tor.exe
                 # subprocess
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 self.tor_proc = subprocess.Popen(
-                    [self.tor_path, "-f", self.tor_torrc],
+                    [self.tor_path, "-f", str(self.tor_torrc)],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     startupinfo=startupinfo,
                 )
             else:
                 self.tor_proc = subprocess.Popen(
-                    [self.tor_path, "-f", self.tor_torrc],
+                    [self.tor_path, "-f", str(self.tor_torrc)],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
@@ -356,7 +359,7 @@ class Onion(object):
                 else:
                     self.c = Controller.from_socket_file(path=str(self.tor_control_socket))
                     self.c.authenticate()
-            except TypeError:
+            except (TypeError, stem.SocketError):
                 raise
             except Exception as e:
                 raise BundledTorBroken(
@@ -610,9 +613,10 @@ class Onion(object):
         onion_host = self.service_id + ".onion"
 
         # A new private key was generated and is in the Control port response.
-        if self.settings.get("save_private_key"):
-            if not self.settings.get("private_key"):
-                self.settings.set("private_key", res.private_key)
+        if self.settings.get("save_private_key") and not self.settings.get(
+            "private_key"
+        ):
+            self.settings.set("private_key", res.private_key)
 
         if onion_host is not None:
             self.settings.save()
