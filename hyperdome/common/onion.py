@@ -286,7 +286,7 @@ class Onion(object):
                 "{{socks_port}}", str(self.tor_socks_port)
             )
 
-            with self.tor_torrc.open("w") as f:
+            with self.tor_torrc.open("w",) as f:
                 f.write(torrc_template)
 
                 # Bridge support
@@ -312,41 +312,37 @@ class Onion(object):
                 if self.settings.get("tor_bridges_use_custom_bridges"):
                     if "obfs4" in self.settings.get("tor_bridges_use_custom_bridges"):
                         f.write(
-                            "ClientTransportPlugin obfs4 exec {}\n".format(
-                                self.obfs4proxy_file_path
-                            )
+                            f"ClientTransportPlugin obfs4 exec {self.obfs4proxy_file_path}\n"
                         )
                     elif "meek_lite" in self.settings.get(
                         "tor_bridges_use_" "custom_bridges"
                     ):
                         f.write(
-                            "ClientTransportPlugin meek_lite exec {}\n".format(
-                                self.obfs4proxy_file_path
-                            )
+                            f"ClientTransportPlugin meek_lite exec {self.obfs4proxy_file_path}\n"
                         )
                     f.write(self.settings.get("tor_bridges_use_custom_bridges"))
                     f.write("\nUseBridges 1")
 
+            self.tor_torrc.chmod(0o620)
+
+
             # Execute a tor subprocess
             start_ts = time.time()
-
+            tor_subprocess_args = [str(self.tor_path), "-f", str(self.tor_torrc)]
+            self.__log.info(f"launching tor process with command: {' '.join(tor_subprocess_args)}")
             if platform_str == "Windows":
                 # In Windows, hide console window when opening tor.exe
                 # subprocess
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                self.tor_proc = subprocess.Popen(
-                    [self.tor_path, "-f", str(self.tor_torrc)],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    startupinfo=startupinfo,
-                )
             else:
-                self.tor_proc = subprocess.Popen(
-                    [self.tor_path, "-f", str(self.tor_torrc)],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
+                startupinfo = None
+            self.tor_proc = subprocess.Popen(
+                tor_subprocess_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo,
+            )
 
             # Wait for the tor controller to start
             time.sleep(2)
