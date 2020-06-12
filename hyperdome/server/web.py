@@ -112,7 +112,7 @@ class Web:
             """
             return jsonify(error=message), 404
 
-        @app.route("/<string:slug_candidate>/shutdown")
+        @app.route("/<string:slug_candidate>/shutdown/")
         def shutdown(slug_candidate):
             """
             Stop the flask web server, from the context of an http request.
@@ -134,7 +134,7 @@ class Web:
                 api=["v1"],
             )
 
-        @app.route("/hyperdome/api/v1/counselors/<string:guest_id>", methods=["GET"])
+        @app.route("/hyperdome/api/v1/counselors/<string:guest_id>/", methods=["GET"])
         def request_counselor(guest_id):
             if guest_id not in self.guests:
                 abort(404, message="guest data not found")
@@ -192,7 +192,7 @@ class Web:
             return jsonify(message="Successful logout"), 200
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:signup_code>", methods=["POST"]
+            "/hyperdome/api/v1/counselors/<string:signup_code>/", methods=["POST"]
         )
         def counselor_signup(signup_code):
             username = request.json["username"]
@@ -226,7 +226,7 @@ class Web:
                     403,
                 )
 
-        @app.route("/hyperdome/api/v1/guests", methods=["POST"])
+        @app.route("/hyperdome/api/v1/guests/", methods=["POST"])
         def generate_guest_id():
             sid = self.get_unique_sid()
             key = request.json["pub_key"]
@@ -235,7 +235,7 @@ class Web:
             self.guests[sid] = {"pub_key": key}
             return jsonify(user_id=sid, guest=self.guests[sid]), 201
 
-        @app.route("/hyperdome/api/v1/guests/<string:counselor_id>", methods=["GET"])
+        @app.route("/hyperdome/api/v1/guests/<string:counselor_id>/", methods=["GET"])
         def poll_connected_guest(counselor_id):
             try:
                 guest_id = self.counselors[counselor_id]["connected_guest"]
@@ -246,9 +246,12 @@ class Web:
                 return jsonify(guest=guest)
 
         @app.route(
-            "/hyperdome/api/v1/counselorss/<string:user_id>/chat", methods=["POST"]
+            "/hyperdome/api/v1/counselorss/<string:user_id>/messages/key/",
+            methods=["POST"],
         )
-        @app.route("/hyperdome/api/v1/guests/<string:user_id>/chat", methods=["POST"])
+        @app.route(
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/key/", methods=["POST"]
+        )
         def start_chat(user_id):
             chat = {
                 "key_data": request.json["key_data"],
@@ -263,9 +266,12 @@ class Web:
             return jsonify(chat=chat), 201
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:user_id>/chat", methods=["GET"]
+            "/hyperdome/api/v1/counselors/<string:user_id>/messages/key/",
+            methods=["GET"],
         )
-        @app.route("/hyperdome/api/v1/guests/<string:user_id>/chat", methods=["GET"])
+        @app.route(
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/key/", methods=["GET"]
+        )
         def get_key_data(user_id):
             try:
                 if user_id in self.counselors:
@@ -289,11 +295,11 @@ class Web:
                 return jsonify(key_data=key_data, signature=signature)
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/counselors/<string:user_id>/messages/<int:message_num>/",
             methods=["POST"],
         )
         @app.route(
-            "/hyperdome/api/v1/guests/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/<int:message_num>/",
             methods=["POST"],
         )
         def message_from_user(user_id, message_num):
@@ -316,11 +322,11 @@ class Web:
             return jsonify(message="Success", num_messages=len(messages))
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/counselors/<string:user_id>/messages/<int:message_num>/",
             methods=["GET"],
         )
         @app.route(
-            "/hyperdome/api/v1/guests/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/<int:message_num>/",
             methods=["GET"],
         )
         def collect_messages(user_id, message_num):
@@ -353,11 +359,11 @@ class Web:
             )
 
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/counselors/<string:user_id>/messages/<int:message_num>/",
             methods=["DLETE"],
         )
         @app.route(
-            "/hyperdome/api/v1/guests/<string:user_id>/chat/<int:message_num>/",
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/<int:message_num>/",
             methods=["DELETE"],
         )
         def clear_read_messages(user_id, message_num):
@@ -377,9 +383,12 @@ class Web:
                 abort(404, message="no chat")
             return jsonify(message="Success", next_message=0)
 
-        @app.route("/hyperdome/api/v1/guests/<string:user_id>/chat", methods=["DELETE"])
         @app.route(
-            "/hyperdome/api/v1/counselors/<string:user_id>/chat", methods=["DELETE"]
+            "/hyperdome/api/v1/guests/<string:user_id>/messages/", methods=["DELETE"]
+        )
+        @app.route(
+            "/hyperdome/api/v1/counselors/<string:user_id>/messages/",
+            methods=["DELETE"],
         )
         def counseling_complete(user_id):
             try:
@@ -400,8 +409,11 @@ class Web:
         unique_sids = [
             sid
             for sid in sid_candidates
-            if not (sid in self.counselors or sid in self.guests or sid in self.chats)
+            if sid not in self.counselors
+            and sid not in self.guests
+            and sid not in self.chats
         ]
+
         sid = secrets.choice(unique_sids)
         return sid
 
@@ -499,4 +511,3 @@ class Web:
                     ).read()
                 except TypeError:
                     self.__log.warning("shutdown url failed", exc_info=True)
-                    pass
