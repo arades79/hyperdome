@@ -59,9 +59,6 @@ def main(cwd=""):
     onion = Onion(settings)
     try:
         onion.connect(
-            custom_settings=False,
-            config="",
-            connect_timeout=0
             # TODO: onion should get these values from elsewhere as new CLI has moved where the values are coming from
         )
     except KeyboardInterrupt:
@@ -73,7 +70,6 @@ def main(cwd=""):
     # Start the hyperdome server
     try:
         app = HyperdomeServer(onion, False, 0)
-        app.choose_port()
         app.start_onion_service()
     except KeyboardInterrupt:
         main._log.info("keyboard interrupt during onion setup, exiting")

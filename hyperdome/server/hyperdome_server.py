@@ -64,7 +64,7 @@ class HyperdomeServer(object):
         """
         Choose a random port.
         """
-        if not self._port:
+        if self._port is None:
             self._port = get_available_port(17600, 17650)
 
         return self._port
