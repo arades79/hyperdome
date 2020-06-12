@@ -30,7 +30,6 @@ from hyperdome.common.common import Settings
 from . import api, tasks
 from ..common import strings
 from ..common import encryption
-from ..common.forgive_unbound import forgive_unbound
 from ..common.common import resource_path
 from ..common.server import Server
 from .add_server_dialog import AddServerDialog
@@ -88,6 +87,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.is_connected: bool = False
         self._session: requests.Session = None
         self.crypt = encryption.LockBox()
+        self.client = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -437,10 +437,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         else:
             self.__log.info("no chat to disconnect from")
 
-    @forgive_unbound
     def disconnect_chat(self):
         self.start_chat_button.setEnabled(False)
         self.stop_intervals()
+
+        if self.client is None:
+            self.__log.info("no connection to disconnect")
+            return
 
         @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
         @QtCore.pyqtSlot(object)

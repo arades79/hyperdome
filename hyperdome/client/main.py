@@ -23,9 +23,10 @@ import sys
 
 from PyQt5 import QtCore, QtWidgets
 import autologging
+import stem
 
 from ..common import strings
-from ..common.common import Settings, platform_str, version
+from ..common.common import Settings, platform_str
 from ..common.onion import Onion
 from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
@@ -39,7 +40,7 @@ class Application(QtWidgets.QApplication):
     """
 
     def __init__(self):
-        if platform_str == "Linux" or platform_str == "BSD":
+        if platform_str in ["Linux", "BSD"]:
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
         self.installEventFilter(self)
@@ -91,12 +92,14 @@ def main():
     main_window.show()
 
     # Clean up when app quits
+    @qtapp.aboutToQuit.connect
     def shutdown():
         main._log.info("shutting down")
-        onion.cleanup()
+        try:
+            onion.cleanup()
+        except stem.SocketClosed:
+            pass
         app.cleanup()
-
-    qtapp.aboutToQuit.connect(shutdown)
 
     # All done
     sys.exit(qtapp.exec_())
