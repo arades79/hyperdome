@@ -234,7 +234,7 @@ class Onion(object):
                 )
 
             # Create a torrc for this session
-            self.tor_data_directory = tempfile.TemporaryDirectory(dir=data_path)
+            self.tor_data_directory = tempfile.TemporaryDirectory(dir=data_path,)
             self.__log.info(f"tor_data_directory={self.tor_data_directory.name}",)
 
             # Create the torrc
@@ -265,7 +265,7 @@ class Onion(object):
                 self.__log.info(f"{self.tor_control_socket=}")
 
             torrc_template = torrc_template.replace(
-                "{{data_directory}}", str(self.tor_data_directory)
+                "{{data_directory}}", self.tor_data_directory.name
             )
             torrc_template = torrc_template.replace(
                 "{{control_port}}", str(self.tor_control_port)
