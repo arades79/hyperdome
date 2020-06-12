@@ -44,7 +44,7 @@ class HyperdomeServer(object):
 
         self.hidserv_dir = None
         self.onion_host = None
-        self.port = None
+        self._port = None
 
         # files and dirs to delete on shutdown
         # Note: Was originally files used for hyperdome, but we could use this
@@ -59,19 +59,20 @@ class HyperdomeServer(object):
         # init timing thread
         self.shutdown_timer = None
 
-    def choose_port(self):
+    @property
+    def port(self):
         """
         Choose a random port.
         """
-        self.port = get_available_port(17600, 17650)
+        if not self._port:
+            self._port = get_available_port(17600, 17650)
+
+        return self._port
 
     def start_onion_service(self):
         """
         Start the hyperdome onion service.
         """
-
-        if not self.port:
-            self.choose_port()
 
         if self.shutdown_timeout > 0:
             self.shutdown_timer = ShutdownTimer(self.shutdown_timeout)
