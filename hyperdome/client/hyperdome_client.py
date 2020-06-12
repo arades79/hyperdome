@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
+import typing
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import autologging
@@ -86,6 +87,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.is_connected: bool = False
         self._session: requests.Session = None
         self.crypt = encryption.LockBox()
+        self.client = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -439,6 +441,10 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.start_chat_button.setEnabled(False)
         self.stop_intervals()
 
+        if self.client is None:
+            self.__log.info("no connection to disconnect")
+            return
+
         @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
         @QtCore.pyqtSlot(object)
         def disconnected(_):
@@ -479,6 +485,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         When the main window is closed, do some cleanup
         """
+        self.__log.info("main window recieved closeEvent, cleaning up")
+
         self.disconnect_chat()
 
         self.hide()

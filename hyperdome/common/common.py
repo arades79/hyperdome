@@ -120,7 +120,7 @@ def get_available_port(min_port: int, max_port: int) -> int:
     """
     if not (isinstance(min_port, int) and isinstance(max_port, int)):
         raise TypeError("ports must be integers")
-    if not (MIN_PORT < min_port < max_port < MAX_PORT):
+    if not (MIN_PORT < min_port < max_port <= MAX_PORT):
         raise ValueError(
             "ports must be between 0 and 65535, and minimum must be less than maximum"
         )

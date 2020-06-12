@@ -83,7 +83,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
     def _tor_status_update(self, progress, summary):
         self.setValue(int(progress))
         self.setLabelText(
-            "<strong>{}</strong><br>{}".format(strings._("connecting_to_tor"), summary)
+            f"<strong>{strings._('connecting_to_tor')}</strong><br>{summary}"
         )
 
     def _connected_to_tor(self):
@@ -106,7 +106,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
             # Display the exception in an alert box
             self.__log.warning("couldn't connect to tor")
             Alert(
-                "{}\n\n{}".format(msg, strings._("gui_tor_connection_error_settings")),
+                f"{msg}\n\n{strings._('gui_tor_connection_error_settings')}",
                 QtWidgets.QMessageBox.Warning,
             )
 
