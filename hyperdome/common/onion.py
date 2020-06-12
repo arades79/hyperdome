@@ -176,11 +176,11 @@ class Onion(object):
         self.service_id = None
 
         # Is bundled tor supported?
-        dev_mode = getattr(
-            sys, "hyperdome_dev_mode", False
-        )
+        dev_mode = getattr(sys, "hyperdome_dev_mode", False)
         self.__log.debug(f"{platform_str=}, {dev_mode=}")
-        self.bundle_tor_supported = not (platform_str in ("Windows", "Darwin",) and dev_mode)
+        self.bundle_tor_supported = not (
+            platform_str in ("Windows", "Darwin",) and dev_mode
+        )
 
         # Set the path of the tor binary, for bundled tor
         (
@@ -292,16 +292,12 @@ class Onion(object):
                 # Bridge support
                 if self.settings.get("tor_bridges_use_obfs4"):
                     f.write(
-                        "ClientTransportPlugin obfs4 exec {}\n".format(
-                            self.obfs4proxy_file_path
-                        )
+                        f"ClientTransportPlugin obfs4 exec {self.obfs4proxy_file_path}\n"
                     )
                     f.write(resource_path.joinpath("torrc_template-obfs4").read_text())
                 elif self.settings.get("tor_bridges_use_meek_lite_azure"):
                     f.write(
-                        "ClientTransportPlugin meek_lite exec {}\n".format(
-                            self.obfs4proxy_file_path
-                        )
+                        f"ClientTransportPlugin meek_lite exec {self.obfs4proxy_file_path}\n"
                     )
                     f.write(
                         resource_path.joinpath(
@@ -325,11 +321,12 @@ class Onion(object):
 
             self.tor_torrc.chmod(0o620)
 
-
             # Execute a tor subprocess
             start_ts = time.time()
             tor_subprocess_args = [str(self.tor_path), "-f", str(self.tor_torrc)]
-            self.__log.info(f"launching tor process with command: {' '.join(tor_subprocess_args)}")
+            self.__log.info(
+                f"launching tor process with command: {' '.join(tor_subprocess_args)}"
+            )
             if platform_str == "Windows":
                 # In Windows, hide console window when opening tor.exe
                 # subprocess
@@ -353,7 +350,9 @@ class Onion(object):
                     self.c = Controller.from_port(port=self.tor_control_port)
                     self.c.authenticate()
                 else:
-                    self.c = Controller.from_socket_file(path=str(self.tor_control_socket))
+                    self.c = Controller.from_socket_file(
+                        path=str(self.tor_control_socket)
+                    )
                     self.c.authenticate()
             except (TypeError, stem.SocketError):
                 raise
@@ -393,7 +392,7 @@ class Onion(object):
                 if summary == "Done":
                     print("")
                     break
-                time.sleep(0.2)
+                time.sleep(0.5)
 
                 # If using bridges, it might take a bit longer to connect to
                 # Tor
@@ -587,9 +586,9 @@ class Onion(object):
             key_type = "NEW"
             key_content = "ED25519-V3"
 
-        debug_message = "key_type={}".format(key_type)
+        debug_message = f"{key_type=}"
         if key_type == "NEW":
-            debug_message += ", key_content={}".format(key_content)
+            debug_message += f", {key_content=}"
         self.__log.debug(f"{debug_message}")
         await_publication = True
         try:

@@ -77,7 +77,7 @@ class HyperdomeServer(object):
             self.shutdown_timer = ShutdownTimer(self.shutdown_timeout)
 
         if self.local_only:
-            self.onion_host = "127.0.0.1:{0:d}".format(self.port)
+            self.onion_host = f"127.0.0.1:{self.port:d}"
             return
 
         self.onion_host = self.onion.start_onion_service(self.port)
@@ -97,5 +97,4 @@ class HyperdomeServer(object):
         except OSError:
             # Don't crash if file is still in use
             self.__log.info("file in use during cleanup")
-            pass
         self.cleanup_filenames = []

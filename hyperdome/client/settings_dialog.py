@@ -453,7 +453,7 @@ class SettingsDialog(QtWidgets.QDialog):
             strings._("gui_settings_button_cancel")
         )
         self.cancel_button.clicked.connect(self.cancel_clicked)
-        version_label = QtWidgets.QLabel("hyperdome {0:s}".format(version))
+        version_label = QtWidgets.QLabel(f"hyperdome {version:s}")
         self.help_button = QtWidgets.QPushButton(strings._("gui_settings_button_help"))
         self.help_button.clicked.connect(self.help_clicked)
         self.clear_button = QtWidgets.QPushButton("Default Settings")
@@ -748,9 +748,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
             # If an exception hasn't been raised yet, the Tor settings work
             # TODO: strings will need translation support
-            Alert(
-                f"Connected to the Tor controller.\nTor Version: {onion.tor_version}"
-            )
+            Alert(f"Connected to the Tor controller.\nTor Version: {onion.tor_version}")
             onion.cleanup()
 
         except (
@@ -1030,9 +1028,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def _tor_status_update(self, progress, summary):
         self.tor_status.setText(
-            "<strong>{}</strong><br>{}% {}".format(
-                strings._("connecting_to_tor"), progress, summary
-            )
+            f"<strong>{strings._('connecting_to_tor')}</strong><br>{progress}% {summary}"
         )
         self.qtapp.processEvents()
         if "Done" in summary:
