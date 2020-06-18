@@ -83,13 +83,10 @@ def main(cwd="", shutdown_timeout=0):
     t.daemon = True
     t.start()
 
-    def timeout(event: threading.Event):
-        event.set()
-
     timeout_event = threading.Event()
     shutdown_timer = threading.Timer(
         shutdown_timeout,
-        timeout if shutdown_timeout else lambda _: None,
+        lambda event: (event.set() if shutdown_timeout else None),
         [timeout_event],
     )
 
