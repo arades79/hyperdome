@@ -96,12 +96,11 @@ def main(cwd="", shutdown_timeout=0):
         )
         shutdown_timer.start()
 
-        print("")
-        url = f"http://{app.onion_host}"
-        print(strings._("give_this_url"))
-        print(url)
-        print()
-        print(strings._("ctrlc_to_stop"))
+        print(
+            f"{strings._('give_this_url')}\n"
+            f"http://{app.onion_host}\n"
+            f"{strings._('ctrlc_to_stop')}"
+        )
 
         while t.is_alive():
             time.sleep(1)
