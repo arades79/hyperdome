@@ -88,14 +88,13 @@ def main(cwd="", shutdown_timeout=0):
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
 
-        # start shutdown timer thread
-        if shutdown_timeout:
+        def timeout():
+            raise TimeoutError("timer expired, server shutting down.")
 
-            def timeout():
-                raise TimeoutError("timer expired, server shutting down.")
-
-            t = threading.Timer(shutdown_timeout, timeout)
-            t.start()
+        shutdown_timer = threading.Timer(
+            shutdown_timeout, timeout if shutdown_timeout else lambda: None
+        )
+        shutdown_timer.start()
 
         print("")
         url = f"http://{app.onion_host}"
