@@ -83,18 +83,20 @@ def main(cwd="", shutdown_timeout=0):
     t.daemon = True
     t.start()
 
+    def timeout(event: threading.Event):
+        event.set()
+
+    timeout_event = threading.Event()
+    shutdown_timer = threading.Timer(
+        shutdown_timeout,
+        timeout if shutdown_timeout else lambda _: None,
+        [timeout_event],
+    )
+
     try:  # Trap Ctrl-C
         # TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
-
-        def timeout():
-            raise TimeoutError("timer expired, server shutting down.")
-
-        shutdown_timer = threading.Timer(
-            shutdown_timeout, timeout if shutdown_timeout else lambda: None
-        )
-        shutdown_timer.start()
 
         print(
             f"{strings._('give_this_url')}\n"
@@ -102,8 +104,12 @@ def main(cwd="", shutdown_timeout=0):
             f"{strings._('ctrlc_to_stop')}"
         )
 
+        shutdown_timer.start()
+
         while t.is_alive():
             time.sleep(1)
+            if timeout_event.is_set():
+                raise TimeoutError()
 
     except KeyboardInterrupt:
         main._log.info("application stopped from keyboard interrupt")
