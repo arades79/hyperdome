@@ -24,7 +24,7 @@ import shutil
 
 import autologging
 
-from ..common.common import ShutdownTimer, get_available_port
+from ..common.common import get_available_port
 
 
 @autologging.traced
@@ -37,7 +37,7 @@ class HyperdomeServer(object):
 
     __log: autologging.logging.Logger  # stop linter errors from autologging
 
-    def __init__(self, onion, local_only=False, shutdown_timeout=0):
+    def __init__(self, onion, local_only=False):
 
         # The Onion object
         self.onion = onion
@@ -54,11 +54,6 @@ class HyperdomeServer(object):
         # do not use tor -- for development
         self.local_only = local_only
 
-        # optionally shut down after N hours
-        self.shutdown_timeout = shutdown_timeout
-        # init timing thread
-        self.shutdown_timer = None
-
     @property
     def port(self):
         """
@@ -73,9 +68,6 @@ class HyperdomeServer(object):
         """
         Start the hyperdome onion service.
         """
-
-        if self.shutdown_timeout > 0:
-            self.shutdown_timer = ShutdownTimer(self.shutdown_timeout)
 
         if self.local_only:
             self.onion_host = f"127.0.0.1:{self.port:d}"
