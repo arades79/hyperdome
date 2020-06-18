@@ -34,7 +34,7 @@ from .web import Web
 
 @autologging.traced
 @autologging.logged
-def main(cwd="", shutdown_timeout=0):
+def main(cwd=""):
     """
     The main() function implements all of the logic that the command-line
     version of hyperdome uses.
@@ -83,13 +83,6 @@ def main(cwd="", shutdown_timeout=0):
     t.daemon = True
     t.start()
 
-    timeout_event = threading.Event()
-    shutdown_timer = threading.Timer(
-        shutdown_timeout,
-        lambda event: (event.set() if shutdown_timeout else None),
-        [timeout_event],
-    )
-
     try:  # Trap Ctrl-C
         # TODO this looks dangerously like a race condition
         # Wait for web.generate_slug() to finish running
@@ -101,12 +94,8 @@ def main(cwd="", shutdown_timeout=0):
             f"{strings._('ctrlc_to_stop')}"
         )
 
-        shutdown_timer.start()
-
         while t.is_alive():
             time.sleep(1)
-            if timeout_event.is_set():
-                raise TimeoutError()
 
     except KeyboardInterrupt:
         main._log.info("application stopped from keyboard interrupt")
