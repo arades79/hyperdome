@@ -47,8 +47,15 @@ logging.addLevelName(1000, "OFF")
     help="file to to write logs to for this run instead of stdout",
     default=None,
 )
+@click.option(
+    "--timeout",
+    type=click.FloatRange(0,),
+    help="shutdown the server after n seconds, 0 for no timeout",
+    default=0,
+    show_default=True,
+)
 @click.pass_context
-def admin(ctx, log_level, log_file):
+def admin(ctx, log_level, log_file, timeout):
     if log_level != "TRACE":
         install_traced_noop()
 
@@ -67,7 +74,7 @@ def admin(ctx, log_level, log_file):
 
         click.echo(f"Hyperdome Server {version} | https://hyperdome.org")
 
-        main()
+        main(shutdown_timeout=timeout)
 
 
 @admin.command()
