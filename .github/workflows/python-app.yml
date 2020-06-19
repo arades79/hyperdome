@@ -33,7 +33,6 @@ jobs:
 
     - name: Set Poetry config
       run: |
-        poetry run python -m pip install --upgrade pip
         poetry config settings.virtualenvs.in-project false
         poetry config settings.virtualenvs.path ~/.virtualenvs
 
