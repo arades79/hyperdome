@@ -69,7 +69,7 @@ def main(cwd=""):
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(onion, False, 0)
+        app = HyperdomeServer(onion, False)
         app.start_onion_service()
     except KeyboardInterrupt:
         main._log.info("keyboard interrupt during onion setup, exiting")
@@ -88,31 +88,20 @@ def main(cwd=""):
         # Wait for web.generate_slug() to finish running
         time.sleep(0.2)
 
-        # start shutdown timer thread
-        if app.shutdown_timeout > 0:
-            app.shutdown_timer.start()
+        print(
+            f"{strings._('give_this_url')}\n"
+            f"http://{app.onion_host}\n"
+            f"{strings._('ctrlc_to_stop')}"
+        )
 
-        print("")
-        url = f"http://{app.onion_host}"
-        print(strings._("give_this_url"))
-        print(url)
-        print()
-        print(strings._("ctrlc_to_stop"))
-
-        # Wait for app to close
         while t.is_alive():
-            if app.shutdown_timeout > 0:
-                # if the shutdown timer was set and has run out, stop the
-                # server
-                if not app.shutdown_timer.is_alive():
-                    pass
-                    # TODO if hyperdome session is over, break. Or just add
-                    # to the conditions with app.shutdown_timer.is_alive().
-            # Allow KeyboardInterrupt exception to be handled with threads
-            # https://stackoverflow.com/questions/3788208
-            time.sleep(0.2)
+            time.sleep(1)
+
     except KeyboardInterrupt:
         main._log.info("application stopped from keyboard interrupt")
+        web.stop(app.port)
+    except TimeoutError:
+        main._log.info("application stopped from timer expiration")
         web.stop(app.port)
     finally:
         main._log.debug("shutdown")

@@ -27,8 +27,6 @@ import platform
 import secrets
 import socket
 import sys
-import threading
-import time
 import typing
 
 import autologging
@@ -285,26 +283,3 @@ class Settings(object):
         self.fill_in_defaults()
         self.save()
 
-
-# TODO #95 Replace with threading.Timer()
-@autologging.traced
-@autologging.logged
-class ShutdownTimer(threading.Thread):
-    """
-    Background thread sleeps t hours and returns.
-    """
-
-    __log: autologging.logging.Logger  # to help linters that don't recognize autologging
-
-    def __init__(self, time):
-        threading.Thread.__init__(self)
-
-        self.__log.debug("__init__")
-
-        self.setDaemon(True)
-        self.time = time
-
-    def run(self):
-        self.__log.info(f"Server will shut down after {self.time} seconds")
-        time.sleep(self.time)
-        return 1
