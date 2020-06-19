@@ -1,4 +1,4 @@
-![Tests](https://github.com/arades79/hyperdome/workflows/Python%20application/badge.svg)
+![Tests](https://github.com/arades79/hyperdome/workflows/Tests/badge.svg)
 <p align="center"><img src="readme/hyperdome_logo.png" width="25%"></p>
 <p align="center"><img src="readme/hyperdome_demo.gif"></p>
 
