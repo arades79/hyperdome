@@ -282,4 +282,3 @@ class Settings(object):
         self._settings = self.default_settings
         self.fill_in_defaults()
         self.save()
-
