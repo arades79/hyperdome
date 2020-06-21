@@ -1,7 +1,7 @@
 [[package]]
 category = "dev"
 description = "Python graph (network) package"
-marker = "sys_platform == \"windows\" or sys_platform == \"darwin\""
+marker = "platform_system != \"Darwin\" or platform_system == \"Darwin\""
 name = "altgraph"
 optional = false
 python-versions = "*"
@@ -359,7 +359,7 @@ version = "2.20"
 [[package]]
 category = "dev"
 description = "PyInstaller bundles a Python application and all its dependencies into a single package."
-marker = "sys_platform == \"windows\""
+marker = "platform_system != \"Darwin\""
 name = "PyInstaller"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -376,7 +376,7 @@ url = "https://github.com/pyinstaller/pyinstaller.git"
 [[package]]
 category = "dev"
 description = "PyInstaller bundles a Python application and all its dependencies into a single package(wheel-file)."
-marker = "sys_platform == \"darwin\""
+marker = "platform_system == \"Darwin\""
 name = "pyinstaller-wheel"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -463,7 +463,7 @@ doc = ["sphinx", "sphinx-rtd-theme"]
 [[package]]
 category = "dev"
 description = ""
-marker = "sys_platform == \"darwin\" or sys_platform == \"windows\""
+marker = "platform_system == \"Darwin\" or sys_platform == \"windows\""
 name = "pywin32-ctypes"
 optional = false
 python-versions = "*"
@@ -620,7 +620,7 @@ dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-
 watchdog = ["watchdog"]
 
 [metadata]
-content-hash = "22e396a8bf7b5c10bb61be99816986807bf964b396294a850e3bf53cb17dee3e"
+content-hash = "0a79a76c873c1b0c4f9f158ca10b2abc29575fd0f159ac0801d132191d32b107"
 python-versions = "~3.8"
 
 [metadata.files]
