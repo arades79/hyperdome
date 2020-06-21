@@ -1,7 +1,6 @@
 [[package]]
 category = "dev"
 description = "Python graph (network) package"
-marker = "platform_system != \"Darwin\" or platform_system == \"Darwin\""
 name = "altgraph"
 optional = false
 python-versions = "*"
@@ -275,6 +274,18 @@ MarkupSafe = ">=0.23"
 i18n = ["Babel (>=0.8)"]
 
 [[package]]
+category = "dev"
+description = "Mach-O header analysis and editing"
+marker = "sys_platform == \"darwin\""
+name = "macholib"
+optional = false
+python-versions = "*"
+version = "1.14"
+
+[package.dependencies]
+altgraph = ">=0.15"
+
+[[package]]
 category = "main"
 description = "Safely add untrusted strings to HTML/XML markup."
 name = "markupsafe"
@@ -359,7 +370,6 @@ version = "2.20"
 [[package]]
 category = "dev"
 description = "PyInstaller bundles a Python application and all its dependencies into a single package."
-marker = "platform_system != \"Darwin\""
 name = "PyInstaller"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -373,21 +383,6 @@ setuptools = "*"
 reference = "6d4cce1f8eb80c0bf49d35876d28daa55a05800f"
 type = "git"
 url = "https://github.com/pyinstaller/pyinstaller.git"
-[[package]]
-category = "dev"
-description = "PyInstaller bundles a Python application and all its dependencies into a single package(wheel-file)."
-marker = "platform_system == \"Darwin\""
-name = "pyinstaller-wheel"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-version = "3.6"
-
-[package.dependencies]
-altgraph = "*"
-pefile = ">=2017.8.1"
-pywin32-ctypes = ">=0.2.0"
-setuptools = "*"
-
 [[package]]
 category = "dev"
 description = "Python parsing module"
@@ -463,7 +458,7 @@ doc = ["sphinx", "sphinx-rtd-theme"]
 [[package]]
 category = "dev"
 description = ""
-marker = "platform_system == \"Darwin\" or sys_platform == \"windows\""
+marker = "sys_platform == \"windows\""
 name = "pywin32-ctypes"
 optional = false
 python-versions = "*"
@@ -620,7 +615,7 @@ dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-
 watchdog = ["watchdog"]
 
 [metadata]
-content-hash = "0a79a76c873c1b0c4f9f158ca10b2abc29575fd0f159ac0801d132191d32b107"
+content-hash = "8fd3652deffd15d461de01c5bab18e2c24c80bd5f7920fb01b79cfd876b1c7df"
 python-versions = "~3.8"
 
 [metadata.files]
@@ -788,6 +783,10 @@ jinja2 = [
     {file = "Jinja2-2.11.2-py2.py3-none-any.whl", hash = "sha256:f0a4641d3cf955324a89c04f3d94663aa4d638abe8f733ecd3582848e1c37035"},
     {file = "Jinja2-2.11.2.tar.gz", hash = "sha256:89aab215427ef59c34ad58735269eb58b1a5808103067f7bb9d5836c651b3bb0"},
 ]
+macholib = [
+    {file = "macholib-1.14-py2.py3-none-any.whl", hash = "sha256:c500f02867515e6c60a27875b408920d18332ddf96b4035ef03beddd782d4281"},
+    {file = "macholib-1.14.tar.gz", hash = "sha256:0c436bc847e7b1d9bda0560351bf76d7caf930fb585a828d13608839ef42c432"},
+]
 markupsafe = [
     {file = "MarkupSafe-1.1.1-cp27-cp27m-macosx_10_6_intel.whl", hash = "sha256:09027a7803a62ca78792ad89403b1b7a73a01c8cb65909cd876f7fcebd79b161"},
     {file = "MarkupSafe-1.1.1-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:e249096428b3ae81b08327a63a485ad0878de3fb939049038579ac0ef61e17e7"},
@@ -855,9 +854,6 @@ pycparser = [
     {file = "pycparser-2.20.tar.gz", hash = "sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0"},
 ]
 PyInstaller = []
-pyinstaller-wheel = [
-    {file = "PyInstaller_wheel-3.6-py3-none-any.whl", hash = "sha256:b666b501beebd37fdbd34dd46d5d27bf2f8853fc9eb4cfdc2fcf7bcff746b9fb"},
-]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
