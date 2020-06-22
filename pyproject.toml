@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hyperdome"
-version = "0.2.1"
+version = "0.3.0"
 description = "The safest place to reach out"
 authors = ["Skyelar Craver <scravers@protonmail.com>", "Steven Pitts <makusu2@gmail.com>"]
 license = "GPL-3.0-only"
