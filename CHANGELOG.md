@@ -33,6 +33,11 @@ All pull requests will now require passing all unit tests, as well as a pass fro
 Unit tests are not well-covering yet, as some older code pending removal is not tested,
 and very large classes will need to be refactored before being unit testable.
 
+#### Bundled Tor Support (Linux & BSD)
+Previous issues preventing use of bundled Tor on hosts that get their Tor from a package manager have been resolved.
+
+
+
 ## 0.2.1
 changed some build files so hyperdome is not flagged by antivirus on windows.
 
