@@ -9,7 +9,7 @@ rm -rf $ROOT/dist &>/dev/null 2>&1
 
 # build the .app
 echo Building Hyperdome.app
-pyinstaller $ROOT/install/pyinstaller.spec
+pyinstaller $ROOT/install/hyperdome_client.spec
 # TODO: download and bundle tor
 # python3 $ROOT/install/get-tor-osx.py
 

@@ -19,6 +19,8 @@ flask-sqlalchemy = "^2.4.1"
 autologging = "^1.3.2"
 
 [tool.poetry.dev-dependencies]
+macholib = {version = "^1.9", platform = "darwin"}
+dis3 = {version = "*", platform = "darwin"}
 pyinstaller = {git = "https://github.com/pyinstaller/pyinstaller.git", tag = "v3.6"}
 setuptools = "^46.1.3"
 pytest = "^5.4.1"
