@@ -66,7 +66,7 @@ class HyperdomeClientApi:
     uses a requests session and server variable
     """
 
-    COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1"]
+    COMPATIBLE_SERVERS = ["0.2", "0.2.0", "0.2.1", "0.3.0"]
 
     __log: autologging.logging.Logger  # makes linter happy about autologging
 

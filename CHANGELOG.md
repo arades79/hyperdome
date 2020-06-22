@@ -1,5 +1,43 @@
 # Hyperdome Changelog
 
+For full list of code changes in each verison, [refer to our milestones](https://github.com/arades79/hyperdome/milestone/)
+
+## 0.3.0
+
+This update is mostly under-the-covers changes to help maintain secure practices and simplify future development.
+
+0.3.0 clients and servers are inter-compatible.
+
+#### macOS Support and Binaries
+Updated build files and dependencies to support macOS clients.
+Hyperdome server currently runs on macOS, but binaries will not be provided at this time.
+
+#### Code Refactoring
+Many core classes and functions that existed in the Onionshare codebase were removed,
+and the code was simplified. These changes should make the project easier to contribute to.
+
+Threading and UI code changes were also made in support of better testing, and better decoupling from qt.
+This should help make future API changes more easily, as well as make new UI developments more quickly.
+Having a decoupled client implementation will also make third party clients easier to make, or future mobile apps.
+
+#### (optional) Comprehensive Logging
+This release adds pervasive logging support to allow significantly easier debugging.
+Importantly, all logging can be disabled, and/or redirected to ensure no logs are kept.
+All server logging contain no user information, and messages are never logged.
+A malicious server opperator adhering to license will not be capable of tracking users.
+
+#### Unit Tests, Code Coverage, and CI
+In an effort to make debugging even easier, and development faster, unit tests and automated tested is now in hyperdome!
+All pull requests will now require passing all unit tests, as well as a pass from bandit, a python security linter.
+
+Unit tests are not well-covering yet, as some older code pending removal is not tested,
+and very large classes will need to be refactored before being unit testable.
+
+#### Bundled Tor Support (Linux & BSD)
+Previous issues preventing use of bundled Tor on hosts that get their Tor from a package manager have been resolved.
+
+
+
 ## 0.2.1
 changed some build files so hyperdome is not flagged by antivirus on windows.
 
