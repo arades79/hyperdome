@@ -26,6 +26,7 @@ import secrets
 import socket
 from time import sleep
 from urllib.request import urlopen
+import threading
 
 import autologging
 from flask import abort, jsonify, make_response, render_template, request
@@ -334,10 +335,11 @@ class Web:
         func()
         self.running = False
 
-    def start(self, port, stay_open=False):
+    def start(self, port, start_flag: threading.Lock, stay_open=False):
         """
         Start the flask web server.
         """
+        start_flag.acquire(blocking=True)
 
         self.stay_open = stay_open
 
@@ -359,6 +361,7 @@ class Web:
 
         self.running = True
         app.run(host=host, port=port, threaded=True)
+        start_flag.release()
 
     def stop(self, port):
         """
@@ -385,4 +388,3 @@ class Web:
                     ).read()
                 except TypeError:
                     self.__log.warning("shutdown url failed", exc_info=True)
-                    pass

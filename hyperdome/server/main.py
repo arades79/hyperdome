@@ -19,11 +19,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import time
 import autologging
 import os
 import sys
 import threading
-import time
 
 from ..common import strings
 from ..common.common import Settings, platform_str
@@ -79,14 +79,15 @@ def main(cwd=""):
         sys.exit()
 
     # Start hyperdome http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True))
+    web_starting = threading.Lock()
+    t = threading.Thread(target=web.start, args=(app.port, web_starting, True))
     t.daemon = True
     t.start()
 
     try:  # Trap Ctrl-C
-        # TODO this looks dangerously like a race condition
-        # Wait for web.generate_slug() to finish running
-        time.sleep(0.2)
+        # Wait for web setup to finish running
+        while web_starting.locked():
+            time.sleep(0.1)
 
         print(
             f"{strings._('give_this_url')}\n"
@@ -95,13 +96,10 @@ def main(cwd=""):
         )
 
         while t.is_alive():
-            time.sleep(1)
+            t.join(1)
 
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         main._log.info("application stopped from keyboard interrupt")
-        web.stop(app.port)
-    except TimeoutError:
-        main._log.info("application stopped from timer expiration")
         web.stop(app.port)
     finally:
         main._log.debug("shutdown")
