@@ -88,6 +88,7 @@ def main(cwd=""):
         # Wait for web setup to finish running
         while web_starting.locked():
             time.sleep(0.1)
+        main._log.debug("web object started and released lock")
 
         print(
             f"{strings._('give_this_url')}\n"
