@@ -69,25 +69,28 @@ def main(cwd=""):
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(onion, False)
+        app = HyperdomeServer(onion,)
         app.start_onion_service()
     except KeyboardInterrupt:
         main._log.info("keyboard interrupt during onion setup, exiting")
         sys.exit()
-    except (TorTooOld, TorErrorProtocolError) as e:
-        main._log.exception("Tor incompatible")
+    except TorTooOld as e:
+        main._log.error("Tor version incompatible")
+        sys.exit()
+    except TorErrorProtocolError as e:
+        main._log.error("There was a problem starting the Tor hidden service, exiting")
+        main._log.debug("Tor Exception", exc_info=True)
         sys.exit()
 
     # Start hyperdome http service in new thread
-    web_starting = threading.Lock()
+    web_starting = threading.Condition(threading.Lock())
     t = threading.Thread(target=web.start, args=(app.port, web_starting, True))
     t.daemon = True
     t.start()
 
-    try:  # Trap Ctrl-C
+    try:  # Trap exit conditions for cleanup
         # Wait for web setup to finish running
-        while web_starting.locked():
-            time.sleep(0.1)
+        web_starting.wait(10)
         main._log.debug("web object started and released lock")
 
         print(

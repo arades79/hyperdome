@@ -335,11 +335,11 @@ class Web:
         func()
         self.running = False
 
-    def start(self, port, start_flag: threading.Lock, stay_open=False):
+    def start(self, port, start_flag: threading.Condition, stay_open=False):
         """
         Start the flask web server.
         """
-        start_flag.acquire(blocking=True)
+        start_flag.acquire()
 
         self.stay_open = stay_open
 
@@ -352,7 +352,7 @@ class Web:
             except queue.Empty:
                 pass
 
-        # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (#220)
+        # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (onionshare #220)
         host = (
             "0.0.0.0"
             if Path("/usr/share/anon-ws-base-files/workstation").exists()
@@ -361,6 +361,7 @@ class Web:
 
         self.running = True
         app.run(host=host, port=port, threaded=True)
+        start_flag.notify_all()
         start_flag.release()
 
     def stop(self, port):
