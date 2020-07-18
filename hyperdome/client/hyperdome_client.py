@@ -242,8 +242,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         changes active window with new text
         and brings to focus if currently in the background.
         """
-        self.error_window.setText(error.args[0] or "no error description provided")
-        self.__log.debug(f'Received "{type(error)}" from task')
+        self.error_window.setText(
+            error.args[0]
+            if isinstance(error.args[0], str)
+            else "no error description provided"
+        )
+        self.__log.debug(f"Received error from task, set logging to TRACE for info")
+        self.__log.log(0, "exception details:", exc_info=True)
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
         else:
