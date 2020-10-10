@@ -335,12 +335,10 @@ class Web:
         func()
         self.running = False
 
-    def start(self, port, start_flag: threading.Condition, stay_open=False):
+    def start(self, port, stay_open=False):
         """
         Start the flask web server.
         """
-        start_flag.acquire()
-
         self.stay_open = stay_open
 
         # Make sure the stop_q is empty when starting a new server
@@ -361,8 +359,6 @@ class Web:
 
         self.running = True
         app.run(host=host, port=port, threaded=True)
-        start_flag.notify_all()
-        start_flag.release()
 
     def stop(self, port):
         """

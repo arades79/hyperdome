@@ -83,20 +83,17 @@ def main(cwd=""):
         sys.exit()
 
     # Start hyperdome http service in new thread
-    web_starting = threading.Condition(threading.Lock())
-    t = threading.Thread(target=web.start, args=(app.port, web_starting, True))
+    t = threading.Thread(target=web.start, args=(app.port, True))
     t.daemon = True
     t.start()
 
     try:  # Trap exit conditions for cleanup
-        # Wait for web setup to finish running
-        web_starting.wait(10)
-        main._log.debug("web object started and released lock")
-
+        while not web.running:
+            t.join(0.1)
         print(
-            f"{strings._('give_this_url')}\n"
+            f"\n{strings._('give_this_url')}\n"
             f"http://{app.onion_host}\n"
-            f"{strings._('ctrlc_to_stop')}"
+            f"{strings._('ctrlc_to_stop')}\n"
         )
 
         while t.is_alive():
