@@ -120,7 +120,10 @@ class HyperdomeClientApi:
 
     @handle_requests_errors
     def start_chat(
-        self, uid: str, pub_key: str, signature: str = "",
+        self,
+        uid: str,
+        pub_key: str,
+        signature: str = "",
     ):
         if self.server.is_counselor:
             return self.session.post(
@@ -155,7 +158,10 @@ class HyperdomeClientApi:
 
     @handle_requests_errors
     def signup_counselor(
-        self, passcode: str, pub_key: str, signature: str,
+        self,
+        passcode: str,
+        pub_key: str,
+        signature: str,
     ):
         return self.session.post(
             f"{self.server.url}/counselor_signup",
