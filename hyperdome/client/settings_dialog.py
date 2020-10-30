@@ -700,7 +700,9 @@ class SettingsDialog(QtWidgets.QDialog):
         Toggle the 'Copy HidServAuth' button
         to copy the saved HidServAuth to clipboard.
         """
-        self.__log.info("HidServAuth was copied to clipboard",)
+        self.__log.info(
+            "HidServAuth was copied to clipboard",
+        )
         clipboard = self.qtapp.clipboard()
         clipboard.setText(self.old_settings.get("hidservauth_string"))
 
@@ -870,7 +872,8 @@ class SettingsDialog(QtWidgets.QDialog):
         self.__log.debug("cancel_clicked")
         if not (self.local_only or self.onion.is_authenticated()):
             Alert(
-                strings._("gui_tor_connection_canceled"), QtWidgets.QMessageBox.Warning,
+                strings._("gui_tor_connection_canceled"),
+                QtWidgets.QMessageBox.Warning,
             )
             sys.exit()
         else:

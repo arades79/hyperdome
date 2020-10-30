@@ -179,7 +179,12 @@ class Onion(object):
         dev_mode = getattr(sys, "hyperdome_dev_mode", False)
         self.__log.debug(f"{platform_str=}, {dev_mode=}")
         self.bundle_tor_supported = not (
-            platform_str in ("Windows", "Darwin",) and dev_mode
+            platform_str
+            in (
+                "Windows",
+                "Darwin",
+            )
+            and dev_mode
         )
 
         # Set the path of the tor binary, for bundled tor
@@ -234,8 +239,12 @@ class Onion(object):
                 )
 
             # Create a torrc for this session
-            self.tor_data_directory = tempfile.TemporaryDirectory(dir=data_path,)
-            self.__log.info(f"tor_data_directory={self.tor_data_directory.name}",)
+            self.tor_data_directory = tempfile.TemporaryDirectory(
+                dir=data_path,
+            )
+            self.__log.info(
+                f"tor_data_directory={self.tor_data_directory.name}",
+            )
 
             # Create the torrc
             torrc_template = resource_path.joinpath("torrc_template").read_text()
@@ -286,7 +295,9 @@ class Onion(object):
                 "{{socks_port}}", str(self.tor_socks_port)
             )
 
-            with self.tor_torrc.open("w",) as f:
+            with self.tor_torrc.open(
+                "w",
+            ) as f:
                 f.write(torrc_template)
 
                 # Bridge support

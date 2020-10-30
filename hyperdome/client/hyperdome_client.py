@@ -386,7 +386,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             if a.clickedButton() == settings_button:
                 # Open settings
-                self.__log.debug("Settings button clicked",)
+                self.__log.debug(
+                    "Settings button clicked",
+                )
                 self.open_settings()
 
             if a.clickedButton() == quit_button:
