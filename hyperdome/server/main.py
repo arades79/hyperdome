@@ -64,7 +64,6 @@ def main(cwd=""):
         main._log.info("keyboard interrupt during onion setup")
         sys.exit()
     except Exception as e:
-        main._log.exception()
         sys.exit(e.args[0])
 
     # Start the hyperdome server
