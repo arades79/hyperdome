@@ -50,8 +50,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         settings,
         onion,
         qtapp: QtWidgets.QApplication,
-        app,
-        filenames,
         config: str = "",
         local_only: bool = False,
     ):
@@ -61,7 +59,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.settings = settings
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
-        self.app = app
         self.local_only: bool = local_only
 
         # setup interval task attributes
