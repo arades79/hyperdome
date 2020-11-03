@@ -335,30 +335,13 @@ class Web:
         func()
         self.running = False
 
-    def start(self, port, stay_open=False):
+    def start(self, host: str, port: int, stay_open: bool = False):
         """
         Start the flask web server.
         """
         self.stay_open = stay_open
-
-        # Make sure the stop_q is empty when starting a new server
-        while not self.stop_q.empty():
-            try:
-                self.stop_q.get(block=False)
-                self.__log.debug("startup waiting for queue to be empty...")
-                sleep(0.1)
-            except queue.Empty:
-                pass
-
-        # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (onionshare #220)
-        host = (
-            "0.0.0.0"
-            if Path("/usr/share/anon-ws-base-files/workstation").exists()
-            else "127.0.0.1"
-        )
-
-        self.running = True
         app.run(host=host, port=port, threaded=True)
+        self.running = True
 
     def stop(self, port):
         """
@@ -385,3 +368,14 @@ class Web:
                     ).read()
                 except TypeError:
                     self.__log.warning("shutdown url failed", exc_info=True)
+
+
+def check_stop(web: Web):
+    # Make sure the stop_q is empty when starting a new server
+    while not web.stop_q.empty():
+        try:
+            web.stop_q.get(block=False)
+            web.__log.debug("startup waiting for queue to be empty...")
+            sleep(0.1)
+        except queue.Empty:
+            pass

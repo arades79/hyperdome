@@ -25,10 +25,10 @@ import sys
 import threading
 
 from ..common import strings
-from ..common.common import Settings, platform_str
+from ..common.common import Settings, platform_str, host
 from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
-from .web import Web
+from .web import Web, check_stop
 
 
 @autologging.traced
@@ -64,11 +64,12 @@ def main(cwd=""):
         main._log.info("keyboard interrupt during onion setup")
         sys.exit()
     except Exception as e:
+        main._log.exception()
         sys.exit(e.args[0])
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(onion,)
+        app = HyperdomeServer(onion)
         app.start_onion_service()
     except KeyboardInterrupt:
         main._log.info("keyboard interrupt during onion setup, exiting")
@@ -81,14 +82,14 @@ def main(cwd=""):
         main._log.debug("Tor Exception", exc_info=True)
         sys.exit()
 
+    # check that the stop queue for the web object is empty
+    check_stop(web)
     # Start hyperdome http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True))
+    t = threading.Thread(target=web.start, args=(host, app.port, True))
     t.daemon = True
     t.start()
 
     try:  # Trap exit conditions for cleanup
-        while not web.running:
-            t.join(0.1)
         print(
             f"\n{strings._('give_this_url')}\n"
             f"http://{app.onion_host}\n"
