@@ -105,6 +105,16 @@ def tor_paths() -> typing.Tuple[Path, Path, Path, Path]:
     )
 
 
+@bootstrap
+def host() -> str:
+    # In Whonix, listen on 0.0.0.0 instead of 127.0.0.1 (onionshare #220)
+    return (
+        "0.0.0.0"
+        if Path("/usr/share/anon-ws-base-files/workstation").exists()
+        else "127.0.0.1"
+    )
+
+
 MAX_PORT = 65535
 MIN_PORT = 0
 MAX_PORT_RETRY = 100

@@ -38,7 +38,7 @@ class Alert(QtWidgets.QMessageBox):
         buttons=QtWidgets.QMessageBox.Ok,
         autostart=True,
     ):
-        super(Alert, self).__init__(None)
+        super().__init__(None)
 
         self.setWindowTitle("hyperdome")
         self.setWindowIcon(

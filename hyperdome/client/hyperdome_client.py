@@ -50,18 +50,15 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         settings,
         onion,
         qtapp: QtWidgets.QApplication,
-        app,
-        filenames,
         config: str = "",
         local_only: bool = False,
     ):
-        super(HyperdomeClient, self).__init__()
+        super().__init__()
 
         # set application variables
         self.settings = settings
         self.onion = onion
         self.qtapp: QtWidgets.QApplication = qtapp
-        self.app = app
         self.local_only: bool = local_only
 
         # setup interval task attributes
@@ -242,8 +239,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         changes active window with new text
         and brings to focus if currently in the background.
         """
-        self.error_window.setText(error.args[0] or "no error description provided")
-        self.__log.debug(f'Received "{type(error)}" from task')
+        self.error_window.setText(
+            error.args[0]
+            if isinstance(error.args[0], str)
+            else "no error description provided"
+        )
+        self.__log.debug(f"Received error from task, set logging to TRACE for info")
+        self.__log.log(0, "exception details:", exc_info=True)
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
         else:
@@ -499,8 +501,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         if self.onion:
             self.onion.cleanup()
-        if self.app:
-            self.app.cleanup()
 
         super().closeEvent(event)
         self.__log.info("hyperdome client closed")

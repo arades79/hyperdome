@@ -23,13 +23,12 @@ import autologging
 import os
 import sys
 import threading
-import time
 
 from ..common import strings
-from ..common.common import Settings, platform_str
+from ..common.common import Settings, platform_str, host
 from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
-from .web import Web
+from .web import Web, check_stop
 
 
 @autologging.traced
@@ -69,39 +68,38 @@ def main(cwd=""):
 
     # Start the hyperdome server
     try:
-        app = HyperdomeServer(onion, False)
+        app = HyperdomeServer(onion)
         app.start_onion_service()
     except KeyboardInterrupt:
         main._log.info("keyboard interrupt during onion setup, exiting")
         sys.exit()
-    except (TorTooOld, TorErrorProtocolError) as e:
-        main._log.exception("Tor incompatible")
+    except TorTooOld as e:
+        main._log.error("Tor version incompatible")
+        sys.exit()
+    except TorErrorProtocolError as e:
+        main._log.error("There was a problem starting the Tor hidden service, exiting")
+        main._log.debug("Tor Exception", exc_info=True)
         sys.exit()
 
+    # check that the stop queue for the web object is empty
+    check_stop(web)
     # Start hyperdome http service in new thread
-    t = threading.Thread(target=web.start, args=(app.port, True))
+    t = threading.Thread(target=web.start, args=(host, app.port, True))
     t.daemon = True
     t.start()
 
-    try:  # Trap Ctrl-C
-        # TODO this looks dangerously like a race condition
-        # Wait for web.generate_slug() to finish running
-        time.sleep(0.2)
-
+    try:  # Trap exit conditions for cleanup
         print(
-            f"{strings._('give_this_url')}\n"
+            f"\n{strings._('give_this_url')}\n"
             f"http://{app.onion_host}\n"
-            f"{strings._('ctrlc_to_stop')}"
+            f"{strings._('ctrlc_to_stop')}\n"
         )
 
         while t.is_alive():
-            time.sleep(1)
+            t.join(1)
 
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         main._log.info("application stopped from keyboard interrupt")
-        web.stop(app.port)
-    except TimeoutError:
-        main._log.info("application stopped from timer expiration")
         web.stop(app.port)
     finally:
         main._log.debug("shutdown")

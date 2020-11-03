@@ -35,7 +35,7 @@ class AddServerDialog(QtWidgets.QDialog):
     """
 
     def __init__(self, parent: QtCore.QObject):
-        super(AddServerDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.session = parent.session
