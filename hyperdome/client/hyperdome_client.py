@@ -501,8 +501,6 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         if self.onion:
             self.onion.cleanup()
-        if self.app:
-            self.app.cleanup()
 
         super().closeEvent(event)
         self.__log.info("hyperdome client closed")
