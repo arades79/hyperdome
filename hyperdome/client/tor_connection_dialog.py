@@ -38,7 +38,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
     open_settings = QtCore.pyqtSignal()
 
     def __init__(self, settings, qtapp, onion, custom_settings=False):
-        super(TorConnectionDialog, self).__init__(None)
+        super().__init__(None)
 
         self.settings = custom_settings or settings
 
@@ -127,7 +127,7 @@ class TorConnectionThread(QtCore.QThread):
     error_connecting_to_tor = QtCore.pyqtSignal(str)
 
     def __init__(self, settings, dialog, onion):
-        super(TorConnectionThread, self).__init__()
+        super().__init__()
 
         self.settings = settings
 

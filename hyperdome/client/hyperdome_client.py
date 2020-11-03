@@ -55,7 +55,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         config: str = "",
         local_only: bool = False,
     ):
-        super(HyperdomeClient, self).__init__()
+        super().__init__()
 
         # set application variables
         self.settings = settings

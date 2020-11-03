@@ -61,7 +61,7 @@ class SettingsDialog(QtWidgets.QDialog):
         config_file: str = "",
         local_only: bool = False,
     ):
-        super(SettingsDialog, self).__init__()
+        super().__init__()
 
         self.settings = settings
 
