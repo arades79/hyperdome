@@ -6,7 +6,7 @@ authors = ["Skyelar Craver <scravers@protonmail.com>", "Steven Pitts <makusu2@gm
 license = "GPL-3.0-only"
 
 [tool.poetry.dependencies]
-python = "~3.8"
+python = "~3.10"
 cryptography = "^2.9"
 itsdangerous = "^1.1.0"
 stem = "^1.8.0"
@@ -17,13 +17,14 @@ requests = {extras = ["socks"], version = "^2.23.0"}
 pefile = "^2019.4.18"
 flask-sqlalchemy = "^2.4.1"
 autologging = "^1.3.2"
+markupsafe = "2.0.1"
 
 [tool.poetry.dev-dependencies]
 macholib = {version = "^1.9", platform = "darwin"}
 dis3 = {version = "*", platform = "darwin"}
 pyinstaller = {git = "https://github.com/pyinstaller/pyinstaller.git", tag = "v3.6"}
 setuptools = "^46.1.3"
-pytest = "^5.4.1"
+pytest = "^7.2.0"
 pytest-qt = "^3.3.0"
 bandit = "^1.6.2"
 black = "^19.10b0"
