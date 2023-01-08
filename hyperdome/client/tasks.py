@@ -158,7 +158,7 @@ class OnionThread(QtCore.QThread):
     error = QtCore.pyqtSignal(str)
 
     def __init__(self, mode):
-        super(OnionThread, self).__init__()
+        super().__init__()
         self.mode = mode
         self.__log.debug("__init__")
 

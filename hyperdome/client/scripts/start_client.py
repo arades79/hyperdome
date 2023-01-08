@@ -42,7 +42,9 @@ logging.addLevelName(1000, "OFF")
 @click.option(
     "--log-file",
     "log_file",
-    type=click.Path(exists=False,),
+    type=click.Path(
+        exists=False,
+    ),
     help="file to to write logs to for this run instead of stdout",
     default=None,
 )

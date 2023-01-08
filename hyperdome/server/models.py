@@ -35,7 +35,10 @@ class Counselor(db.Model):
     container for counselors also responsible for holding keys and verifying messages
     """
 
-    id = db.Column(db.Integer, primary_key=True,)
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
     name = db.Column(db.String(100), unique=True, nullable=False)
     key_bytes = db.Column(db.String(64), unique=True, nullable=False)
 
@@ -57,7 +60,10 @@ class CounselorSignUp(db.Model):
     model for storing valid counselor signup tokens
     """
 
-    id = db.Column(db.Integer, primary_key=True,)
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
     passphrase = db.Column(db.String(32), unique=True, nullable=False)
 
 

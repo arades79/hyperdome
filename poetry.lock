@@ -31,6 +31,7 @@ docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-
 tests = ["attrs[tests-no-zope]", "zope.interface"]
 tests-no-zope = ["cloudpickle", "cloudpickle", "hypothesis", "hypothesis", "mypy (>=0.971,<0.990)", "mypy (>=0.971,<0.990)", "pympler", "pympler", "pytest (>=4.3.0)", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-mypy-plugins", "pytest-xdist[psutil]", "pytest-xdist[psutil]"]
 
+
 [[package]]
 name = "autologging"
 version = "1.3.2"
@@ -370,6 +371,7 @@ itsdangerous = ">=2.0"
 Jinja2 = ">=3.0"
 Werkzeug = ">=2.2.2"
 
+
 [package.extras]
 async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
@@ -377,6 +379,7 @@ dotenv = ["python-dotenv"]
 [[package]]
 name = "flask-sqlalchemy"
 version = "2.5.1"
+
 description = "Adds SQLAlchemy support to your Flask application."
 category = "main"
 optional = false
@@ -412,6 +415,7 @@ files = [
     {file = "gitdb-4.0.10-py3-none-any.whl", hash = "sha256:c286cf298426064079ed96a9e4a9d39e7f3e9bf15ba60701e95f5492f28415c7"},
     {file = "gitdb-4.0.10.tar.gz", hash = "sha256:6eb990b69df4e15bad899ea868dc46572c3f75339735663b81de79b06f17eb9a"},
 ]
+
 
 [package.dependencies]
 smmap = ">=3.0.1,<6"

@@ -28,7 +28,6 @@ import stem
 from ..common import strings
 from ..common.common import Settings, platform_str
 from ..common.onion import Onion
-from ..server.hyperdome_server import HyperdomeServer
 from .hyperdome_client import HyperdomeClient
 
 
@@ -84,11 +83,8 @@ def main():
     # Start the Onion
     onion = Onion(settings)
 
-    # Start the hyperdome app
-    app = HyperdomeServer(onion)
-
     # Launch the gui
-    main_window = HyperdomeClient(settings, onion, qtapp, app, None)
+    main_window = HyperdomeClient(settings, onion, qtapp)
     main_window.show()
 
     # Clean up when app quits
@@ -99,7 +95,6 @@ def main():
             onion.cleanup()
         except stem.SocketClosed:
             pass
-        app.cleanup()
 
     # All done
     sys.exit(qtapp.exec_())
