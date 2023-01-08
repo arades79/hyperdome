@@ -6,7 +6,7 @@ authors = ["Skyelar Craver <scravers@protonmail.com>", "Steven Pitts <makusu2@gm
 license = "GPL-3.0-only"
 
 [tool.poetry.dependencies]
-python = "~3.10"
+python = "~3.11"
 cryptography = "^39.0"
 stem = "^1.8.1"
 Flask = "^2.2.2"
@@ -19,15 +19,15 @@ autologging = "^1.3.2"
 [tool.poetry.dev-dependencies]
 macholib = {version = "^1.9", platform = "darwin"}
 dis3 = {version = "*", platform = "darwin"}
-pyinstaller = {git = "https://github.com/pyinstaller/pyinstaller.git", tag = "v3.6"}
-setuptools = "^46.1.3"
+pyinstaller = "^5.7.0"
+setuptools = "^65.6.3"
 pytest = "^7.2.0"
-pytest-qt = "^3.3.0"
-bandit = "^1.6.2"
-black = "^19.10b0"
+pytest-qt = "^4.2.0"
+bandit = "^1.7.4"
+black = "^22.12.0"
 pywin32-ctypes = {version = "^0.2.0", platform = "windows"}
-hypothesis = "^5.10.4"
-coverage = {extras = ["toml"], version = "^5.1"}
+hypothesis = "^6.61.3"
+coverage = {extras = ["toml"], version = "^7.0.4"}
 
 [tool.poetry.scripts]
 hyperdome_client = "hyperdome.client.scripts.start_client:start"
