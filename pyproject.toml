@@ -6,28 +6,29 @@ authors = ["Skyelar Craver <scravers@protonmail.com>", "Steven Pitts <makusu2@gm
 license = "GPL-3.0-only"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-cryptography = "^3.2"
-click = "^7.1.2"
-stem = "^1.8.0"
-Flask = "^1.1.2"
-PyQt5 = "~5.15.1"
-requests = {extras = ["socks"], version = "^2.24.0"}
-flask-sqlalchemy = "^2.4.4"
+python = "~3.11"
+cryptography = "^39.0"
+stem = "^1.8.1"
+Flask = "^2.2.2"
+PyQt5 = "~5.15.7"
+requests = {extras = ["socks"], version = "^2.28.0"}
+pefile = "^2022.5.30"
+flask-sqlalchemy = "^2.5.0"
+
 autologging = "^1.3.2"
 
 [tool.poetry.dev-dependencies]
 macholib = {version = "^1.9", platform = "darwin"}
 dis3 = {version = "*", platform = "darwin"}
-pyinstaller = {git = "https://github.com/pyinstaller/pyinstaller.git", tag = "v3.6"}
-setuptools = "^46.1.3"
-pytest = "^6.1.2"
-pytest-qt = "^3.3.0"
-bandit = "^1.6.2"
-black = "^20.8b1"
+pyinstaller = "^5.7.0"
+setuptools = "^65.6.3"
+pytest = "^7.2.0"
+pytest-qt = "^4.2.0"
+bandit = "^1.7.4"
+black = "^22.12.0"
 pywin32-ctypes = {version = "^0.2.0", platform = "windows"}
-hypothesis = "^5.10.4"
-coverage = {extras = ["toml"], version = "^5.1"}
+hypothesis = "^6.61.3"
+coverage = {extras = ["toml"], version = "^7.0.4"}
 
 [tool.poetry.scripts]
 hyperdome_client = "hyperdome.client.scripts.start_client:start"
@@ -38,5 +39,5 @@ source = ["hyperdome"]
 command_line = "-m pytest ."
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=1.3"]
 build-backend = "poetry.masonry.api"

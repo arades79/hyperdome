@@ -26,14 +26,6 @@ import flask_sqlalchemy
 
 from ..common.common import data_path, resource_path
 
-# Stub out flask's show_server_banner function, to avoiding showing
-# warnings that are not applicable to hyperdome
-def stubbed_show_server_banner(env, debug, app_import_path, eager_loading):
-    pass
-
-
-cli.show_server_banner = stubbed_show_server_banner
-
 logger = logging.getLogger(__name__)
 
 # The flask app
