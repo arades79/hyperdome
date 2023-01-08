@@ -8,16 +8,13 @@ license = "GPL-3.0-only"
 [tool.poetry.dependencies]
 python = "~3.10"
 cryptography = "^39.0"
-itsdangerous = "^1.1.0"
 stem = "^1.8.1"
-Flask = "^1.1.2"
-Jinja2 = "^2.11.1"
+Flask = "^2.2.2"
 PyQt5 = "~5.15.7"
 requests = {extras = ["socks"], version = "^2.28.0"}
 pefile = "^2022.5.30"
-flask-sqlalchemy = "^2.4.1"
+flask-sqlalchemy = "^2.5.0"
 autologging = "^1.3.2"
-markupsafe = "2.0.1"
 
 [tool.poetry.dev-dependencies]
 macholib = {version = "^1.9", platform = "darwin"}
@@ -41,6 +38,6 @@ source = ["hyperdome"]
 command_line = "-m pytest ."
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=1.3"]
 build-backend = "poetry.masonry.api"
 
