@@ -67,4 +67,3 @@ class CounselorSignUp(db.Model):
     passphrase = db.Column(db.String(32), unique=True, nullable=False)
 
 
-db.create_all()

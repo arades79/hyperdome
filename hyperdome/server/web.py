@@ -21,18 +21,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import base64
 import hmac
 from pathlib import Path
-import queue
+from queue import Queue
 import secrets
 import socket
 from time import sleep
 from urllib.request import urlopen
-import threading
+from threading import Lock
 
 import autologging
 from flask import abort, jsonify, make_response, render_template, request
 
 from . import models
-from ..common.common import version
+from ..common.common import version, data_path, resource_path
 from .app import app, db
 
 
@@ -57,14 +57,27 @@ class Web:
     REQUEST_UPLOAD_CANCELED = 9
     REQUEST_ERROR_DATA_DIR_CANNOT_CREATE = 10
 
+    lock = Lock()
+
     def __init__(self):
+
+        db_uri = f"sqlite:///{data_path / 'hyperdome_server.db'}"
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+        self.__log.debug(f"{db_uri=}")
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+        db.init_app(app)
+        
         app.secret_key = secrets.token_urlsafe(8)
+
+        with app.app_context():
+            db.create_all()
 
         # If the user stops the server while a transfer is in progress, it
         # should immediately stop the transfer. In order to make it
         # thread-safe, stop_q is a queue. If anything is in it,
         # then the user stopped the server.
-        self.stop_q = queue.Queue()
+        self.stop_q = Queue()
 
         self.security_headers = [
             (
@@ -79,7 +92,7 @@ class Web:
             ("Server", "Hyperdome"),
         ]
 
-        self.q = queue.Queue()
+        self.q = Queue()
         self.error404_count = 0
 
         self.done = False
@@ -95,9 +108,9 @@ class Web:
         self.define_common_routes()
 
         # hyperdome server user tracking variables
-        self.counselors_available = {}
-        self.active_chat_user_map = {}
-        self.pending_messages = {}
+        self.counselors_available: list[str] = list()
+        # self.active_chat_user_map = dict()
+        self.pending_messages: dict[str, Queue[str]] = dict()
         self.guest_keys = {}
         self.counselor_keys = {}
         self.active_codes = []
@@ -151,15 +164,11 @@ class Web:
         def request_counselor():
             guest_id = request.form["guest_id"]
             guest_key = request.form["pub_key"]
-            counselors = [
-                counselor
-                for counselor, capacity in self.counselors_available.items()
-                if capacity
-            ]
-            if not counselors:
-                return ""
-            chosen_counselor = secrets.choice(counselors)
-            self.counselors_available[chosen_counselor] -= 1
+            if not self.counselors_available:
+                    return ""
+            with Web.lock:
+                chosen_counselor = secrets.choice(self.counselors_available)
+                self.counselors_available.remove(chosen_counselor)
             self.active_chat_user_map[guest_id] = chosen_counselor
             self.active_chat_user_map[chosen_counselor] = guest_id
             self.guest_keys[chosen_counselor] = guest_key
@@ -181,16 +190,10 @@ class Web:
             self.active_chat_user_map.pop(sid)
             self.pending_messages.pop(sid, "")
             try:
-                self.active_chat_user_map[other_user] = ""
+                with Web.lock:
+                    self.active_chat_user_map[other_user] = ""
             except KeyError:
                 pass
-            if sid in self.counselors_available:
-                counselor_id = sid
-            elif other_user in self.counselors_available:
-                counselor_id = other_user
-            else:
-                return "Counselor has left the chat"
-            self.counselors_available[counselor_id] += 1
             return "Chat Ended"
 
         @app.route("/counselor_signout", methods=["POST"])
@@ -214,7 +217,7 @@ class Web:
                 return "Bad signature", 401
             sid = secrets.token_urlsafe(16)
             # will use capacity variable for this later
-            self.counselors_available[sid] = 1
+            self.counselors_available.append(sid)
             self.counselor_keys[sid] = session_counselor_key
             self.__log.info(f"successful counselor login {username=}")
             return sid
