@@ -115,8 +115,6 @@ class HyperdomeClientApi:
         response_json = response.json()
         if response_json["chat_status"] == "CHAT_ACTIVE":
             return response_json["messages"]
-        elif response["chat_status"] == "CHAT_OVER":
-            raise requests.HTTPError(f"chat over", response)
 
     @handle_requests_errors
     def start_chat(

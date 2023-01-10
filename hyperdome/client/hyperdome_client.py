@@ -62,8 +62,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.local_only: bool = local_only
 
         # setup interval task attributes
-        self.poll_guest_key_task: tasks.QtIntervalTask = None
-        self.get_messages_task: tasks.QtIntervalTask = None
+        self.poll_guest_key_task: tasks.QtIntervalTask | None = None
+        self.get_messages_task: tasks.QtIntervalTask | None = None
 
         # set window constants
         self.setMinimumWidth(500)
@@ -78,13 +78,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # initialize session variables
         self.uid: str = ""
-        self.chat_history: list = []
+        self.partner_key: str = ""
+        self.chat_history: list = list()
         self.load_servers()
         self.server: Server = Server()
         self.is_connected: bool = False
-        self._session: requests.Session = None
+        self._session: requests.Session | None = None
         self.crypt = encryption.LockBox()
-        self.client = None
+        self.client: api.HyperdomeClientApi | None = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -93,7 +94,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # System tray
         menu = QtWidgets.QMenu()
-        self.settings_action = menu.addAction(strings._("gui_settings_window_title"))
+        self.settings_action: QtWidgets.QAction = menu.addAction(
+            strings._("gui_settings_window_title")
+        )
         self.settings_action.triggered.connect(self.open_settings)
         help_action = menu.addAction(strings._("gui_settings_button_help"))
         help_action.triggered.connect(SettingsDialog.help_clicked)
@@ -183,12 +186,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         message = self.message_text_field.text()
         self.message_text_field.clear()
 
-        if not (self.is_connected or self.uid):
+        if not (self.is_connected or self.uid) or self.client is None:
             return self.handle_error(Exception("not in an active chat"))
 
         enc_message = self.crypt.encrypt_outgoing_message(message)
         send_message_task = tasks.QtTask(
-            self.client.send_message, self.uid, enc_message
+            self.client.send_message, self.partner_key, enc_message
         )
 
         @tasks.run_after_task(send_message_task, error_handler=self.handle_error)
@@ -217,6 +220,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Ask server for a new UID for a new user session
         """
         self.stop_intervals()
+
+        if self.client is None:
+            return
 
         if self.server.is_counselor:
             # user is a counselor which will get uid later
@@ -299,8 +305,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def start_chat(self):
 
+        if self.client is None:
+            return
+
         self.start_chat_button.setEnabled(False)
-        pub_key = self.crypt.public_chat_key
+        self.pub_key = self.crypt.public_chat_key
         if self.server.is_counselor:
             self.crypt.import_key(
                 self.server.key, "123"
@@ -316,6 +325,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         @tasks.run_after_task(start_chat_task, self.handle_error)
         @QtCore.pyqtSlot(object)
         def after_start(counselor):
+            if self.client is None:
+                return
+
             if not self.server.is_counselor and not counselor:
                 self.__log.info("no counselors logged in to server")
                 self.handle_error(Exception("No counselors available."))
@@ -332,13 +344,18 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 @tasks.run_after_task(self.poll_guest_key_task, self.handle_error)
                 @QtCore.pyqtSlot(object)
                 def counselor_got_guest(guest_key: str):
-                    if not guest_key:
+                    if (
+                        not guest_key
+                        or self.client is None
+                        or self.poll_guest_key_task is None
+                    ):
                         return
                     self.__log.info("counselor got assigned to guest")
                     self.poll_guest_key_task.stop()
+                    self.partner_key = guest_key
                     self.crypt.perform_key_exchange(guest_key, self.server.is_counselor)
                     self.get_messages_task = tasks.QtIntervalTask(
-                        self.client.get_messages, self.uid, interval=3500
+                        self.client.get_messages, self.pub_key, interval=3500
                     )
 
                     run_on_interval = tasks.run_after_task(
@@ -347,6 +364,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                     run_on_interval(self.on_history_added)
 
             else:
+                self.partner_key = counselor
                 self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
                 self.get_messages_task = tasks.QtIntervalTask(
                     self.client.get_messages, self.uid, interval=3500
@@ -453,6 +471,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         @QtCore.pyqtSlot(object)
         def disconnected(_):
             self.__log.info("counseling completed")
+            self.partner_key = ""
 
         if self.server.is_counselor:
 

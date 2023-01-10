@@ -29,19 +29,11 @@ from ..common.common import data_path, resource_path
 logger = logging.getLogger(__name__)
 
 # The flask app
-@bootstrap
-def app():
-    logger.info("initializing flask app")
-    app = Flask(
-        __name__,
-        static_folder=str(resource_path / "static"),
-        template_folder=str(resource_path / "templates"),
-    )
-    db_uri = f"sqlite:///{data_path / 'hyperdome_server.db'}"
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
-    logger.debug(f"{db_uri=}")
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    return app
+app = Flask(
+    __name__,
+    static_folder=str(resource_path / "static"),
+    template_folder=str(resource_path / "templates"),
+)
 
 
-db = flask_sqlalchemy.SQLAlchemy(app)
+db = flask_sqlalchemy.SQLAlchemy()

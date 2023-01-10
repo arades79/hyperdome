@@ -21,18 +21,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import base64
 import hmac
 from pathlib import Path
-import queue
+from queue import Queue
 import secrets
 import socket
 from time import sleep
 from urllib.request import urlopen
-import threading
+from threading import Lock
 
 import autologging
 from flask import abort, jsonify, make_response, render_template, request
 
 from . import models
-from ..common.common import version
+from ..common.common import version, data_path, resource_path
 from .app import app, db
 
 
@@ -57,14 +57,27 @@ class Web:
     REQUEST_UPLOAD_CANCELED = 9
     REQUEST_ERROR_DATA_DIR_CANNOT_CREATE = 10
 
+    lock = Lock()
+
     def __init__(self):
+
+        db_uri = f"sqlite:///{data_path / 'hyperdome_server.db'}"
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+        self.__log.debug(f"{db_uri=}")
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+        db.init_app(app)
+
         app.secret_key = secrets.token_urlsafe(8)
+
+        with app.app_context():
+            db.create_all()
 
         # If the user stops the server while a transfer is in progress, it
         # should immediately stop the transfer. In order to make it
         # thread-safe, stop_q is a queue. If anything is in it,
         # then the user stopped the server.
-        self.stop_q = queue.Queue()
+        self.stop_q = Queue()
 
         self.security_headers = [
             (
@@ -79,7 +92,7 @@ class Web:
             ("Server", "Hyperdome"),
         ]
 
-        self.q = queue.Queue()
+        self.q = Queue()
         self.error404_count = 0
 
         self.done = False
@@ -95,12 +108,12 @@ class Web:
         self.define_common_routes()
 
         # hyperdome server user tracking variables
-        self.counselors_available = {}
-        self.active_chat_user_map = {}
-        self.pending_messages = {}
+        self.counselors_available: set[str] = set()
+        # self.active_chat_user_map = dict()
+        self.active_chats: dict[str, Queue[str]] = dict()
         self.guest_keys = {}
         self.counselor_keys = {}
-        self.active_codes = []
+        self.active_codes = set()
 
         #
 
@@ -151,19 +164,15 @@ class Web:
         def request_counselor():
             guest_id = request.form["guest_id"]
             guest_key = request.form["pub_key"]
-            counselors = [
-                counselor
-                for counselor, capacity in self.counselors_available.items()
-                if capacity
-            ]
-            if not counselors:
+            if not self.counselors_available:
                 return ""
-            chosen_counselor = secrets.choice(counselors)
-            self.counselors_available[chosen_counselor] -= 1
-            self.active_chat_user_map[guest_id] = chosen_counselor
-            self.active_chat_user_map[chosen_counselor] = guest_id
+            with Web.lock:
+                chosen_counselor = secrets.choice(tuple(self.counselors_available))
+                self.counselors_available.remove(chosen_counselor)
+            self.active_chats[guest_key] = Queue()
             self.guest_keys[chosen_counselor] = guest_key
             counselor_key = self.counselor_keys.pop(chosen_counselor)
+            self.active_chats[counselor_key] = Queue()
             return counselor_key
 
         @app.route("/poll_connected_guest", methods=["GET"])
@@ -175,29 +184,18 @@ class Web:
         @app.route("/counseling_complete", methods=["POST"])
         def counseling_complete():
             sid = request.form["user_id"]
-            if sid not in self.active_chat_user_map:
+            if sid not in self.active_chats.keys():
                 return "no active chat", 404
-            other_user = self.active_chat_user_map[sid]
-            self.active_chat_user_map.pop(sid)
-            self.pending_messages.pop(sid, "")
-            try:
-                self.active_chat_user_map[other_user] = ""
-            except KeyError:
-                pass
-            if sid in self.counselors_available:
-                counselor_id = sid
-            elif other_user in self.counselors_available:
-                counselor_id = other_user
-            else:
-                return "Counselor has left the chat"
-            self.counselors_available[counselor_id] += 1
+            with Web.lock:
+                self.active_chats.pop(sid)
             return "Chat Ended"
 
         @app.route("/counselor_signout", methods=["POST"])
         def counselor_signout():
             sid = request.form["user_id"]
-            self.counselors_available.pop(sid, "")
-            self.counselor_keys.pop(sid, "")
+            with Web.lock:
+                self.counselors_available.remove(sid)
+                self.counselor_keys.pop(sid, "")
             return "Success"
 
         @app.route("/counselor_signin", methods=["POST"])
@@ -214,7 +212,7 @@ class Web:
                 return "Bad signature", 401
             sid = secrets.token_urlsafe(16)
             # will use capacity variable for this later
-            self.counselors_available[sid] = 1
+            self.counselors_available.add(sid)
             self.counselor_keys[sid] = session_counselor_key
             self.__log.info(f"successful counselor login {username=}")
             return sid
@@ -253,27 +251,21 @@ class Web:
         def message_from_user():
             message = request.form["message"]
             user_id = request.form["user_id"]
-            if user_id not in self.active_chat_user_map:
+            try:
+                self.active_chats[user_id].put_nowait(message)
+            except KeyError:
                 return "no chat", 404
-            other_user = self.active_chat_user_map[user_id]
-            if other_user in self.pending_messages:
-                self.pending_messages[other_user] += f"\n{message}"
-            elif other_user:  # may be empty string if other disconnected
-                self.pending_messages[other_user] = message
-            else:
-                return "user left", 404
             return "Success"
 
         @app.route("/collect_messages", methods=["GET"])
         def collect_messages():
             user_id = request.form["user_id"]
-            messages = self.pending_messages.pop(user_id, "")
+            messages: str = ""
             try:
-                chat_status = (
-                    "CHAT_OVER"
-                    if self.active_chat_user_map[user_id] == ""
-                    else "CHAT_ACTIVE"
-                )
+                message_queue = self.active_chats[user_id]
+                while not message_queue.empty():
+                    messages += f"{message_queue.get_nowait()}\n"
+                chat_status = "CHAT_ACTIVE"
             except KeyError:
                 chat_status = "NO_CHAT"
             return jsonify(chat_status=chat_status, messages=messages)
