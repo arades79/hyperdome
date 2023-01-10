@@ -94,7 +94,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         # System tray
         menu = QtWidgets.QMenu()
-        self.settings_action: QtWidgets.QAction = menu.addAction(strings._("gui_settings_window_title"))
+        self.settings_action: QtWidgets.QAction = menu.addAction(
+            strings._("gui_settings_window_title")
+        )
         self.settings_action.triggered.connect(self.open_settings)
         help_action = menu.addAction(strings._("gui_settings_button_help"))
         help_action.triggered.connect(SettingsDialog.help_clicked)
@@ -219,7 +221,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         """
         self.stop_intervals()
 
-        if self.client is None: return
+        if self.client is None:
+            return
 
         if self.server.is_counselor:
             # user is a counselor which will get uid later
@@ -302,7 +305,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
     def start_chat(self):
 
-        if self.client is None: return
+        if self.client is None:
+            return
 
         self.start_chat_button.setEnabled(False)
         self.pub_key = self.crypt.public_chat_key
@@ -321,7 +325,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         @tasks.run_after_task(start_chat_task, self.handle_error)
         @QtCore.pyqtSlot(object)
         def after_start(counselor):
-            if self.client is None: return
+            if self.client is None:
+                return
 
             if not self.server.is_counselor and not counselor:
                 self.__log.info("no counselors logged in to server")
@@ -339,7 +344,11 @@ class HyperdomeClient(QtWidgets.QMainWindow):
                 @tasks.run_after_task(self.poll_guest_key_task, self.handle_error)
                 @QtCore.pyqtSlot(object)
                 def counselor_got_guest(guest_key: str):
-                    if not guest_key or self.client is None or self.poll_guest_key_task is None:
+                    if (
+                        not guest_key
+                        or self.client is None
+                        or self.poll_guest_key_task is None
+                    ):
                         return
                     self.__log.info("counselor got assigned to guest")
                     self.poll_guest_key_task.stop()

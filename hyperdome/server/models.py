@@ -65,5 +65,3 @@ class CounselorSignUp(db.Model):
         primary_key=True,
     )
     passphrase = db.Column(db.String(32), unique=True, nullable=False)
-
-

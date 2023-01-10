@@ -67,7 +67,7 @@ class Web:
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
         db.init_app(app)
-        
+
         app.secret_key = secrets.token_urlsafe(8)
 
         with app.app_context():
@@ -165,7 +165,7 @@ class Web:
             guest_id = request.form["guest_id"]
             guest_key = request.form["pub_key"]
             if not self.counselors_available:
-                    return ""
+                return ""
             with Web.lock:
                 chosen_counselor = secrets.choice(tuple(self.counselors_available))
                 self.counselors_available.remove(chosen_counselor)
@@ -264,7 +264,7 @@ class Web:
             try:
                 message_queue = self.active_chats[user_id]
                 while not message_queue.empty():
-                    messages +=  f"{message_queue.get_nowait()}\n"
+                    messages += f"{message_queue.get_nowait()}\n"
                 chat_status = "CHAT_ACTIVE"
             except KeyError:
                 chat_status = "NO_CHAT"
