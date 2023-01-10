@@ -169,10 +169,10 @@ class Web:
             with Web.lock:
                 chosen_counselor = secrets.choice(tuple(self.counselors_available))
                 self.counselors_available.remove(chosen_counselor)
-            self.active_chats[chosen_counselor] = Queue()
-            self.active_chats[guest_id] = Queue()
+            self.active_chats[guest_key] = Queue()
             self.guest_keys[chosen_counselor] = guest_key
             counselor_key = self.counselor_keys.pop(chosen_counselor)
+            self.active_chats[counselor_key] = Queue()
             return counselor_key
 
         @app.route("/poll_connected_guest", methods=["GET"])
