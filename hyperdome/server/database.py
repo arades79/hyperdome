@@ -20,20 +20,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
 
-from flask import Flask, cli
-from ..common.bootstrap import bootstrap
-import flask_sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-from ..common.common import data_path, resource_path
+from ..common.common import data_path
 
-logger = logging.getLogger(__name__)
+SQLITE_DB_URI = f"sqlite:///{data_path / 'hyperdome_server.db'}"
 
-# The flask app
-app = Flask(
-    __name__,
-    static_folder=str(resource_path / "static"),
-    template_folder=str(resource_path / "templates"),
-)
+engine = create_engine(SQLITE_DB_URI, connect_args={"check_same_thread": False})
 
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-db = flask_sqlalchemy.SQLAlchemy()
+Base = declarative_base()
