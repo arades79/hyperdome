@@ -19,33 +19,38 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import autologging
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.primitives.serialization as serial
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
 
-from ..common.types import arg_to_bytes, bstr
-from .app import db
+from hyperdome.server.database import Base, engine
+
+from sqlalchemy import String, Column, Integer
+
+from ..common.types import arg_to_bytes
 
 
-@autologging.traced
-@autologging.logged
-class Counselor(db.Model):
+class Counselor(Base):
     """
     container for counselors also responsible for holding keys and verifying messages
     """
 
-    id = db.Column(
-        db.Integer,
+    __tablename__ = "counselors"
+
+    id = Column(
+        Integer,
         primary_key=True,
     )
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    key_bytes = db.Column(db.String(64), unique=True, nullable=False)
+    name = Column(String(100), unique=True, nullable=False)
+    key_bytes = Column(String(64), unique=True, nullable=False)
 
     # TODO: this should be in the cryptography common module and take pub_key as an argument
+    # TODO: make into a pydantic type verification
     @arg_to_bytes
-    def verify(self, signature: bstr, message: bstr) -> bool:
+    def verify(self, signature: bytes, message: bytes) -> bool:
         pub_key = serial.load_pem_public_key(self.key_bytes.encode(), default_backend())
+        assert isinstance(pub_key, Ed448PublicKey)
         try:
             pub_key.verify(signature, message)
             return True
@@ -53,15 +58,19 @@ class Counselor(db.Model):
             return False
 
 
-@autologging.traced
-@autologging.logged
-class CounselorSignUp(db.Model):
+class CounselorSignUp(Base):
     """
     model for storing valid counselor signup tokens
     """
 
-    id = db.Column(
-        db.Integer,
+    __tablename__ = "counselor_signup_tokens"
+
+    id = Column(
+        Integer,
         primary_key=True,
     )
-    passphrase = db.Column(db.String(32), unique=True, nullable=False)
+    passphrase = Column(String(32), unique=True, nullable=False)
+
+
+def create_models():
+    Base.metadata.create_all(bind=engine)
