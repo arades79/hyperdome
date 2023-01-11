@@ -365,9 +365,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
             else:
                 self.partner_key = counselor
-                self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
+                try:
+                    self.crypt.perform_key_exchange(counselor, self.server.is_counselor)
+                except ValueError:
+                    self.start_chat_button.setEnabled(True)
+                    self.__log.info("didn't recieve valid counselor, no chat started")
+                    return
                 self.get_messages_task = tasks.QtIntervalTask(
-                    self.client.get_messages, self.uid, interval=3500
+                    self.client.get_messages, self.pub_key, interval=3500
                 )
 
                 run_on_interval = tasks.run_after_task(
@@ -467,7 +472,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.__log.info("no connection to disconnect")
             return
 
-        @tasks.run_after_task(tasks.QtTask(self.client.counseling_complete, self.uid))
+        @tasks.run_after_task(
+            tasks.QtTask(self.client.counseling_complete, self.pub_key)
+        )
         @QtCore.pyqtSlot(object)
         def disconnected(_):
             self.__log.info("counseling completed")

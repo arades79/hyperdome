@@ -56,14 +56,14 @@ def probe():
 
 
 @app.post("/request_counselor")
-def request_counselor(guest_id: str = Form(), guest_key: str = Form()):
+def request_counselor(guest_id: str = Form(), pub_key: str = Form()):
     if not counselors_available:
         return ""
     with lock:
         chosen_counselor = secrets.choice(tuple(counselors_available))
         counselors_available.remove(chosen_counselor)
-    active_chats[guest_key] = Queue()
-    guest_keys[chosen_counselor] = guest_key
+    active_chats[pub_key] = Queue()
+    guest_keys[chosen_counselor] = pub_key
     counselor_key = counselor_keys.pop(chosen_counselor)
     active_chats[counselor_key] = Queue()
     return counselor_key
