@@ -314,12 +314,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.crypt.import_key(
                 self.server.key, "123"
             )  # TODO: use private key encryption
-            signature = self.crypt.sign_message(pub_key)
+            signature = self.crypt.sign_message(self.pub_key)
         else:
             signature = ""
 
         start_chat_task = tasks.QtTask(
-            self.client.start_chat, self.uid, pub_key, signature
+            self.client.start_chat, self.uid, self.pub_key, signature
         )
 
         @tasks.run_after_task(start_chat_task, self.handle_error)
