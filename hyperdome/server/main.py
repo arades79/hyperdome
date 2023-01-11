@@ -28,7 +28,7 @@ from ..common import strings
 from ..common.common import Settings, platform_str, host
 from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
-from .web import Web, check_stop
+from .web import Web
 
 
 @autologging.traced
@@ -81,28 +81,19 @@ def main(cwd=""):
         main._log.debug("Tor Exception", exc_info=True)
         sys.exit()
 
-    # check that the stop queue for the web object is empty
-    check_stop(web)
-    # Start hyperdome http service in new thread
-    t = threading.Thread(target=web.start, args=(host, app.port, True))
-    t.daemon = True
-    t.start()
+    print(
+        f"\n{strings._('give_this_url')}\n"
+        f"http://{app.onion_host}\n"
+        f"{strings._('ctrlc_to_stop')}\n"
+    )
 
     try:  # Trap exit conditions for cleanup
-        print(
-            f"\n{strings._('give_this_url')}\n"
-            f"http://{app.onion_host}\n"
-            f"{strings._('ctrlc_to_stop')}\n"
-        )
-
-        while t.is_alive():
-            t.join(1)
-
+        web.start(host, app.port, True)
     except (KeyboardInterrupt, SystemExit):
         main._log.info("application stopped from keyboard interrupt")
-        web.stop(app.port)
     finally:
         main._log.debug("shutdown")
         # Shutdown
         app.cleanup()
         onion.cleanup()
+        sys.exit()
