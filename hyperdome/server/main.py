@@ -22,13 +22,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import autologging
 import os
 import sys
-import threading
 
 from ..common import strings
 from ..common.common import Settings, platform_str, host
 from ..common.onion import Onion, TorErrorProtocolError, TorTooOld
 from .hyperdome_server import HyperdomeServer
-from .web import Web
+from . import web
+import uvicorn
 
 
 @autologging.traced
@@ -50,9 +50,6 @@ def main(cwd=""):
     # hyperdome in OSX needs to change current working directory (onionshare #132)
     if platform_str == "Darwin" and cwd:
         os.chdir(cwd)
-
-    # Create the Web object
-    web = Web()
 
     # Start the Onion object
     onion = Onion(settings)
@@ -88,7 +85,7 @@ def main(cwd=""):
     )
 
     try:  # Trap exit conditions for cleanup
-        web.start(host, app.port, True)
+        uvicorn.run(web.app, host=host, port=app.port)
     except (KeyboardInterrupt, SystemExit):
         main._log.info("application stopped from keyboard interrupt")
     finally:
