@@ -23,11 +23,13 @@ from queue import Queue
 import secrets
 from threading import Lock
 
-from fastapi import HTTPException, FastAPI, Form
+from fastapi import Depends, HTTPException, FastAPI, Form
+from sqlalchemy.orm import Session
 
 import logging
 
 from . import models
+from .database import get_db
 from ..common.common import version
 
 logger = logging.getLogger(__name__)
@@ -95,9 +97,14 @@ def counselor_signin(
     username: str = Form(),
     pub_key: str = Form(),
     signature: str | bytes = Form(),
+    db: Session = Depends(get_db),
 ):
     signature = base64.urlsafe_b64decode(signature)
-    counselor = models.Counselor.query.filter_by(name=username).first_or_404()
+    counselor = (
+        db.query(models.Counselor).filter(models.Counselor.name == username).first()
+    )
+    if counselor is None:
+        raise HTTPException(404, "no match for counselor credentials")
     if not counselor.verify(signature, pub_key):
         logger.info(f"attempted counselor login failed verification {username=}")
         raise HTTPException(401, "Bad signature")
@@ -115,21 +122,22 @@ def counselor_signup(
     pub_key: str = Form(),
     signup_code: str = Form(),
     signature: str | bytes = Form(),
+    db: Session = Depends(get_db),
 ):
     signature = base64.urlsafe_b64decode(signature)
     activator = models.CounselorSignUp.query.filter_by(
         passphrase=signup_code
     ).first_or_404()
-    db.session.delete(activator)
+    db.delete(activator)
     counselor = models.Counselor(name=username, key_bytes=pub_key)
     if counselor.verify(signature, signup_code.encode()):
-        models.db.session.add(counselor)
-        models.db.session.commit()
+        db.add(counselor)
+        db.commit()
         logger.info(f"new counselor {username=} added")
 
         return "Good"  # TODO: add better responses
     else:
-        models.db.session.commit()
+        db.commit()
         logger.warning(
             f"{username=} attempted registration but failed key verification"
         )
