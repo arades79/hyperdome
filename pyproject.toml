@@ -9,13 +9,16 @@ license = "GPL-3.0-only"
 python = "~3.11"
 cryptography = "^39.0"
 stem = "^1.8.1"
-Flask = "^2.2.2"
 PyQt5 = "~5.15.7"
 requests = {extras = ["socks"], version = "^2.28.0"}
 pefile = "^2022.5.30"
-flask-sqlalchemy = "^3.0.2"
-
 autologging = "^1.3.2"
+fastapi = "^0.89.1"
+uvicorn = {extras = ["standard"], version = "^0.20.0"}
+websockets = "^10.4"
+pydantic = "^1.10.4"
+python-multipart = "^0.0.5"
+sqlalchemy = "^1.4.46"
 
 [tool.poetry.dev-dependencies]
 macholib = {version = "^1.9", platform = "darwin"}
