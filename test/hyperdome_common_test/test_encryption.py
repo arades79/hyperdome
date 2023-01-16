@@ -26,7 +26,7 @@ from hypothesis import given, assume
 import hypothesis.strategies as st
 import cryptography
 
-user_fixture = Callable[..., Tuple[enc.LockBox, enc.LockBox]]
+user_fixture = Callable[[], Tuple[enc.LockBox, enc.LockBox]]
 
 
 @pytest.fixture(scope="module")
@@ -52,37 +52,37 @@ def test_encrypt_decrypt_message(
 ):
     user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    enc_message_1 = user_1_crypto.encrypt_outgoing_message(message)
-    enc_message_2 = user_2_crypto.encrypt_outgoing_message(message)
+    enc_message_1 = user_1_crypto.encrypt_outgoing_message(message.encode())
+    enc_message_2 = user_2_crypto.encrypt_outgoing_message(message.encode())
 
     assert message != enc_message_1 != enc_message_2
 
     dec_message_1 = user_2_crypto.decrypt_incoming_message(enc_message_1)
     dec_message_2 = user_1_crypto.decrypt_incoming_message(enc_message_2)
 
-    assert message == dec_message_1 == dec_message_2
+    assert message.encode() == dec_message_1 == dec_message_2
 
 
 @given(message=st.text())
 def test_key_rotation(pre_exchanged_user_factory: user_fixture, message: str):
     user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    sent_message_1 = user_1_crypto.encrypt_outgoing_message(message)
-    sent_message_2 = user_1_crypto.encrypt_outgoing_message(message)
+    sent_message_1 = user_1_crypto.encrypt_outgoing_message(message.encode())
+    sent_message_2 = user_1_crypto.encrypt_outgoing_message(message.encode())
 
     assert sent_message_1 != sent_message_2
 
     recieved_message_1 = user_2_crypto.decrypt_incoming_message(sent_message_1)
     recieved_message_2 = user_2_crypto.decrypt_incoming_message(sent_message_2)
 
-    assert recieved_message_1 == recieved_message_2 == message
+    assert recieved_message_1 == recieved_message_2 == message.encode()
 
 
 @given(message=st.text())
 def test_no_double_decrypt(pre_exchanged_user_factory: user_fixture, message: str):
     user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    enc_message = user_1_crypto.encrypt_outgoing_message(message)
+    enc_message = user_1_crypto.encrypt_outgoing_message(message.encode())
 
     user_2_crypto.decrypt_incoming_message(enc_message)
 
@@ -96,7 +96,7 @@ def test_rotation_cannot_decrypt(
 ):
     user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
 
-    enc_message = user_1_crypto.encrypt_outgoing_message(message)
+    enc_message = user_1_crypto.encrypt_outgoing_message(message.encode())
 
     prev_chat_key = user_2_crypto._chat_key
 
@@ -128,28 +128,54 @@ def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
     user = enc.LockBox()
     user.make_signing_key()
 
-    user_key = user.export_key(passphrase_1)
+    user_key = user.export_key(passphrase_1.encode())
 
     with pytest.raises(ValueError) as e:
-        user.import_key(user_key, passphrase_2)
+        user.import_key(user_key, passphrase_2.encode())
 
-    user.import_key(user_key, passphrase_1)
+    user.import_key(user_key, passphrase_1.encode())
 
 
 @given(st.text())
 def test_import_export_same_pub_key(passphrase: str):
     assume(passphrase)
 
+    passphrase_bytes = passphrase.encode()
+
     user = enc.LockBox()
     user.make_signing_key()
     initial_pub_key = user.public_signing_key
 
-    exported_key = user.export_key(passphrase)
+    exported_key = user.export_key(passphrase_bytes)
 
     user.make_signing_key()
 
     assert user.public_signing_key != initial_pub_key
 
-    user.import_key(exported_key, passphrase)
+    user.import_key(exported_key, passphrase_bytes)
 
     assert user.public_signing_key == initial_pub_key
+
+
+def test_x25519_from_ed25519():
+    from hyperdome.common.key_conversion import (
+        x25519_from_ed25519_private_key,
+        x25519_from_ed25519_public_key,
+        Encoding,
+        PublicFormat,
+        Ed25519PrivateKey,
+    )
+
+    x = b"01234567890123456789012345678901"
+    for i in range(10):
+        pvk_ed = Ed25519PrivateKey.from_private_bytes(x[i:] + x[:i])
+        pbk_ed = pvk_ed.public_key()
+
+        pvk_x = x25519_from_ed25519_private_key(pvk_ed)
+
+        pbk_x1 = pvk_x.public_key()
+        pbk_x2 = x25519_from_ed25519_public_key(pbk_ed)
+
+        assert pbk_x1.public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        ) == pbk_x2.public_bytes(Encoding.Raw, PublicFormat.Raw)

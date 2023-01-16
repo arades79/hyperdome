@@ -78,17 +78,3 @@ def x25519_from_ed25519_public_key(public_key: Ed25519PublicKey) -> X25519Public
     x = x * one_minus_y.invert()
 
     return X25519PublicKey.from_public_bytes(x.to_bytes())
-
-
-def test_x25519_from_ed25519():
-    x = b"01234567890123456789012345678901"
-    for i in range(10):
-        pvk_ed = Ed25519PrivateKey.from_private_bytes(x[i:] + x[:i])
-        pbk_ed = pvk_ed.public_key()
-
-        pvk_x = x25519_from_ed25519_private_key(pvk_ed)
-
-        pbk_x1 = pvk_x.public_key()
-        pbk_x2 = x25519_from_ed25519_public_key(pbk_ed)
-
-        assert pbk_x1 == pbk_x2
