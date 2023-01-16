@@ -396,6 +396,25 @@ doc = ["mdx-include (>=1.4.1,<2.0.0)", "mkdocs (>=1.1.2,<2.0.0)", "mkdocs-markdo
 test = ["anyio[trio] (>=3.2.1,<4.0.0)", "black (==22.10.0)", "coverage[toml] (>=6.5.0,<8.0)", "databases[sqlite] (>=0.3.2,<0.7.0)", "email-validator (>=1.1.1,<2.0.0)", "flask (>=1.1.2,<3.0.0)", "httpx (>=0.23.0,<0.24.0)", "isort (>=5.0.6,<6.0.0)", "mypy (==0.982)", "orjson (>=3.2.1,<4.0.0)", "passlib[bcrypt] (>=1.7.2,<2.0.0)", "peewee (>=3.13.3,<4.0.0)", "pytest (>=7.1.3,<8.0.0)", "python-jose[cryptography] (>=3.3.0,<4.0.0)", "python-multipart (>=0.0.5,<0.0.6)", "pyyaml (>=5.3.1,<7.0.0)", "ruff (==0.0.138)", "sqlalchemy (>=1.3.18,<1.4.43)", "types-orjson (==3.6.2)", "types-ujson (==5.6.0.0)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0,<6.0.0)"]
 
 [[package]]
+name = "fe25519"
+version = "1.3.0"
+description = "Pure-Python data structure for working with Ed25519 (and Ristretto) field elements and operations."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "fe25519-1.3.0-py3-none-any.whl", hash = "sha256:934ff8b36c5531f072351a1c7c936fe68c186934e28616750e5a12bc114f9b40"},
+    {file = "fe25519-1.3.0.tar.gz", hash = "sha256:fe0ad70225844437930968059cd0b53a4f03e48f4c065c1dd79d354d6d322b97"},
+]
+
+[package.extras]
+coveralls = ["coveralls (>=3.3.1,<3.4.0)"]
+docs = ["sphinx (>=4.2.0,<4.3.0)", "sphinx-rtd-theme (>=1.0.0,<1.1.0)", "toml (>=0.10.2,<0.11.0)"]
+lint = ["pylint (>=2.14.0,<2.15.0)"]
+publish = ["build (>=0.8,<1.0)", "twine (>=4.0,<5.0)"]
+test = ["bitlist (>=1.0,<2.0)", "fountains (>=2.0,<3.0)", "parts (>=1.5,<2.0)", "pytest (>=7.0,<8.0)", "pytest-cov (>=3.0,<4.0)"]
+
+[[package]]
 name = "future"
 version = "0.18.2"
 description = "Clean single-source support for Python 3 and 2"
@@ -405,6 +424,28 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 files = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
 ]
+
+[[package]]
+name = "ge25519"
+version = "1.3.0"
+description = "Pure-Python data structure for working with Ed25519 (and Ristretto) group elements and operations."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "ge25519-1.3.0-py3-none-any.whl", hash = "sha256:58b6986bf972a570d146e52ebcc3209cd611660d7c30c2f24f9ac1faa433bbd7"},
+    {file = "ge25519-1.3.0.tar.gz", hash = "sha256:cbd36fe7da4b5a4d64463646dc499a953df8323c7b44b6785a4bc9951acae4b2"},
+]
+
+[package.dependencies]
+fe25519 = ">=1.3,<2.0"
+
+[package.extras]
+coveralls = ["coveralls (>=3.3.1,<3.4.0)"]
+docs = ["sphinx (>=4.2.0,<4.3.0)", "sphinx-rtd-theme (>=1.0.0,<1.1.0)", "toml (>=0.10.2,<0.11.0)"]
+lint = ["pylint (>=2.14.0,<2.15.0)"]
+publish = ["build (>=0.8,<1.0)", "twine (>=4.0,<5.0)"]
+test = ["bitlist (>=1.0,<2.0)", "fountains (>=2.0,<3.0)", "parts (>=1.5,<2.0)", "pytest (>=7.0,<8.0)", "pytest-cov (>=3.0,<4.0)"]
 
 [[package]]
 name = "gitdb"
@@ -1481,4 +1522,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11"
-content-hash = "5262f5f8aabbe891c4f47504d41bb7f00e88b88295abfe1387a0c31340632dfb"
+content-hash = "eb5e25a7c76d30b02575fd251fcaf581359c72a91e026af392980183462fc7cb"
