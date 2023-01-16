@@ -79,15 +79,15 @@ def generate_signed_key_bundle(signing_key: Ed25519PrivateKey):
 key_derivation_function = HKDF(
     hashes.BLAKE2b(64), 64, b"hyperdome", b"ratchet increment", default_backend()
 )
-ALGORITHM = (
-    f"Ed25519+X25519+HKDF-{key_derivation_function._algorithm.name}-ChaCha20Poly1305"
-)
-VERSION = "v1"
 
 
 class KeyRatchet:
     """
-    automatically ratcheting cipher
+    HKDF key ratchet using blake2b digests generating one-time use 256-bit key material.
+
+    This construct should only be initialized with bytes suitable for key material.
+
+    This construct just handles key generation, encryption/decryption must be handled separately.
     """
 
     def __init__(self, initial_key_material: bytes):
@@ -100,37 +100,48 @@ class KeyRatchet:
     def _increment(self):
         new_key_bytes = key_derivation_function.derive(self._kdf_key)
         self._kdf_key = new_key_bytes[32:]
-        self._enc_key = ChaCha20Poly1305(new_key_bytes[:32])
+        self._enc_key = new_key_bytes[:32]
         self._counter += 1
 
+    @property
+    def key(self):
+        ret_key = self._enc_key
+        self._increment()
+        return ret_key
 
-class SendKeyRatchet(KeyRatchet):
+    @property
+    def counter(self):
+        return self._counter
+
+
+class MessageEncryptor:
     def __init__(self, initial_key_material: bytes):
-        super().__init__(initial_key_material)
+        self._ratchet = KeyRatchet(initial_key_material)
 
     def encrypt(
         self, plaintext: bytes, additional_data: bytes | None = None
     ) -> dict[str, bytes | int]:
         nonce = secrets.token_bytes(12)
-        ciphertext = self._enc_key.encrypt(nonce, plaintext, additional_data)
+        key = ChaCha20Poly1305(self._ratchet.key)
+        ciphertext = key.encrypt(nonce, plaintext, additional_data)
         message = {
             "nonce": nonce,
-            "sequence": self._counter,
+            "sequence": self._ratchet.counter,
             "ciphertext": ciphertext,
         }
-        self._increment()
         return message
 
 
-class RecieveKeyRatchet(KeyRatchet):
+class MessageDecryptor:
     def __init__(self, initial_key_material: bytes):
-        super().__init__(initial_key_material)
+        self._ratchet = KeyRatchet(initial_key_material)
         self._run_ahead_buffer: dict[int, ChaCha20Poly1305] = dict()
 
     def _run_ahead(self, iterations: int):
         for _ in range(iterations):
-            self._run_ahead_buffer[self._counter] = self._enc_key
-            self._increment()
+            self._run_ahead_buffer[self._ratchet.counter] = ChaCha20Poly1305(
+                self._ratchet.key
+            )
 
     def decrypt(
         self,
@@ -139,11 +150,12 @@ class RecieveKeyRatchet(KeyRatchet):
         ciphertext: bytes,
         associated_data: bytes | None = None,
     ) -> bytes:
-        if sequence > self._counter:
-            self._run_ahead(sequence - self._counter)
+        counter = self._ratchet.counter
+        if sequence > counter:
+            self._run_ahead(sequence - counter)
 
-        if sequence == self._counter:
-            key = self._enc_key
+        if sequence == counter:
+            key = ChaCha20Poly1305(self._ratchet.key)
         elif sequence in self._run_ahead_buffer.keys():
             key = self._run_ahead_buffer.pop(sequence)
         else:
@@ -159,7 +171,7 @@ def half_authenticated_triple_dh_exchange(
     eph_key: X25519PublicKey | X25519PrivateKey,
     ot_key: X25519PrivateKey | X25519PublicKey,
     csp_sig: bytes | None = None,
-) -> tuple[SendKeyRatchet, RecieveKeyRatchet]:
+) -> tuple[MessageEncryptor, MessageDecryptor]:
     if (
         isinstance(cid_key, Ed25519PrivateKey)
         and csp_sig is None
@@ -190,8 +202,8 @@ def half_authenticated_triple_dh_exchange(
     else:
         raise TypeError("public/private key mismatch")
     shared_secret = key_derivation_function.derive(dh1 + dh2 + dh3)
-    send_ratchet = SendKeyRatchet(shared_secret[send_slice])
-    recv_ratchet = RecieveKeyRatchet(shared_secret[recv_slice])
+    send_ratchet = MessageEncryptor(shared_secret[send_slice])
+    recv_ratchet = MessageDecryptor(shared_secret[recv_slice])
     return (send_ratchet, recv_ratchet)
 
 
@@ -218,25 +230,24 @@ class LockBox:
 
     __log: autologging.logging.Logger  # helps linter to detect autologging
 
-    def encrypt_outgoing_message(self, message: bytes) -> str:
+    def encrypt_outgoing_message(self, message: bytes) -> bytes:
 
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
         ciphertext = Fernet(fernet_key).encrypt(message)
-        return ciphertext.decode("utf-8")
+        return ciphertext
 
-    @arg_to_bytes
-    def decrypt_incoming_message(self, message: bstr) -> str:
+    def decrypt_incoming_message(self, message: bytes) -> bytes:
 
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._recieve_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
         plaintext = Fernet(fernet_key).decrypt(message)
-        return plaintext.decode("utf-8")
+        return plaintext
 
     @property
-    def public_chat_key(self) -> str:
+    def public_chat_key(self) -> bytes:
         """
         return a PEM encoded serialized public key digest
         of a new ephemeral X448 key
@@ -249,19 +260,18 @@ class LockBox:
         pub_key_bytes = self._chat_key.public_key().public_bytes(
             self._ENCODING, self._PUBLIC_FORMAT
         )
-        return pub_key_bytes.decode("utf-8")
+        return pub_key_bytes
 
     @property
-    def public_signing_key(self) -> str:
+    def public_signing_key(self) -> bytes:
         """
         return a PEM encoded serialized public key digest
         of the ed448 signing key
         """
         key = self._signing_key.public_key()
         key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes.decode("utf-8")
+        return key_bytes
 
-    @arg_to_bytes
     def perform_key_exchange(self, public_key_bytes: bytes, chirality: bool):
         """
         ingest a PEM encoded public key and generate a symmetric key
@@ -286,9 +296,9 @@ class LockBox:
     def make_signing_key(self):
         self._signing_key = Ed25519PrivateKey.generate()
 
-    def sign_message(self, message: bytes) -> str:
+    def sign_message(self, message: bytes) -> bytes:
         sig = self._signing_key.sign(message)
-        return base64.urlsafe_b64encode(sig).decode("utf-8")
+        return base64.urlsafe_b64encode(sig)
 
     def export_key(self, passphrase: bytes):
         key_bytes = self._signing_key.private_bytes(
@@ -296,7 +306,7 @@ class LockBox:
             self._PRIVATE_FORMAT,
             serial.BestAvailableEncryption(passphrase),
         )
-        return base64.urlsafe_b64encode(key_bytes).decode("utf-8")
+        return base64.urlsafe_b64encode(key_bytes)
 
     def import_key(self, key_bytes: bytes, passphrase: bytes):
         key_bytes = base64.urlsafe_b64decode(key_bytes)
