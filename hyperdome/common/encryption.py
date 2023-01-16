@@ -41,6 +41,11 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 import cryptography.hazmat.primitives.serialization as serial
 
+from .key_conversion import (
+    x25519_from_ed25519_private_key,
+    x25519_from_ed25519_public_key,
+)
+
 
 def generate_one_time_keys() -> dict[X25519PublicKey, X25519PrivateKey]:
     key_map = dict()
@@ -148,22 +153,23 @@ class RecieveKeyRatchet(KeyRatchet):
         return plaintext
 
 
-def half_authenticated_double_dh_exchange(
+def half_authenticated_triple_dh_exchange(
+    cid_key: Ed25519PublicKey | Ed25519PrivateKey,
     csp_key: X25519PrivateKey | X25519PublicKey,
     eph_key: X25519PublicKey | X25519PrivateKey,
     ot_key: X25519PrivateKey | X25519PublicKey,
-    cid_key: Ed25519PublicKey | None = None,
     csp_sig: bytes | None = None,
 ) -> tuple[SendKeyRatchet, RecieveKeyRatchet]:
     if (
-        cid_key is None
+        isinstance(cid_key, Ed25519PrivateKey)
         and csp_sig is None
         and isinstance(csp_key, X25519PrivateKey)
         and isinstance(eph_key, X25519PublicKey)
         and isinstance(ot_key, X25519PrivateKey)
     ):
-        dh1 = csp_key.exchange(eph_key)
-        dh2 = ot_key.exchange(eph_key)
+        dh1 = x25519_from_ed25519_private_key(cid_key).exchange(eph_key)
+        dh2 = csp_key.exchange(eph_key)
+        dh3 = ot_key.exchange(eph_key)
         send_slice = slice(None, 32)
         recv_slice = slice(32, None)
     elif (
@@ -176,13 +182,14 @@ def half_authenticated_double_dh_exchange(
         cid_key.verify(
             csp_sig, csp_key.public_bytes(serial.Encoding.Raw, serial.PublicFormat.Raw)
         )
-        dh1 = eph_key.exchange(csp_key)
-        dh2 = eph_key.exchange(ot_key)
+        dh1 = eph_key.exchange(x25519_from_ed25519_public_key(cid_key))
+        dh2 = eph_key.exchange(csp_key)
+        dh3 = eph_key.exchange(ot_key)
         send_slice = slice(32, None)
         recv_slice = slice(None, 32)
     else:
         raise TypeError("public/private key mismatch")
-    shared_secret = key_derivation_function.derive(dh1 + dh2)
+    shared_secret = key_derivation_function.derive(dh1 + dh2 + dh3)
     send_ratchet = SendKeyRatchet(shared_secret[send_slice])
     recv_ratchet = RecieveKeyRatchet(shared_secret[recv_slice])
     return (send_ratchet, recv_ratchet)
