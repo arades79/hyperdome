@@ -39,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # 	- using ChaChaPoly1305 as AEAD cipher, random 12 byte nonce generated per message
 # 	- sequence number included as authenticated data
 
-from enum import Enum
+from enum import StrEnum, auto
 from pydantic import BaseModel, Field, Required, ConstrainedBytes
 
 
@@ -87,13 +87,13 @@ class CounselorSignup(BaseModel):
     registration_code_signature: SignatureBytes = Required
 
 
-class MessageType(Enum):
-    INTRODUCTION = 0
-    CHAT = 1
-    DISCONNECT = 2
+class ChatContentType(StrEnum):
+    INTRODUCTION = auto()
+    ENCRYPTED_MESSAGE = auto()
+    STATUS = auto()
 
 
-class IntroductionContent(BaseModel):
+class IntroductionMessage(BaseModel):
     ephemeral_key: PubKeyBytes = Required
     one_time_key: PubKeyBytes = Required
 
@@ -108,13 +108,21 @@ class EncryptionScheme(BaseModel):
 DEFAULT_ENCRYPTION_SCHEME = EncryptionScheme()
 
 
-class ChatContent(BaseModel):
+class EncryptedMessage(BaseModel):
     sequence: int = Required
     nonce: NonceBytes
     ciphertext: bytes = Required
     encryption: EncryptionScheme = DEFAULT_ENCRYPTION_SCHEME
 
 
-class Message(BaseModel):
-    _type: MessageType = Required
-    content: IntroductionContent | ChatContent | None = Required
+class StatusType(StrEnum):
+    DISCONNECT = auto()
+
+
+class StatusMessage(BaseModel):
+    status: StatusType
+
+
+class ChatContent(BaseModel):
+    _type: ChatContentType = Required
+    content: IntroductionMessage | EncryptedMessage | StatusMessage = Required
