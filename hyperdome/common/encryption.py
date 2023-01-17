@@ -134,6 +134,7 @@ class MessageEncryptor:
             "nonce": nonce,
             "sequence": self._ratchet.counter,
             "ciphertext": ciphertext,
+            "additional_data": additional_data,
         }
         return message
 

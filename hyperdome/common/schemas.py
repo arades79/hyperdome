@@ -110,8 +110,9 @@ DEFAULT_ENCRYPTION_SCHEME = EncryptionScheme()
 
 class EncryptedMessage(BaseModel):
     sequence: int = Required
-    nonce: NonceBytes
+    nonce: NonceBytes = Required
     ciphertext: bytes = Required
+    additional_data: bytes | None = None
     encryption: EncryptionScheme = DEFAULT_ENCRYPTION_SCHEME
 
 
