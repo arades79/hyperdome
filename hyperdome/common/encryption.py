@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# considering using pyca/cryptography instead
+#%%
 import base64
 import functools
 import secrets
@@ -39,7 +39,13 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PublicKey,
 )
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-import cryptography.hazmat.primitives.serialization as serial
+from cryptography.hazmat.primitives.serialization import (
+    BestAvailableEncryption,
+    Encoding,
+    PrivateFormat,
+    PublicFormat,
+    load_ssh_private_key,
+)
 
 from .key_conversion import (
     x25519_from_ed25519_private_key,
@@ -56,7 +62,7 @@ def generate_one_time_keys() -> dict[X25519PublicKey, X25519PrivateKey]:
 
 
 def sign_key(signing_key: Ed25519PrivateKey, public_key: X25519PublicKey):
-    key_bytes = public_key.public_bytes(serial.Encoding.Raw, serial.PublicFormat.Raw)
+    key_bytes = public_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
     return signing_key.sign(key_bytes)
 
 
@@ -65,7 +71,7 @@ def sign_key_pack(
 ):
     key_bytes = b""
     for key in public_keys:
-        key_bytes += key.public_bytes(serial.Encoding.Raw, serial.PublicFormat.Raw)
+        key_bytes += key.public_bytes(Encoding.Raw, PublicFormat.Raw)
     return signing_key.sign(key_bytes)
 
 
@@ -191,9 +197,7 @@ def half_authenticated_triple_dh_exchange(
         and isinstance(csp_key, X25519PublicKey)
         and isinstance(ot_key, X25519PublicKey)
     ):
-        cid_key.verify(
-            csp_sig, csp_key.public_bytes(serial.Encoding.Raw, serial.PublicFormat.Raw)
-        )
+        cid_key.verify(csp_sig, csp_key.public_bytes(Encoding.Raw, PublicFormat.Raw))
         dh1 = eph_key.exchange(x25519_from_ed25519_public_key(cid_key))
         dh2 = eph_key.exchange(csp_key)
         dh3 = eph_key.exchange(ot_key)
@@ -220,10 +224,10 @@ class LockBox:
     _send_ratchet_key: bytes = b""
     _recieve_ratchet_key: bytes = b""
     _HASH = hashes.BLAKE2b(64)
-    _ENCODING = serial.Encoding.PEM
+    _ENCODING = Encoding.PEM
     _BACKEND = default_backend()
-    _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
-    _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
+    _PUBLIC_FORMAT = PublicFormat.SubjectPublicKeyInfo
+    _PRIVATE_FORMAT = PrivateFormat.PKCS8
     _RATCHET_KDF = functools.partial(
         HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
     )
@@ -258,7 +262,7 @@ class LockBox:
 
         self._chat_key = X25519PrivateKey.generate()
         pub_key_bytes = self._chat_key.public_key().public_bytes(
-            self._ENCODING, self._PUBLIC_FORMAT
+            Encoding.Raw, PublicFormat.Raw
         )
         return pub_key_bytes
 
@@ -278,11 +282,10 @@ class LockBox:
         created by a Diffie-Helman key exchange result being passed into
         a key-derivation and used to create a fernet instance
         """
-        public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
-        if not isinstance(public_key, X25519PublicKey):
-            raise ValueError("decoded public key was not a valid X448 public key")
+        public_key = X25519PublicKey.from_public_bytes(public_key_bytes)
+
         shared = self._chat_key.exchange(public_key)
-        # TODO consider customizing symmetric encryption for larger key or authentication
+
         new_chat_key = self._RATCHET_KDF().derive(shared)
         if chirality:
             send_slice = slice(None, 32)
@@ -298,19 +301,19 @@ class LockBox:
 
     def sign_message(self, message: bytes) -> bytes:
         sig = self._signing_key.sign(message)
-        return base64.urlsafe_b64encode(sig)
+        return sig
 
     def export_key(self, passphrase: bytes):
         key_bytes = self._signing_key.private_bytes(
-            self._ENCODING,
-            self._PRIVATE_FORMAT,
-            serial.BestAvailableEncryption(passphrase),
+            Encoding.PEM,
+            PrivateFormat.OpenSSH,
+            BestAvailableEncryption(passphrase),
         )
-        return base64.urlsafe_b64encode(key_bytes)
+        return key_bytes
 
     def import_key(self, key_bytes: bytes, passphrase: bytes):
-        key_bytes = base64.urlsafe_b64decode(key_bytes)
-        key = serial.load_pem_private_key(key_bytes, passphrase, self._BACKEND)
-        if not isinstance(key, Ed25519PrivateKey):
-            ValueError("key bytes did not decode to a valid Ed448 private key")
-        self._signing_key
+        key = load_ssh_private_key(key_bytes, passphrase)
+        if isinstance(key, Ed25519PrivateKey):
+            self._signing_key = key
+        else:
+            TypeError("key bytes did not decode to a valid Ed448 private key")
