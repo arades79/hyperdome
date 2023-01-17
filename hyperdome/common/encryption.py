@@ -52,14 +52,21 @@ from hyperdome.common.key_conversion import (
     x25519_from_ed25519_public_key,
 )
 
-from hyperdome.common.schemas import EncryptedMessage, DEFAULT_ENCRYPTION_SCHEME
+from hyperdome.common.schemas import (
+    EncryptedMessage,
+    DEFAULT_ENCRYPTION_SCHEME,
+    KeyExchangeBundle,
+    IntroductionMessage,
+    NewPreKeyBundle,
+    PubKeyBytes,
+)
 
 
-def generate_one_time_keys() -> dict[X25519PublicKey, X25519PrivateKey]:
+def generate_one_time_keys() -> dict[PubKeyBytes, X25519PrivateKey]:
     key_map = dict()
     for _ in range(100):
         key = X25519PrivateKey.generate()
-        key_map[key.public_key()] = key
+        key_map[key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)] = key
     return key_map
 
 
@@ -68,20 +75,11 @@ def sign_key(signing_key: Ed25519PrivateKey, public_key: X25519PublicKey):
     return signing_key.sign(key_bytes)
 
 
-def sign_key_pack(
-    signing_key: Ed25519PrivateKey, public_keys: Iterable[X25519PublicKey]
-):
+def sign_key_pack(signing_key: Ed25519PrivateKey, public_keys: Iterable[bytes]):
     key_bytes = b""
     for key in public_keys:
-        key_bytes += key.public_bytes(Encoding.Raw, PublicFormat.Raw)
+        key_bytes += key
     return signing_key.sign(key_bytes)
-
-
-def generate_signed_key_bundle(signing_key: Ed25519PrivateKey):
-    pre_key = X25519PrivateKey.generate()
-    pre_key_signature = sign_key(signing_key, pre_key.public_key())
-    otk_pack = generate_one_time_keys()
-    otk_pack_signature = sign_key_pack(signing_key, otk_pack.keys())
 
 
 key_derivation_function = HKDF(
@@ -210,6 +208,75 @@ def half_authenticated_triple_dh_exchange(
     send_ratchet = MessageEncryptor(shared_secret[send_slice])
     recv_ratchet = MessageDecryptor(shared_secret[recv_slice])
     return (send_ratchet, recv_ratchet)
+
+
+class GuestKeyring:
+    def __init__(self):
+        self._private_key = X25519PrivateKey.generate()
+        self.public_key = self._private_key.public_key()
+
+    def exchange(self, key_bundle: KeyExchangeBundle):
+        if self._private_key is None:
+            raise ValueError(
+                "Guest keyring was already used to exchange!\nGuest keys are one time use, a new GuestKeyring must be generated for each exchange"
+            )
+        cid_key = Ed25519PublicKey.from_public_bytes(key_bundle.pub_signing_key)
+        csp_key = X25519PublicKey.from_public_bytes(key_bundle.signed_pre_key)
+        ot_key = X25519PublicKey.from_public_bytes(key_bundle.one_time_key)
+        (self._encryptor, self._decryptor) = half_authenticated_triple_dh_exchange(
+            cid_key, csp_key, self._private_key, ot_key, key_bundle.pre_key_signature
+        )
+        self._private_key = None
+
+    def encrypt_message(
+        self, message: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
+        return self._encryptor.encrypt(message, associated_data)
+
+    def decrypt_message(self, message: EncryptedMessage) -> bytes:
+        return self._decryptor.decrypt(message)
+
+
+class CounselorKeyring:
+    def __init__(self) -> None:
+        self._private_signing_key = Ed25519PrivateKey.generate()
+        self.public_signing_key = self._private_signing_key.public_key()
+
+        self._pre_key = X25519PrivateKey.generate()
+        pre_key_signature = sign_key(
+            self._private_signing_key, self._pre_key.public_key()
+        )
+        self._one_time_key_pairs = generate_one_time_keys()
+        otk_pack_signature = sign_key_pack(
+            self._private_signing_key, self._one_time_key_pairs.keys()
+        )
+
+        self.key_bundle = NewPreKeyBundle(
+            **{
+                "signed_pre_key": self._pre_key.public_key().public_bytes(
+                    Encoding.Raw, PublicFormat.Raw
+                ),
+                "pre_key_signature": pre_key_signature,
+                "one_time_keys": self._one_time_key_pairs.keys(),
+                "one_time_keys_signature": otk_pack_signature,
+            }
+        )
+
+    def exchange(self, key_bundle: IntroductionMessage):
+        eph_key = X25519PublicKey.from_public_bytes(key_bundle.ephemeral_key)
+        ot_key = self._one_time_key_pairs.pop(key_bundle.one_time_key)
+
+        (self._encryptor, self._decryptor) = half_authenticated_triple_dh_exchange(
+            self._private_signing_key, self._pre_key, eph_key, ot_key
+        )
+
+    def encrypt_message(
+        self, message: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
+        return self._encryptor.encrypt(message, associated_data)
+
+    def decrypt_message(self, message: EncryptedMessage) -> bytes:
+        return self._decryptor.decrypt(message)
 
 
 @autologging.traced
