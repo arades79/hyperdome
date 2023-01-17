@@ -19,7 +19,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-#%%
 import base64
 import functools
 import secrets
@@ -243,22 +242,22 @@ class CounselorKeyring:
         self.public_signing_key = self._private_signing_key.public_key()
 
         self._pre_key = X25519PrivateKey.generate()
-        pre_key_signature = sign_key(
-            self._private_signing_key, self._pre_key.public_key()
-        )
         self._one_time_key_pairs = generate_one_time_keys()
-        otk_pack_signature = sign_key_pack(
-            self._private_signing_key, self._one_time_key_pairs.keys()
-        )
 
-        self.key_bundle = NewPreKeyBundle(
+    @property
+    def pre_key_bundle(self):
+        return NewPreKeyBundle(
             **{
                 "signed_pre_key": self._pre_key.public_key().public_bytes(
                     Encoding.Raw, PublicFormat.Raw
                 ),
-                "pre_key_signature": pre_key_signature,
+                "pre_key_signature": sign_key(
+                    self._private_signing_key, self._pre_key.public_key()
+                ),
                 "one_time_keys": self._one_time_key_pairs.keys(),
-                "one_time_keys_signature": otk_pack_signature,
+                "one_time_keys_signature": sign_key_pack(
+                    self._private_signing_key, self._one_time_key_pairs.keys()
+                ),
             }
         )
 
