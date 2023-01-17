@@ -72,7 +72,7 @@ class KeyExchangeBundle(BaseModel):
     one_time_key: PubKeyBytes = Required
 
 
-class Counselor(BaseModel):
+class CounselorKeys(BaseModel):
     pub_signing_key: PubKeyBytes = Required
     signed_pre_key: PubKeyBytes = Field(b"\x00" * 32)
     pre_key_signature: SignatureBytes = Field(b"\x00" * 64)
