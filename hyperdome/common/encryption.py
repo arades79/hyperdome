@@ -47,10 +47,12 @@ from cryptography.hazmat.primitives.serialization import (
     load_ssh_private_key,
 )
 
-from .key_conversion import (
+from hyperdome.common.key_conversion import (
     x25519_from_ed25519_private_key,
     x25519_from_ed25519_public_key,
 )
+
+from hyperdome.common.schemas import EncryptedMessage, DEFAULT_ENCRYPTION_SCHEME
 
 
 def generate_one_time_keys() -> dict[X25519PublicKey, X25519PrivateKey]:
@@ -125,18 +127,20 @@ class MessageEncryptor:
         self._ratchet = KeyRatchet(initial_key_material)
 
     def encrypt(
-        self, plaintext: bytes, additional_data: bytes | None = None
-    ) -> dict[str, bytes | int]:
+        self, plaintext: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
         nonce = secrets.token_bytes(12)
+        sequence = self._ratchet.counter
         key = ChaCha20Poly1305(self._ratchet.key)
-        ciphertext = key.encrypt(nonce, plaintext, additional_data)
-        message = {
-            "nonce": nonce,
-            "sequence": self._ratchet.counter,
-            "ciphertext": ciphertext,
-            "additional_data": additional_data,
-        }
-        return message
+        ciphertext = key.encrypt(nonce, plaintext, associated_data)
+        return EncryptedMessage(
+            **{
+                "nonce": nonce,
+                "sequence": sequence,
+                "ciphertext": ciphertext,
+                "associated_data": associated_data,
+            }
+        )
 
 
 class MessageDecryptor:
@@ -150,25 +154,21 @@ class MessageDecryptor:
                 self._ratchet.key
             )
 
-    def decrypt(
-        self,
-        nonce: bytes,
-        sequence: int,
-        ciphertext: bytes,
-        associated_data: bytes | None = None,
-    ) -> bytes:
+    def decrypt(self, message: EncryptedMessage) -> bytes:
         counter = self._ratchet.counter
-        if sequence > counter:
-            self._run_ahead(sequence - counter)
+        if message.sequence > counter:
+            self._run_ahead(message.sequence - counter)
 
-        if sequence == counter:
+        if message.sequence == counter:
             key = ChaCha20Poly1305(self._ratchet.key)
-        elif sequence in self._run_ahead_buffer.keys():
-            key = self._run_ahead_buffer.pop(sequence)
+        elif message.sequence in self._run_ahead_buffer.keys():
+            key = self._run_ahead_buffer.pop(message.sequence)
         else:
             raise ValueError("impossible to decrypt message with given sequence")
 
-        plaintext = key.decrypt(nonce, ciphertext, associated_data)
+        plaintext = key.decrypt(
+            message.nonce, message.ciphertext, message.associated_data
+        )
         return plaintext
 
 
