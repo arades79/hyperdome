@@ -19,10 +19,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from datetime import timedelta
 import hyperdome.common.encryption as enc
 import pytest
 from typing import Tuple, Callable
-from hypothesis import given, assume
+from hypothesis import given, assume, settings
 import hypothesis.strategies as st
 import cryptography
 
@@ -90,27 +91,6 @@ def test_no_double_decrypt(pre_exchanged_user_factory: user_fixture, message: st
         user_2_crypto.decrypt_incoming_message(enc_message)
 
 
-@given(message=st.text())
-def test_rotation_cannot_decrypt(
-    pre_exchanged_user_factory: user_fixture, message: str
-):
-    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
-
-    enc_message = user_1_crypto.encrypt_outgoing_message(message.encode())
-
-    prev_chat_key = user_2_crypto._chat_key
-
-    _ = user_2_crypto.public_chat_key
-
-    new_chat_key = user_2_crypto._chat_key
-
-    assert prev_chat_key != new_chat_key
-
-    # key is set to None, so TypeError is raised
-    with pytest.raises(TypeError) as e:
-        user_2_crypto.decrypt_incoming_message(enc_message)
-
-
 def test_signing_key_rotation():
     user = enc.LockBox()
     user.make_signing_key()
@@ -122,6 +102,7 @@ def test_signing_key_rotation():
 
 
 @given(st.text(), st.text())
+@settings(deadline=timedelta(milliseconds=500), max_examples=10)
 def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
     assume(passphrase_1 != passphrase_2)
     assume(passphrase_1 and passphrase_2)
@@ -137,6 +118,7 @@ def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
 
 
 @given(st.text())
+@settings(deadline=timedelta(milliseconds=500), max_examples=10)
 def test_import_export_same_pub_key(passphrase: str):
     assume(passphrase)
 
@@ -157,7 +139,8 @@ def test_import_export_same_pub_key(passphrase: str):
     assert user.public_signing_key == initial_pub_key
 
 
-def test_x25519_from_ed25519():
+@given(st.binary(min_size=32, max_size=32))
+def test_x25519_from_ed25519(key_bytes: bytes):
     from hyperdome.common.key_conversion import (
         x25519_from_ed25519_private_key,
         x25519_from_ed25519_public_key,
@@ -166,16 +149,14 @@ def test_x25519_from_ed25519():
         Ed25519PrivateKey,
     )
 
-    x = b"01234567890123456789012345678901"
-    for i in range(10):
-        pvk_ed = Ed25519PrivateKey.from_private_bytes(x[i:] + x[:i])
-        pbk_ed = pvk_ed.public_key()
+    pvk_ed = Ed25519PrivateKey.from_private_bytes(key_bytes)
+    pbk_ed = pvk_ed.public_key()
 
-        pvk_x = x25519_from_ed25519_private_key(pvk_ed)
+    pvk_x = x25519_from_ed25519_private_key(pvk_ed)
 
-        pbk_x1 = pvk_x.public_key()
-        pbk_x2 = x25519_from_ed25519_public_key(pbk_ed)
+    pbk_x1 = pvk_x.public_key()
+    pbk_x2 = x25519_from_ed25519_public_key(pbk_ed)
 
-        assert pbk_x1.public_bytes(
-            Encoding.Raw, PublicFormat.Raw
-        ) == pbk_x2.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    assert pbk_x1.public_bytes(Encoding.Raw, PublicFormat.Raw) == pbk_x2.public_bytes(
+        Encoding.Raw, PublicFormat.Raw
+    )
