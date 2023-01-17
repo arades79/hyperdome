@@ -22,36 +22,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from datetime import timedelta
 import hyperdome.common.encryption as enc
 import pytest
-from typing import Tuple, Callable
 from hypothesis import given, assume, settings
 import hypothesis.strategies as st
-import cryptography
-
-user_fixture = Callable[[], Tuple[enc.LockBox, enc.LockBox]]
 
 
 @pytest.fixture(scope="module")
-def pre_exchanged_user_factory():
-    def factory():
-        user_1_crypto = enc.LockBox()
-        user_2_crypto = enc.LockBox()
+def pre_exchanged_users():
 
-        user_1_pub_key = user_1_crypto.public_chat_key
-        user_2_pub_key = user_2_crypto.public_chat_key
+    user_1_crypto = enc.LockBox()
+    user_2_crypto = enc.LockBox()
 
-        user_2_crypto.perform_key_exchange(user_1_pub_key, False)
-        user_1_crypto.perform_key_exchange(user_2_pub_key, True)
+    user_1_pub_key = user_1_crypto.public_chat_key
+    user_2_pub_key = user_2_crypto.public_chat_key
 
-        return user_1_crypto, user_2_crypto
+    user_2_crypto.perform_key_exchange(user_1_pub_key, False)
+    user_1_crypto.perform_key_exchange(user_2_pub_key, True)
 
-    return factory
+    return user_1_crypto, user_2_crypto
 
 
 @given(message=st.text())
 def test_encrypt_decrypt_message(
-    pre_exchanged_user_factory: user_fixture, message: str
+    pre_exchanged_users: tuple[enc.LockBox, enc.LockBox], message: str
 ):
-    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
+    user_1_crypto, user_2_crypto = pre_exchanged_users
 
     enc_message_1 = user_1_crypto.encrypt_outgoing_message(message.encode())
     enc_message_2 = user_2_crypto.encrypt_outgoing_message(message.encode())
@@ -65,8 +59,10 @@ def test_encrypt_decrypt_message(
 
 
 @given(message=st.text())
-def test_key_rotation(pre_exchanged_user_factory: user_fixture, message: str):
-    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
+def test_key_rotation(
+    pre_exchanged_users: tuple[enc.LockBox, enc.LockBox], message: str
+):
+    user_1_crypto, user_2_crypto = pre_exchanged_users
 
     sent_message_1 = user_1_crypto.encrypt_outgoing_message(message.encode())
     sent_message_2 = user_1_crypto.encrypt_outgoing_message(message.encode())
@@ -80,14 +76,18 @@ def test_key_rotation(pre_exchanged_user_factory: user_fixture, message: str):
 
 
 @given(message=st.text())
-def test_no_double_decrypt(pre_exchanged_user_factory: user_fixture, message: str):
-    user_1_crypto, user_2_crypto = pre_exchanged_user_factory()
+def test_no_double_decrypt(
+    pre_exchanged_users: tuple[enc.LockBox, enc.LockBox], message: str
+):
+    user_1_crypto, user_2_crypto = pre_exchanged_users
 
     enc_message = user_1_crypto.encrypt_outgoing_message(message.encode())
 
     user_2_crypto.decrypt_incoming_message(enc_message)
 
-    with pytest.raises(cryptography.fernet.InvalidToken) as e:
+    from cryptography.fernet import InvalidToken
+
+    with pytest.raises(InvalidToken) as e:
         user_2_crypto.decrypt_incoming_message(enc_message)
 
 
