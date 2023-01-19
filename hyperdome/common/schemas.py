@@ -102,7 +102,7 @@ class EncryptionScheme(BaseModel):
     version: str = "v1"
     cipher: str = "ChaCha20Poly1305"
     exchange: str = "Ed25519+X25519+X25519"
-    hash: str = "BLAKE2b"
+    hash: str = "Blake2b"
 
 
 DEFAULT_ENCRYPTION_SCHEME = EncryptionScheme()
