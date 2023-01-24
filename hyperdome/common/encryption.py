@@ -93,7 +93,7 @@ class KeyRatchet:
     key_derivation_function = HKDF(
         hashes.BLAKE2b(64),
         64,
-        b"W6RLEX6YE3QHSSYG2LEQC4ZHA2KE4P2N454VKE3M",
+        b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
         b"key ratchet increment",
         default_backend(),
     )
@@ -177,7 +177,7 @@ class HA3DH:
     key_derivation_function = HKDF(
         hashes.BLAKE2b(64),
         64,
-        b"XOJQLFLGGAB4TDAQYLP2F7IRGODG4FWD7RIRSED5",
+        b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
         b"diffie hellman key exchange",
         default_backend(),
     )
