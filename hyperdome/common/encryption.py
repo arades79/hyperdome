@@ -61,26 +61,6 @@ from hyperdome.common.schemas import (
 )
 
 
-def generate_one_time_keys() -> dict[PubKeyBytes, X25519PrivateKey]:
-    key_map = dict()
-    for _ in range(100):
-        key = X25519PrivateKey.generate()
-        key_map[key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)] = key
-    return key_map
-
-
-def sign_key(signing_key: Ed25519PrivateKey, public_key: X25519PublicKey):
-    key_bytes = public_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
-    return signing_key.sign(key_bytes)
-
-
-def sign_key_pack(signing_key: Ed25519PrivateKey, public_keys: Iterable[bytes]):
-    key_bytes = b""
-    for key in public_keys:
-        key_bytes += key
-    return signing_key.sign(key_bytes)
-
-
 class KeyRatchet:
     """
     HKDF key ratchet using blake2b digests generating one-time use 256-bit key material.
@@ -258,7 +238,33 @@ class CounselorKeyring:
         self.public_signing_key = self._private_signing_key.public_key()
 
         self._pre_key = X25519PrivateKey.generate()
-        self._one_time_key_pairs = generate_one_time_keys()
+        self._one_time_key_pairs: dict[PubKeyBytes, X25519PrivateKey] = dict()
+        self._generate_one_time_keys()
+
+    def _generate_one_time_keys(self):
+        for _ in range(100):
+            key = X25519PrivateKey.generate()
+            key_bytes = PubKeyBytes(
+                key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+            )
+            self._one_time_key_pairs[key_bytes] = key
+
+    def sign(self, data: bytes):
+        return self._private_signing_key.sign(data)
+
+    @property
+    def pre_key_signature(self):
+        key_bytes = self._pre_key.public_key().public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        )
+        return self.sign(key_bytes)
+
+    @property
+    def one_time_keys_signature(self):
+        key_bytes = b""
+        for key in self._one_time_key_pairs.keys():
+            key_bytes += key
+        return self.sign(key_bytes)
 
     @property
     def pre_key_bundle(self):
@@ -267,13 +273,9 @@ class CounselorKeyring:
                 "signed_pre_key": self._pre_key.public_key().public_bytes(
                     Encoding.Raw, PublicFormat.Raw
                 ),
-                "pre_key_signature": sign_key(
-                    self._private_signing_key, self._pre_key.public_key()
-                ),
+                "pre_key_signature": self.pre_key_signature,
                 "one_time_keys": self._one_time_key_pairs.keys(),
-                "one_time_keys_signature": sign_key_pack(
-                    self._private_signing_key, self._one_time_key_pairs.keys()
-                ),
+                "one_time_keys_signature": self.one_time_keys_signature,
             }
         )
 
@@ -292,111 +294,3 @@ class CounselorKeyring:
 
     def decrypt_message(self, message: EncryptedMessage) -> bytes:
         return self._decryptor.decrypt(message)
-
-
-@autologging.traced
-@autologging.logged
-class LockBox:
-    """
-    handle key storage, generation, exchange,
-    encryption and decryption
-    """
-
-    _chat_key: X25519PrivateKey
-    _signing_key: Ed25519PrivateKey
-    _send_ratchet_key: bytes = b""
-    _recieve_ratchet_key: bytes = b""
-    _HASH = hashes.BLAKE2b(64)
-    _ENCODING = Encoding.PEM
-    _BACKEND = default_backend()
-    _PUBLIC_FORMAT = PublicFormat.SubjectPublicKeyInfo
-    _PRIVATE_FORMAT = PrivateFormat.PKCS8
-    _RATCHET_KDF = functools.partial(
-        HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
-    )
-
-    __log: autologging.logging.Logger  # helps linter to detect autologging
-
-    def encrypt_outgoing_message(self, message: bytes) -> bytes:
-
-        new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
-        self._send_ratchet_key = new_base_key[:32]
-        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        ciphertext = Fernet(fernet_key).encrypt(message)
-        return ciphertext
-
-    def decrypt_incoming_message(self, message: bytes) -> bytes:
-
-        new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
-        self._recieve_ratchet_key = new_base_key[:32]
-        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        plaintext = Fernet(fernet_key).decrypt(message)
-        return plaintext
-
-    @property
-    def public_chat_key(self) -> bytes:
-        """
-        return a PEM encoded serialized public key digest
-        of a new ephemeral X448 key
-        """
-        self.__log.info("generating new public key")
-        self._send_ratchet_key = b""
-        self._recieve_ratchet_key = b""
-
-        self._chat_key = X25519PrivateKey.generate()
-        pub_key_bytes = self._chat_key.public_key().public_bytes(
-            Encoding.Raw, PublicFormat.Raw
-        )
-        return pub_key_bytes
-
-    @property
-    def public_signing_key(self) -> bytes:
-        """
-        return a PEM encoded serialized public key digest
-        of the ed448 signing key
-        """
-        key = self._signing_key.public_key()
-        key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes
-
-    def perform_key_exchange(self, public_key_bytes: bytes, chirality: bool):
-        """
-        ingest a PEM encoded public key and generate a symmetric key
-        created by a Diffie-Helman key exchange result being passed into
-        a key-derivation and used to create a fernet instance
-        """
-        public_key = X25519PublicKey.from_public_bytes(public_key_bytes)
-
-        shared = self._chat_key.exchange(public_key)
-
-        new_chat_key = self._RATCHET_KDF().derive(shared)
-        if chirality:
-            send_slice = slice(None, 32)
-            recieve_slice = slice(32, None)
-        else:
-            send_slice = slice(32, None)
-            recieve_slice = slice(None, 32)
-        self._send_ratchet_key = new_chat_key[send_slice]
-        self._recieve_ratchet_key = new_chat_key[recieve_slice]
-
-    def make_signing_key(self):
-        self._signing_key = Ed25519PrivateKey.generate()
-
-    def sign_message(self, message: bytes) -> bytes:
-        sig = self._signing_key.sign(message)
-        return sig
-
-    def export_key(self, passphrase: bytes):
-        key_bytes = self._signing_key.private_bytes(
-            Encoding.PEM,
-            PrivateFormat.OpenSSH,
-            BestAvailableEncryption(passphrase),
-        )
-        return key_bytes
-
-    def import_key(self, key_bytes: bytes, passphrase: bytes):
-        key = load_ssh_private_key(key_bytes, passphrase)
-        if isinstance(key, Ed25519PrivateKey):
-            self._signing_key = key
-        else:
-            TypeError("key bytes did not decode to a valid Ed448 private key")
