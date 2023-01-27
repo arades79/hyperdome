@@ -48,7 +48,9 @@ from hyperdome.common.schemas import (
     KeyExchangeBundle,
     IntroductionMessage,
     NewPreKeyBundle,
+    NonceBytes,
     PubKeyBytes,
+    SignatureBytes,
 )
 
 
@@ -105,12 +107,10 @@ class MessageEncryptor:
         key = ChaCha20Poly1305(self._ratchet.key)
         ciphertext = key.encrypt(nonce, plaintext, associated_data)
         return EncryptedMessage(
-            **{
-                "nonce": nonce,
-                "sequence": sequence,
-                "ciphertext": ciphertext,
-                "associated_data": associated_data,
-            }
+            nonce=NonceBytes(nonce),
+            sequence=sequence,
+            ciphertext=ciphertext,
+            associated_data=associated_data,
         )
 
 
@@ -245,11 +245,12 @@ class CounselorKeyring:
         return self._private_signing_key.sign(data)
 
     @property
+    def pre_key_bytes(self):
+        return self._pre_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+
+    @property
     def pre_key_signature(self):
-        key_bytes = self._pre_key.public_key().public_bytes(
-            Encoding.Raw, PublicFormat.Raw
-        )
-        return self.sign(key_bytes)
+        return self.sign(self.pre_key_bytes)
 
     @property
     def one_time_keys_signature(self):
@@ -261,14 +262,10 @@ class CounselorKeyring:
     @property
     def pre_key_bundle(self):
         return NewPreKeyBundle(
-            **{
-                "signed_pre_key": self._pre_key.public_key().public_bytes(
-                    Encoding.Raw, PublicFormat.Raw
-                ),
-                "pre_key_signature": self.pre_key_signature,
-                "one_time_keys": self._one_time_key_pairs.keys(),
-                "one_time_keys_signature": self.one_time_keys_signature,
-            }
+            signed_pre_key=PubKeyBytes(self.pre_key_bytes),
+            pre_key_signature=SignatureBytes(self.pre_key_signature),
+            one_time_keys=[PubKeyBytes(key) for key in self._one_time_key_pairs.keys()],
+            one_time_keys_signature=SignatureBytes(self.one_time_keys_signature),
         )
 
     def exchange(self, key_bundle: IntroductionMessage):
