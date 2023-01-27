@@ -19,13 +19,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import base64
-import functools
 import secrets
-from typing import Iterable
 
-import autologging
-from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -39,11 +34,8 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
 )
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import (
-    BestAvailableEncryption,
     Encoding,
-    PrivateFormat,
     PublicFormat,
-    load_ssh_private_key,
 )
 
 from hyperdome.common.key_conversion import (
@@ -53,7 +45,6 @@ from hyperdome.common.key_conversion import (
 
 from hyperdome.common.schemas import (
     EncryptedMessage,
-    DEFAULT_ENCRYPTION_SCHEME,
     KeyExchangeBundle,
     IntroductionMessage,
     NewPreKeyBundle,
@@ -67,7 +58,7 @@ class KeyRatchet:
 
     This construct should only be initialized with bytes suitable for key material.
 
-    This construct just handles key generation, encryption/decryption must be handled separately.
+    This construct only does key management, not encryption/decryption.
     """
 
     key_derivation_function = HKDF(
@@ -213,7 +204,8 @@ class GuestKeyring:
     def exchange(self, key_bundle: KeyExchangeBundle):
         if self._private_key is None:
             raise ValueError(
-                "Guest keyring was already used to exchange!\nGuest keys are one time use, a new GuestKeyring must be generated for each exchange"
+                "Guest keyring was already used to exchange!\n"
+                "A new GuestKeyring must be generated for each exchange"
             )
         cid_key = Ed25519PublicKey.from_public_bytes(key_bundle.pub_signing_key)
         csp_key = X25519PublicKey.from_public_bytes(key_bundle.signed_pre_key)
