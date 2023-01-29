@@ -53,7 +53,7 @@ def pre_exchanged_users() -> UserPair:
         enc.IntroductionMessage(ephemeral_key=eph_key, one_time_key=ot_key)
     )
     guest.exchange(
-        KeyExchangeBundle(
+        enc.KeyExchangeBundle(
             one_time_key=ot_key,
             pre_key_signature=key_bundle.pre_key_signature,
             signed_pre_key=key_bundle.signed_pre_key,
