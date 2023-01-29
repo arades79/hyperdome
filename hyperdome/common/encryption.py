@@ -36,6 +36,9 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     PublicFormat,
+    PrivateFormat,
+    load_ssh_private_key,
+    BestAvailableEncryption,
 )
 
 from hyperdome.common.key_conversion import (
@@ -220,8 +223,21 @@ class GuestKeyring:
 
 
 class CounselorKeyring:
-    def __init__(self) -> None:
-        self._private_signing_key = Ed25519PrivateKey.generate()
+    def __init__(
+        self,
+        encrypted_private_key: bytes | None = None,
+        key_passphrase: bytes | None = None,
+    ) -> None:
+        if isinstance(encrypted_private_key, bytes) and isinstance(
+            key_passphrase, bytes
+        ):
+            decrypted_key = load_ssh_private_key(encrypted_private_key, key_passphrase)
+            if not isinstance(decrypted_key, Ed25519PrivateKey):
+                raise TypeError("encrypted key was not Ed25519! Unsupported key type")
+            self._private_signing_key = decrypted_key
+        else:
+            self._private_signing_key = Ed25519PrivateKey.generate()
+
         self.public_signing_key = self._private_signing_key.public_key()
 
         self._pre_key = X25519PrivateKey.generate()
@@ -278,3 +294,8 @@ class CounselorKeyring:
 
     def decrypt_message(self, message: EncryptedMessage) -> bytes:
         return self._decryptor.decrypt(message)
+
+    def export_private_key(self, passphrase: bytes):
+        return self._private_signing_key.private_bytes(
+            Encoding.PEM, PrivateFormat.OpenSSH, BestAvailableEncryption(passphrase)
+        )
