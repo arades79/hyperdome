@@ -26,9 +26,6 @@ import pytest
 from hypothesis import given, assume, settings
 import hypothesis.strategies as st
 
-from hyperdome.common.schemas import KeyExchangeBundle, PubKeyBytes
-
-
 UserPair = tuple[enc.GuestKeyring, enc.CounselorKeyring]
 
 
@@ -39,7 +36,7 @@ def pre_exchanged_users() -> UserPair:
     counselor = enc.CounselorKeyring()
 
     key_bundle = counselor.pre_key_bundle
-    pub_signing_key = PubKeyBytes(
+    pub_signing_key = enc.PubKeyBytes(
         counselor.public_signing_key.public_bytes(
             enc.Encoding.Raw, enc.PublicFormat.Raw
         )
