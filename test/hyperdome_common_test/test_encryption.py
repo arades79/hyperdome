@@ -125,42 +125,38 @@ def test_out_of_order_recieve(
     assert counselor.decrypt_message(enc_message_2) == message_2.encode()
 
 
-# @given(st.text(), st.text())
-# @settings(deadline=timedelta(milliseconds=500), max_examples=10)
-# def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
-#     assume(passphrase_1 != passphrase_2)
-#     assume(passphrase_1 and passphrase_2)
-#     user = enc.LockBox()
-#     user.make_signing_key()
+@given(st.text(), st.text())
+@settings(deadline=timedelta(milliseconds=500), max_examples=10)
+def test_other_passphrases_cannot_import(passphrase_1: str, passphrase_2: str):
+    assume(passphrase_1 != passphrase_2)
+    assume(passphrase_1 and passphrase_2)
+    counselor = enc.CounselorKeyring()
 
-#     user_key = user.export_key(passphrase_1.encode())
+    exported_key = counselor.export_private_key(passphrase_1.encode())
 
-#     with pytest.raises(ValueError) as _:
-#         user.import_key(user_key, passphrase_2.encode())
-
-#     user.import_key(user_key, passphrase_1.encode())
+    with pytest.raises(ValueError) as _:
+        enc.CounselorKeyring(exported_key, passphrase_2.encode())
 
 
-# @given(st.text())
-# @settings(deadline=timedelta(milliseconds=500), max_examples=10)
-# def test_import_export_same_pub_key(passphrase: str):
-#     assume(passphrase)
+@given(st.text())
+@settings(deadline=timedelta(milliseconds=500), max_examples=10)
+def test_import_export_same_pub_key(passphrase: str):
+    assume(passphrase)
 
-#     passphrase_bytes = passphrase.encode()
+    counselor = enc.CounselorKeyring()
 
-#     user = enc.LockBox()
-#     user.make_signing_key()
-#     initial_pub_key = user.public_signing_key
+    exported_key = counselor.export_private_key(passphrase.encode())
 
-#     exported_key = user.export_key(passphrase_bytes)
+    counselor_2 = enc.CounselorKeyring(exported_key, passphrase.encode())
 
-#     user.make_signing_key()
+    counselor_1_key_bytes = counselor.public_signing_key.public_bytes(
+        enc.Encoding.Raw, enc.PublicFormat.Raw
+    )
+    counselor_2_key_bytes = counselor_2.public_signing_key.public_bytes(
+        enc.Encoding.Raw, enc.PublicFormat.Raw
+    )
 
-#     assert user.public_signing_key != initial_pub_key
-
-#     user.import_key(exported_key, passphrase_bytes)
-
-#     assert user.public_signing_key == initial_pub_key
+    assert counselor_1_key_bytes == counselor_2_key_bytes
 
 
 @given(st.binary(min_size=32, max_size=32))
