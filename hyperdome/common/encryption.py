@@ -63,23 +63,22 @@ class KeyRatchet:
     This construct only does key management, not encryption/decryption.
     """
 
-    key_derivation_function = HKDF(
-        hashes.BLAKE2b(64),
-        64,
-        b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
-        b"key ratchet increment",
-        default_backend(),
-    )
-
     def __init__(self, initial_key_material: bytes):
         if len(initial_key_material) != 32:
             raise ValueError("initial key material must be 32 bytes")
         self._kdf_key = initial_key_material
-        self._increment()
         self._counter: int = 0
+        self._increment()
 
     def _increment(self):
-        new_key_bytes = self.key_derivation_function.derive(self._kdf_key)
+        key_derivation_function = HKDF(
+            hashes.BLAKE2b(64),
+            64,
+            b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
+            b"key ratchet increment",
+            default_backend(),
+        )
+        new_key_bytes = key_derivation_function.derive(self._kdf_key)
         self._kdf_key = new_key_bytes[32:]
         self._enc_key = new_key_bytes[:32]
         self._counter += 1
@@ -119,16 +118,14 @@ class MessageDecryptor:
         self._ratchet = KeyRatchet(initial_key_material)
         self._run_ahead_buffer: dict[int, ChaCha20Poly1305] = dict()
 
-    def _run_ahead(self, iterations: int):
-        for _ in range(iterations):
-            self._run_ahead_buffer[self._ratchet.counter] = ChaCha20Poly1305(
-                self._ratchet.key
-            )
+    def _run_ahead(self, sequence: int):
+        for i in range(self._ratchet.counter, sequence + 1):
+            self._run_ahead_buffer[i] = ChaCha20Poly1305(self._ratchet.key)
 
     def decrypt(self, message: EncryptedMessage) -> bytes:
         counter = self._ratchet.counter
         if message.sequence > counter:
-            self._run_ahead(message.sequence - counter)
+            self._run_ahead(message.sequence)
 
         if message.sequence == counter:
             key = ChaCha20Poly1305(self._ratchet.key)
@@ -144,15 +141,6 @@ class MessageDecryptor:
 
 
 class HA3DH:
-
-    key_derivation_function = HKDF(
-        hashes.BLAKE2b(64),
-        64,
-        b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
-        b"diffie hellman key exchange",
-        default_backend(),
-    )
-
     @staticmethod
     def exchange(
         cid_key: Ed25519PublicKey | Ed25519PrivateKey,
@@ -190,7 +178,14 @@ class HA3DH:
             recv_slice = slice(None, 32)
         else:
             raise TypeError("public/private key mismatch")
-        shared_secret = HA3DH.key_derivation_function.derive(dh1 + dh2 + dh3)
+        key_derivation_function = HKDF(
+            hashes.BLAKE2b(64),
+            64,
+            b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
+            b"diffie hellman key exchange",
+            default_backend(),
+        )
+        shared_secret = key_derivation_function.derive(dh1 + dh2 + dh3)
         send_ratchet = MessageEncryptor(shared_secret[send_slice])
         recv_ratchet = MessageDecryptor(shared_secret[recv_slice])
         return (send_ratchet, recv_ratchet)
