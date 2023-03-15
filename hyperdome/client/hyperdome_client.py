@@ -24,6 +24,11 @@ import typing
 from PyQt5 import QtCore, QtGui, QtWidgets
 import autologging
 import requests
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkProxy,
+    QNetworkProxyFactory,
+)
 
 from hyperdome.common.common import Settings
 
@@ -83,9 +88,9 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.load_servers()
         self.server: Server = Server()
         self.is_connected: bool = False
-        self._session: requests.Session | None = None
-        self.crypt = encryption.LockBox()
+        self._session: QNetworkAccessManager | None = None
         self.client: api.HyperdomeClientApi | None = None
+        self.crypt: encryption.CounselorKeyring | encryption.GuestKeyring | None = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -250,7 +255,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             if isinstance(error.args[0], str)
             else "no error description provided"
         )
-        self.__log.debug(f"Received error from task, set logging to TRACE for info")
+        self.__log.debug("Received error from task, set logging to TRACE for info")
         self.__log.log(0, "exception details:", exc_info=True)
         if self.error_window.isActiveWindow():
             self.error_window.setFocus()
@@ -264,13 +269,14 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         Ensures proxy isn't attempted until tor circuit established.
         """
         if self._session is None:
-            self._session = requests.Session()
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
-                self._session.proxies = {
-                    "http": f"socks5h://{socks_address}:{socks_port}",
-                    "https": f"socks5h://{socks_address}:{socks_port}",
-                }
+                QNetworkProxy.setApplicationProxy(
+                    QNetworkProxy(
+                        QNetworkProxy.ProxyType.Socks5Proxy, socks_address, socks_port
+                    )
+                )
+                self._session = QNetworkAccessManager(self)
         return self._session
 
     def server_switcher(self):
