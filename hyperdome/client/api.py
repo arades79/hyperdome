@@ -130,8 +130,7 @@ class HyperdomeClientApi:
         """
         collect new messages waiting on server for active session
         """
-        request = QNetworkRequest(QUrl(f"{self.server.url}/collect_messages"))
-        data = json.dumps({"user_id": uid}).encode()
+        request = QNetworkRequest(QUrl(f"{self.server.url}/collect_messages/{uid}"))
 
         @response_handler
         def handler(body: str):
@@ -184,8 +183,7 @@ class HyperdomeClientApi:
         self.session.get(request).finished.connect(handler)
 
     def get_guest_pub_key(self, callback: Callable[[str], None], uid: str):
-        request = QNetworkRequest(QUrl(f"{self.server.url}/poll_connected_guest"))
-        data = json.dumps({"counselor_id": uid}).encode()
+        request = QNetworkRequest(QUrl(f"{self.server.url}/poll_connected_guest/{uid}"))
 
         @response_handler
         def handler(body: str):

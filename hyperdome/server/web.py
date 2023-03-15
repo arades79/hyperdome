@@ -69,8 +69,8 @@ def request_counselor(guest_id: str = Form(), pub_key: str = Form()):
     return counselor_key
 
 
-@app.get("/poll_connected_guest")
-def poll_connected_guest(counselor_id: str = Form()):
+@app.get("/poll_connected_guest/{counselor_id}")
+def poll_connected_guest(counselor_id: str):
     guest_key = guest_keys.pop(counselor_id, "")
     return guest_key
 
@@ -159,8 +159,8 @@ def message_from_user(message: str = Form(), user_id: str = Form()):
     return "Success"
 
 
-@app.get("/collect_messages")
-def collect_messages(user_id: str = Form()):
+@app.get("/collect_messages/{user_id}")
+def collect_messages(user_id: str):
     messages: str = ""
     try:
         message_queue = active_chats[user_id]
