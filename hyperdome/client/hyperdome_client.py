@@ -27,16 +27,15 @@ import requests
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
     QNetworkProxy,
-    QNetworkProxyFactory,
 )
 
 from hyperdome.common.common import Settings
+from hyperdome.common import strings
+from hyperdome.common.encryption import CounselorKeyring, GuestKeyring
+from hyperdome.common.common import resource_path
+from hyperdome.common.server import Server
 
 from . import api, tasks
-from ..common import strings
-from ..common import encryption
-from ..common.common import resource_path
-from ..common.server import Server
 from .add_server_dialog import AddServerDialog
 from .settings_dialog import SettingsDialog
 from .tor_connection_dialog import TorConnectionDialog
@@ -90,7 +89,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.is_connected: bool = False
         self._session: QNetworkAccessManager | None = None
         self.client: api.HyperdomeClientApi | None = None
-        self.crypt: encryption.CounselorKeyring | encryption.GuestKeyring | None = None
+        self.crypt: CounselorKeyring | GuestKeyring | None = None
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -194,7 +193,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not (self.is_connected or self.uid) or self.client is None:
             return self.handle_error(Exception("not in an active chat"))
 
-        enc_message = self.crypt.encrypt_outgoing_message(message)
+        enc_message = self.crypt.encrypt_message(message.encode())
         send_message_task = tasks.QtTask(
             self.client.send_message, self.partner_key, enc_message
         )
@@ -214,7 +213,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         sender_name = "User" if self.server.is_counselor else "Counselor"
         message_list = [
-            f"{sender_name}: {self.crypt.decrypt_incoming_message(message)}"
+            f"{sender_name}: {self.crypt.decrypt_message(message)}"
             for message in messages.split("\n")
             if message
         ]
