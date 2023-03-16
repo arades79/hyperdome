@@ -19,11 +19,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
-import typing
+import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-import autologging
-import requests
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
     QNetworkProxy,
@@ -31,23 +29,24 @@ from PyQt5.QtNetwork import (
 
 from hyperdome.common.common import Settings
 from hyperdome.common import strings
-from hyperdome.common.encryption import CounselorKeyring, GuestKeyring
 from hyperdome.common.common import resource_path
+from hyperdome.common.old_encryption import LockBox
 from hyperdome.common.server import Server
 
-from . import api, tasks
+from . import api
 from .add_server_dialog import AddServerDialog
 from .settings_dialog import SettingsDialog
 from .tor_connection_dialog import TorConnectionDialog
 from .widgets import Alert
 
 
-@autologging.logged
 class HyperdomeClient(QtWidgets.QMainWindow):
     """
     hyperdome is the main window for the GUI that contains all of the
     GUI elements.
     """
+
+    __log = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -87,9 +86,8 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         self.load_servers()
         self.server: Server = Server()
         self.is_connected: bool = False
-        self._session: QNetworkAccessManager | None = None
         self.client: api.HyperdomeClientApi | None = None
-        self.crypt: CounselorKeyring | GuestKeyring | None = None
+        self.crypt = LockBox()
 
         # Load settings, if a custom config was passed in
         self.config = config
@@ -193,15 +191,13 @@ class HyperdomeClient(QtWidgets.QMainWindow):
         if not (self.is_connected or self.uid) or self.client is None:
             return self.handle_error(Exception("not in an active chat"))
 
-        enc_message = self.crypt.encrypt_message(message.encode())
-        send_message_task = tasks.QtTask(
-            self.client.send_message, self.partner_key, enc_message
-        )
+        enc_message = self.crypt.encrypt_outgoing_message(message.encode())
 
-        @tasks.run_after_task(send_message_task, error_handler=self.handle_error)
-        @QtCore.pyqtSlot(object)
-        def message_send_success(_):
-            self.__log.debug("message sent successfully")
+        self.client.send_message(
+            lambda: self.__log.debug("message sent successfully"),
+            self.uid,
+            enc_message,
+        )
 
         self.chat_window.addItem(f"You: {message}")
 
@@ -213,7 +209,7 @@ class HyperdomeClient(QtWidgets.QMainWindow):
 
         sender_name = "User" if self.server.is_counselor else "Counselor"
         message_list = [
-            f"{sender_name}: {self.crypt.decrypt_message(message)}"
+            f"{sender_name}: {self.crypt.decrypt_incoming_message(message.encode())}"
             for message in messages.split("\n")
             if message
         ]
@@ -262,12 +258,12 @@ class HyperdomeClient(QtWidgets.QMainWindow):
             self.error_window.exec_()
 
     @property
-    def session(self):
+    def session(self) -> QNetworkAccessManager:
         """
         Lazy getter for tor proxy session.
         Ensures proxy isn't attempted until tor circuit established.
         """
-        if self._session is None:
+        if not hasattr(self, "_session"):
             if self.onion.is_authenticated():
                 socks_address, socks_port = self.onion.get_tor_socks_port()
                 QNetworkProxy.setApplicationProxy(
