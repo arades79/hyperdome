@@ -19,129 +19,283 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# considering using pyca/cryptography instead
-import base64
-import functools
+import secrets
 
-import autologging
-from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
-from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.x25519 import (
+    X25519PrivateKey,
+    X25519PublicKey,
+)
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-import cryptography.hazmat.primitives.serialization as serial
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PublicFormat,
+    PrivateFormat,
+    load_ssh_private_key,
+    BestAvailableEncryption,
+)
 
-from .types import arg_to_bytes, bstr
+from hyperdome.common.key_conversion import (
+    x25519_from_ed25519_private_key,
+    x25519_from_ed25519_public_key,
+)
+
+from hyperdome.common.schemas import (
+    EncryptedMessage,
+    KeyExchangeBundle,
+    IntroductionMessage,
+    NewPreKeyBundle,
+    NonceBytes,
+    PubKeyBytes,
+    SignatureBytes,
+)
 
 
-@autologging.traced
-@autologging.logged
-class LockBox:
+class KeyRatchet:
     """
-    handle key storage, generation, exchange,
-    encryption and decryption
+    HKDF key ratchet using blake2b digests generating one-time use 256-bit key material.
+
+    This construct should only be initialized with bytes suitable for key material.
+
+    This construct only does key management, not encryption/decryption.
     """
 
-    _chat_key = None
-    _signing_key = None
-    _send_ratchet_key = None
-    _recieve_ratchet_key = None
-    _HASH = hashes.SHA3_512()
-    _ENCODING = serial.Encoding.PEM
-    _BACKEND = default_backend()
-    _PUBLIC_FORMAT = serial.PublicFormat.SubjectPublicKeyInfo
-    _PRIVATE_FORMAT = serial.PrivateFormat.PKCS8
-    _RATCHET_KDF = functools.partial(
-        HKDF, _HASH, 64, salt=None, info=b"ratchet increment", backend=_BACKEND
-    )
+    def __init__(self, initial_key_material: bytes):
+        if len(initial_key_material) != 32:
+            raise ValueError("initial key material must be 32 bytes")
+        self._kdf_key = initial_key_material
+        self._counter: int = 0
+        self._increment()
 
-    __log: autologging.logging.Logger  # helps linter to detect autologging
-
-    @arg_to_bytes
-    def encrypt_outgoing_message(self, message: bstr) -> str:
-
-        new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
-        self._send_ratchet_key = new_base_key[:32]
-        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        ciphertext = Fernet(fernet_key).encrypt(message)
-        return ciphertext.decode("utf-8")
-
-    @arg_to_bytes
-    def decrypt_incoming_message(self, message: bstr) -> str:
-
-        new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
-        self._recieve_ratchet_key = new_base_key[:32]
-        fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
-        plaintext = Fernet(fernet_key).decrypt(message)
-        return plaintext.decode("utf-8")
-
-    @property
-    def public_chat_key(self) -> str:
-        """
-        return a PEM encoded serialized public key digest
-        of a new ephemeral X448 key
-        """
-        self.__log.info("generating new public key")
-        self._send_ratchet_key = None
-        self._recieve_ratchet_key = None
-
-        self._chat_key = X448PrivateKey.generate()
-        pub_key_bytes = self._chat_key.public_key().public_bytes(
-            self._ENCODING, self._PUBLIC_FORMAT
+    def _increment(self):
+        key_derivation_function = HKDF(
+            hashes.BLAKE2b(64),
+            64,
+            b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
+            b"key ratchet increment",
+            default_backend(),
         )
-        return pub_key_bytes.decode("utf-8")
+        new_key_bytes = key_derivation_function.derive(self._kdf_key)
+        self._kdf_key = new_key_bytes[32:]
+        self._enc_key = new_key_bytes[:32]
+        self._counter += 1
 
     @property
-    def public_signing_key(self) -> str:
-        """
-        return a PEM encoded serialized public key digest
-        of the ed448 signing key
-        """
-        key = self._signing_key.public_key()
-        key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
-        return key_bytes.decode("utf-8")
+    def key(self):
+        ret_key = self._enc_key
+        self._increment()
+        return ret_key
 
-    @arg_to_bytes
-    def perform_key_exchange(self, public_key_bytes: bstr, chirality: bool):
-        """
-        ingest a PEM encoded public key and generate a symmetric key
-        created by a Diffie-Helman key exchange result being passed into
-        a key-derivation and used to create a fernet instance
-        """
-        public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
-        shared = self._chat_key.exchange(public_key)
-        # TODO consider customizing symmetric encryption for larger key or authentication
-        new_chat_key = self._RATCHET_KDF().derive(shared)
-        if chirality:
-            send_slice = slice(None, 32)
-            recieve_slice = slice(32, None)
+    @property
+    def counter(self):
+        return self._counter
+
+
+class MessageEncryptor:
+    def __init__(self, initial_key_material: bytes):
+        self._ratchet = KeyRatchet(initial_key_material)
+
+    def encrypt(
+        self, plaintext: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
+        nonce = secrets.token_bytes(12)
+        sequence = self._ratchet.counter
+        key = ChaCha20Poly1305(self._ratchet.key)
+        ciphertext = key.encrypt(nonce, plaintext, associated_data)
+        return EncryptedMessage(
+            nonce=NonceBytes(nonce),
+            sequence=sequence,
+            ciphertext=ciphertext,
+            associated_data=associated_data,
+        )
+
+
+class MessageDecryptor:
+    def __init__(self, initial_key_material: bytes):
+        self._ratchet = KeyRatchet(initial_key_material)
+        self._run_ahead_buffer: dict[int, ChaCha20Poly1305] = dict()
+
+    def _run_ahead(self, sequence: int):
+        for i in range(self._ratchet.counter, sequence + 1):
+            self._run_ahead_buffer[i] = ChaCha20Poly1305(self._ratchet.key)
+
+    def decrypt(self, message: EncryptedMessage) -> bytes:
+        counter = self._ratchet.counter
+        if message.sequence > counter:
+            self._run_ahead(message.sequence)
+
+        if message.sequence == counter:
+            key = ChaCha20Poly1305(self._ratchet.key)
+        elif message.sequence in self._run_ahead_buffer.keys():
+            key = self._run_ahead_buffer.pop(message.sequence)
         else:
-            send_slice = slice(32, None)
-            recieve_slice = slice(None, 32)
-        self._send_ratchet_key = new_chat_key[send_slice]
-        self._recieve_ratchet_key = new_chat_key[recieve_slice]
+            raise ValueError("impossible to decrypt message with given sequence")
 
-    def make_signing_key(self):
-        self._signing_key = Ed448PrivateKey.generate()
-
-    @arg_to_bytes
-    def sign_message(self, message: bstr) -> str:
-        sig = self._signing_key.sign(message)
-        return base64.urlsafe_b64encode(sig).decode("utf-8")
-
-    @arg_to_bytes
-    def export_key(self, passphrase: bstr):
-        key_bytes = self._signing_key.private_bytes(
-            self._ENCODING,
-            self._PRIVATE_FORMAT,
-            serial.BestAvailableEncryption(passphrase),
+        plaintext = key.decrypt(
+            message.nonce, message.ciphertext, message.associated_data
         )
-        return base64.urlsafe_b64encode(key_bytes).decode("utf-8")
+        return plaintext
 
-    @arg_to_bytes
-    def import_key(self, key_bytes: bstr, passphrase: bstr):
-        key_bytes = base64.urlsafe_b64decode(key_bytes)
-        self._signing_key = serial.load_pem_private_key(
-            key_bytes, passphrase, self._BACKEND
+
+class HA3DH:
+    @staticmethod
+    def exchange(
+        cid_key: Ed25519PublicKey | Ed25519PrivateKey,
+        csp_key: X25519PrivateKey | X25519PublicKey,
+        eph_key: X25519PublicKey | X25519PrivateKey,
+        ot_key: X25519PrivateKey | X25519PublicKey,
+        csp_sig: bytes | None = None,
+    ) -> tuple[MessageEncryptor, MessageDecryptor]:
+        if (
+            isinstance(cid_key, Ed25519PrivateKey)
+            and csp_sig is None
+            and isinstance(csp_key, X25519PrivateKey)
+            and isinstance(eph_key, X25519PublicKey)
+            and isinstance(ot_key, X25519PrivateKey)
+        ):
+            dh1 = x25519_from_ed25519_private_key(cid_key).exchange(eph_key)
+            dh2 = csp_key.exchange(eph_key)
+            dh3 = ot_key.exchange(eph_key)
+            send_slice = slice(None, 32)
+            recv_slice = slice(32, None)
+        elif (
+            isinstance(cid_key, Ed25519PublicKey)
+            and isinstance(csp_sig, bytes)
+            and isinstance(eph_key, X25519PrivateKey)
+            and isinstance(csp_key, X25519PublicKey)
+            and isinstance(ot_key, X25519PublicKey)
+        ):
+            cid_key.verify(
+                csp_sig, csp_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
+            )
+            dh1 = eph_key.exchange(x25519_from_ed25519_public_key(cid_key))
+            dh2 = eph_key.exchange(csp_key)
+            dh3 = eph_key.exchange(ot_key)
+            send_slice = slice(32, None)
+            recv_slice = slice(None, 32)
+        else:
+            raise TypeError("public/private key mismatch")
+        key_derivation_function = HKDF(
+            hashes.BLAKE2b(64),
+            64,
+            b"g9V1g/blZmlPV1wXTxwTWRokO5HCvLOY",
+            b"diffie hellman key exchange",
+            default_backend(),
+        )
+        shared_secret = key_derivation_function.derive(dh1 + dh2 + dh3)
+        send_ratchet = MessageEncryptor(shared_secret[send_slice])
+        recv_ratchet = MessageDecryptor(shared_secret[recv_slice])
+        return (send_ratchet, recv_ratchet)
+
+
+class GuestKeyring:
+    def __init__(self):
+        self._private_key = X25519PrivateKey.generate()
+        self.public_key = self._private_key.public_key()
+
+    def exchange(self, key_bundle: KeyExchangeBundle):
+        if self._private_key is None:
+            raise ValueError(
+                "Guest keyring was already used to exchange!\n"
+                "A new GuestKeyring must be generated for each exchange"
+            )
+        cid_key = Ed25519PublicKey.from_public_bytes(key_bundle.pub_signing_key)
+        csp_key = X25519PublicKey.from_public_bytes(key_bundle.signed_pre_key)
+        ot_key = X25519PublicKey.from_public_bytes(key_bundle.one_time_key)
+        (self._encryptor, self._decryptor) = HA3DH.exchange(
+            cid_key, csp_key, self._private_key, ot_key, key_bundle.pre_key_signature
+        )
+        self._private_key = None
+
+    def encrypt_message(
+        self, message: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
+        return self._encryptor.encrypt(message, associated_data)
+
+    def decrypt_message(self, message: EncryptedMessage) -> bytes:
+        return self._decryptor.decrypt(message)
+
+
+class CounselorKeyring:
+    def __init__(
+        self,
+        encrypted_private_key: bytes | None = None,
+        key_passphrase: bytes | None = None,
+    ) -> None:
+        if isinstance(encrypted_private_key, bytes) and isinstance(
+            key_passphrase, bytes
+        ):
+            decrypted_key = load_ssh_private_key(encrypted_private_key, key_passphrase)
+            if not isinstance(decrypted_key, Ed25519PrivateKey):
+                raise TypeError("encrypted key was not Ed25519! Unsupported key type")
+            self._private_signing_key = decrypted_key
+        else:
+            self._private_signing_key = Ed25519PrivateKey.generate()
+
+        self.public_signing_key = self._private_signing_key.public_key()
+
+        self._pre_key = X25519PrivateKey.generate()
+        self._one_time_key_pairs: dict[PubKeyBytes, X25519PrivateKey] = dict()
+        self._generate_one_time_keys()
+
+    def _generate_one_time_keys(self):
+        for _ in range(100):
+            key = X25519PrivateKey.generate()
+            key_bytes = PubKeyBytes(
+                key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+            )
+            self._one_time_key_pairs[key_bytes] = key
+
+    def sign(self, data: bytes):
+        return self._private_signing_key.sign(data)
+
+    @property
+    def pre_key_bytes(self):
+        return self._pre_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+
+    @property
+    def pre_key_signature(self):
+        return self.sign(self.pre_key_bytes)
+
+    @property
+    def one_time_keys_signature(self):
+        key_bytes = b""
+        for key in self._one_time_key_pairs.keys():
+            key_bytes += key
+        return self.sign(key_bytes)
+
+    @property
+    def pre_key_bundle(self):
+        return NewPreKeyBundle(
+            signed_pre_key=PubKeyBytes(self.pre_key_bytes),
+            pre_key_signature=SignatureBytes(self.pre_key_signature),
+            one_time_keys=[PubKeyBytes(key) for key in self._one_time_key_pairs.keys()],
+            one_time_keys_signature=SignatureBytes(self.one_time_keys_signature),
+        )
+
+    def exchange(self, key_bundle: IntroductionMessage):
+        eph_key = X25519PublicKey.from_public_bytes(key_bundle.ephemeral_key)
+        ot_key = self._one_time_key_pairs.pop(key_bundle.one_time_key)
+
+        (self._encryptor, self._decryptor) = HA3DH.exchange(
+            self._private_signing_key, self._pre_key, eph_key, ot_key
+        )
+
+    def encrypt_message(
+        self, message: bytes, associated_data: bytes | None = None
+    ) -> EncryptedMessage:
+        return self._encryptor.encrypt(message, associated_data)
+
+    def decrypt_message(self, message: EncryptedMessage) -> bytes:
+        return self._decryptor.decrypt(message)
+
+    def export_private_key(self, passphrase: bytes):
+        return self._private_signing_key.private_bytes(
+            Encoding.PEM, PrivateFormat.OpenSSH, BestAvailableEncryption(passphrase)
         )
