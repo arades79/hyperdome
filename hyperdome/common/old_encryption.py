@@ -6,8 +6,10 @@ import logging
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
-from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed448 import (
+    Ed448PrivateKey,
+)
+from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey, X448PublicKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 import cryptography.hazmat.primitives.serialization as serial
 
@@ -36,7 +38,7 @@ class LockBox:
         self._recieve_ratchet_key = None
 
     def encrypt_outgoing_message(self, message: bytes) -> str:
-
+        assert self._send_ratchet_key
         new_base_key = self._RATCHET_KDF().derive(self._send_ratchet_key)
         self._send_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
@@ -44,7 +46,7 @@ class LockBox:
         return ciphertext.decode("utf-8")
 
     def decrypt_incoming_message(self, message: bytes) -> str:
-
+        assert self._recieve_ratchet_key
         new_base_key = self._RATCHET_KDF().derive(self._recieve_ratchet_key)
         self._recieve_ratchet_key = new_base_key[:32]
         fernet_key = base64.urlsafe_b64encode(new_base_key[32:])
@@ -73,6 +75,7 @@ class LockBox:
         return a PEM encoded serialized public key digest
         of the ed448 signing key
         """
+        assert self._signing_key
         key = self._signing_key.public_key()
         key_bytes = key.public_bytes(self._ENCODING, self._PUBLIC_FORMAT)
         return key_bytes.decode("utf-8")
@@ -84,8 +87,9 @@ class LockBox:
         a key-derivation and used to create a fernet instance
         """
         public_key = serial.load_pem_public_key(public_key_bytes, self._BACKEND)
+        if self._chat_key is None or not isinstance(public_key, X448PublicKey):
+            return
         shared = self._chat_key.exchange(public_key)
-        # TODO consider customizing symmetric encryption for larger key or authentication
         new_chat_key = self._RATCHET_KDF().derive(shared)
         if chirality:
             send_slice = slice(None, 32)
@@ -100,10 +104,12 @@ class LockBox:
         self._signing_key = Ed448PrivateKey.generate()
 
     def sign_message(self, message: bytes) -> str:
+        assert isinstance(self._signing_key, Ed448PrivateKey)
         sig = self._signing_key.sign(message)
         return base64.urlsafe_b64encode(sig).decode("utf-8")
 
     def export_key(self, passphrase: bytes):
+        assert self._signing_key
         key_bytes = self._signing_key.private_bytes(
             self._ENCODING,
             self._PRIVATE_FORMAT,
@@ -116,3 +122,4 @@ class LockBox:
         self._signing_key = serial.load_pem_private_key(
             key_bytes, passphrase, self._BACKEND
         )
+        assert isinstance(self._signing_key, Ed448PrivateKey)
