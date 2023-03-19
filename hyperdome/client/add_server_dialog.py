@@ -19,22 +19,23 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import logging
 from PyQt5 import QtCore, QtGui, QtWidgets
-import autologging
 
-from . import tasks, api
 from ..common.common import resource_path
-from ..common.encryption import LockBox
+from ..common.old_encryption import LockBox
 from ..common.server import Server
+from hyperdome.client import api
 
 
-@autologging.logged
 class AddServerDialog(QtWidgets.QDialog):
     """
     Dialog for entering server connection details and or credentials.
     """
 
-    def __init__(self, parent: QtCore.QObject):
+    __log = logging.getLogger(__name__)
+
+    def __init__(self, parent):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
@@ -129,36 +130,22 @@ class AddServerDialog(QtWidgets.QDialog):
 
         self.client = api.HyperdomeClientApi(self.server, self.session)
 
-        run_probe_then = tasks.run_after_task(
-            tasks.QtTask(self.client.probe_server), self.bad_server
+        self.client.probe_server(
+            self.signup if self.server.is_counselor else self.set_server
         )
 
-        if self.server.is_counselor:
-            run_probe_then(self.signup)
-        else:
-            run_probe_then(self.set_server)
-
-    @QtCore.pyqtSlot(object)
-    def set_server(self, _):
+    def set_server(self):
         self.done(0)
 
-    @QtCore.pyqtSlot(object)
-    def signup(self, _):
+    def signup(self):
         signer = LockBox()
         signer.make_signing_key()
-        self.server.key = signer.export_key("123")  # TODO: use user provided password
+        self.server.key = signer.export_key(b"123")  # TODO: use user provided password
         passcode = self.counselor_password_input.text()
-        signature = signer.sign_message(passcode)
-        run_signup_then = tasks.run_after_task(
-            tasks.QtTask(
-                self.client.signup_counselor,
-                passcode,
-                signer.public_signing_key,
-                signature,
-            ),
-            self.bad_server,
+        signature = signer.sign_message(passcode.encode())
+        self.client.signup_counselor(
+            self.set_server, passcode, signer.public_signing_key, signature
         )
-        run_signup_then(self.set_server)
 
     @QtCore.pyqtSlot(Exception)
     def bad_server(self, err: Exception):
