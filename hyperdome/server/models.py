@@ -28,8 +28,6 @@ from hyperdome.server.database import Base, engine
 
 from sqlalchemy import String, Column, Integer
 
-from ..common.types import arg_to_bytes
-
 
 class Counselor(Base):
     """
@@ -47,7 +45,6 @@ class Counselor(Base):
 
     # TODO: this should be in the cryptography common module and take pub_key as an argument
     # TODO: make into a pydantic type verification
-    @arg_to_bytes
     def verify(self, signature: bytes, message: bytes) -> bool:
         pub_key = serial.load_pem_public_key(self.key_bytes.encode(), default_backend())
         assert isinstance(pub_key, Ed448PublicKey)

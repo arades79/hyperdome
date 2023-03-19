@@ -19,43 +19,44 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import functools
 import json
-import typing
-
+from typing import ParamSpec, Callable, Concatenate
 import autologging
-import requests
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkReply,
+    QNetworkRequest,
+)
+from PyQt5.QtCore import QUrl, pyqtSlot
 
 from ..common.server import Server
 
 
-def handle_requests_errors(fn: typing.Callable):
-    """
-    wraps a requests call to provide exception handling boilerplate
-    for errors which are generic to any requests call
-    """
+FnParams = ParamSpec("FnParams")
+CallbackParams = ParamSpec("CallbackParams")
 
-    @functools.wraps(fn)
-    @autologging.logged
-    def wrapper(*args, **kwargs):
-        try:
-            response = fn(*args, **kwargs)
-        except requests.ConnectionError:
-            wrapper._log.warning("couldn't connect to server")
-            raise
-        except requests.Timeout:
-            wrapper._log.warning("server timed out during request")
-            raise
-        except requests.HTTPError as e:
-            wrapper._log.warning(f"{e.args[0]}")
-            raise
-        except:
-            wrapper._log.exception("unexpected exception during request handling")
-            raise
-        else:
-            return response
 
-    return wrapper
+def attach_callback(
+    fn: Callable[Concatenate[Callable[CallbackParams, None], FnParams], None],
+    *args: FnParams.args,
+    **kwargs: FnParams.kwargs,
+) -> Callable[[Callable[CallbackParams, None]], None]:
+    def decorate(callback: Callable[CallbackParams, None]) -> None:
+        return fn(callback, *args, **kwargs)
+
+    return decorate
+
+
+def response_handler(reply: QNetworkReply):
+    def decorator(fn: Callable[[str], None]):
+        @pyqtSlot()
+        def wrapper() -> None:
+            response = str(reply.readAll())
+            fn(response)
+
+        reply.readyRead.connect(wrapper)
+
+    return decorator
 
 
 @autologging.traced
@@ -70,103 +71,126 @@ class HyperdomeClientApi:
 
     __log: autologging.logging.Logger  # makes linter happy about autologging
 
-    def __init__(self, server: Server, session: requests.Session) -> None:
-        self.server = server
+    def __init__(self, server: Server, session: QNetworkAccessManager) -> None:
         self.session = session
+        self.server = server
 
-    @handle_requests_errors
-    def signout_counselor(self, user_id: str):
-        self.session.post(
-            f"{self.server.url}/counselor_signout", data={"user_id": user_id}
-        )
+    def signout_counselor(self, callback: Callable[..., None], user_id: str):
+        request = QNetworkRequest(QUrl(f"{self.server.url}/counselor_signout"))
+        data = json.dumps({"user_id": user_id}).encode()
 
-    @handle_requests_errors
-    def counseling_complete(self, user_id: str):
-        self.session.post(
-            f"{self.server.url}/counseling_complete", data={"user_id": user_id}
-        ).raise_for_status
+        @response_handler(self.session.post(request, data))
+        def parse_response(body: str):
+            callback(body)
 
-    @handle_requests_errors
-    def send_message(self, uid: str, message: str):
+    def counseling_complete(self, callback: Callable[[], None], user_id: str):
+        request = QNetworkRequest(QUrl(f"{self.server.url}/counseling_complete"))
+        data = json.dumps({"user_id": user_id}).encode()
+
+        @response_handler(self.session.post(request, data))
+        def handle_response(body: str):
+            callback()
+
+    def send_message(self, callback: Callable[[], None], uid: str, message: str):
         """
         Send message to server provided using session for given user
         """
-        return self.session.post(
-            f"{self.server.url}/send_message", data={"message": message, "user_id": uid}
-        )
+        request = QNetworkRequest(QUrl(f"{self.server.url}/send_message"))
+        data = json.dumps({"message": message, "user_id": uid}).encode()
 
-    @handle_requests_errors
-    def get_uid(self):
+        @response_handler(self.session.post(request, data))
+        def handler(body: str):
+            callback()
+
+    def get_uid(self, callback: Callable[[str], None]):
         """
         Ask server for a new UID for a new user session
         """
-        response = self.session.get(f"{self.server.url}/generate_guest_id")
-        response.raise_for_status()
-        return response.text
+        request = QNetworkRequest(QUrl(f"{self.server.url}/generate_guest_id"))
 
-    @handle_requests_errors
-    def get_messages(self, uid: str):
+        @response_handler(self.session.get(request))
+        def handler(body: str):
+            callback(body)
+
+    def get_messages(self, callback: Callable[[str], None], uid: str):
         """
         collect new messages waiting on server for active session
         """
-        response = self.session.get(
-            f"{self.server.url}/collect_messages", data={"user_id": uid}
-        )
-        response_json = response.json()
-        if response_json["chat_status"] == "CHAT_ACTIVE":
-            return response_json["messages"]
+        request = QNetworkRequest(QUrl(f"{self.server.url}/collect_messages/{uid}"))
 
-    @handle_requests_errors
+        @response_handler(self.session.get(request))
+        def handler(body: str):
+            callback(body)
+
     def start_chat(
         self,
+        callback: Callable[[str], None],
         uid: str,
         pub_key: str,
         signature: str = "",
     ):
+
         if self.server.is_counselor:
-            return self.session.post(
-                f"{self.server.url}/counselor_signin",
-                data={
+            request = QNetworkRequest(QUrl(f"{self.server.url}/counselor_signin"))
+            data = json.dumps(
+                {
                     "pub_key": pub_key,
                     "signature": signature,
                     "username": self.server.username,
-                },
-            ).text
+                }
+            ).encode()
+
+            @response_handler(
+                self.session.post(
+                    request,
+                    data,
+                )
+            )
+            def handler(body: str):
+                callback(body)
 
         else:
-            return self.session.post(
-                f"{self.server.url}/request_counselor",
-                data={"guest_id": uid, "pub_key": pub_key},
-            ).text
+            request = QNetworkRequest(QUrl(f"{self.server.url}/request_counselor"))
+            data = json.dumps({"guest_id": uid, "pub_key": pub_key}).encode()
 
-    @handle_requests_errors
-    def probe_server(self):
-        info = json.loads(self.session.get(f"{self.server.url}/probe").text)
-        if info["name"] != "hyperdome":
-            return "not hyperdome"
-        if info["version"] not in self.COMPATIBLE_SERVERS:
-            return "bad version"
-        return ""
+            @response_handler(self.session.post(request, data))
+            def handler(body: str):
+                callback(body)
 
-    @handle_requests_errors
-    def get_guest_pub_key(self, uid: str):
-        return self.session.get(
-            f"{self.server.url}/poll_connected_guest", data={"counselor_id": uid}
-        ).text
+        callback("")
 
-    @handle_requests_errors
+    def probe_server(self, callback: Callable[[], None]):
+        request = QNetworkRequest(QUrl(f"{self.server.url}/probe"))
+
+        @response_handler(self.session.get(request))
+        def handler(body: str):
+            callback()
+
+    def get_guest_pub_key(self, callback: Callable[[str], None], uid: str):
+        request = QNetworkRequest(QUrl(f"{self.server.url}/poll_connected_guest/{uid}"))
+
+        @response_handler(self.session.get(request))
+        def handler(body: str):
+            callback(body)
+
     def signup_counselor(
-        self,
-        passcode: str,
-        pub_key: str,
-        signature: str,
+        self, callback: Callable[[], None], passcode: str, pub_key: str, signature: str
     ):
-        return self.session.post(
-            f"{self.server.url}/counselor_signup",
-            data={
+        request = QNetworkRequest(QUrl(f"{self.server.url}/counselor_signup"))
+        data = json.dumps(
+            {
                 "username": self.server.username,
                 "pub_key": pub_key,
                 "signup_code": passcode,
                 "signature": signature,
-            },
-        ).text
+            }
+        ).encode()
+
+        @response_handler(
+            self.session.post(
+                request,
+                data,
+            )
+        )
+        def handler(body: str):
+            callback()
