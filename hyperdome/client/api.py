@@ -19,14 +19,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import functools
 import json
 from typing import ParamSpec, Callable, Concatenate
 import autologging
-from PyQt5 import QtWebSockets
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
-    QNetworkProxy,
     QNetworkReply,
     QNetworkRequest,
 )
@@ -50,19 +47,16 @@ def attach_callback(
     return decorate
 
 
-def error_handler(err: QNetworkReply.NetworkError):
-    if err == err.NoError:
-        return
+def response_handler(reply: QNetworkReply):
+    def decorator(fn: Callable[[str], None]):
+        @pyqtSlot()
+        def wrapper() -> None:
+            response = str(reply.readAll())
+            fn(response)
 
+        reply.readyRead.connect(wrapper)
 
-def response_handler(fn: Callable[[str], None]):
-    @pyqtSlot(QNetworkReply, name=fn.__name__)
-    def wrapper(reply: QNetworkReply) -> None:
-        error_handler(reply.error())
-        response = str(reply.readAll())
-        fn(response)
-
-    return wrapper
+    return decorator
 
 
 @autologging.traced
@@ -85,21 +79,17 @@ class HyperdomeClientApi:
         request = QNetworkRequest(QUrl(f"{self.server.url}/counselor_signout"))
         data = json.dumps({"user_id": user_id}).encode()
 
-        @response_handler
-        def handler(body: str):
+        @response_handler(self.session.post(request, data))
+        def parse_response(body: str):
             callback(body)
-
-        self.session.post(request, data).finished.connect(handler)
 
     def counseling_complete(self, callback: Callable[[], None], user_id: str):
         request = QNetworkRequest(QUrl(f"{self.server.url}/counseling_complete"))
         data = json.dumps({"user_id": user_id}).encode()
 
-        @response_handler
+        @response_handler(self.session.post(request, data))
         def handle_response(body: str):
             callback()
-
-        self.session.post(request, data).finished.connect(handle_response)
 
     def send_message(self, callback: Callable[[], None], uid: str, message: str):
         """
@@ -108,11 +98,9 @@ class HyperdomeClientApi:
         request = QNetworkRequest(QUrl(f"{self.server.url}/send_message"))
         data = json.dumps({"message": message, "user_id": uid}).encode()
 
-        @response_handler
+        @response_handler(self.session.post(request, data))
         def handler(body: str):
             callback()
-
-        self.session.post(request, data).finished.connect(handler)
 
     def get_uid(self, callback: Callable[[str], None]):
         """
@@ -120,11 +108,9 @@ class HyperdomeClientApi:
         """
         request = QNetworkRequest(QUrl(f"{self.server.url}/generate_guest_id"))
 
-        @response_handler
+        @response_handler(self.session.get(request))
         def handler(body: str):
             callback(body)
-
-        self.session.get(request).readyRead.connect(handler)
 
     def get_messages(self, callback: Callable[[str], None], uid: str):
         """
@@ -132,14 +118,16 @@ class HyperdomeClientApi:
         """
         request = QNetworkRequest(QUrl(f"{self.server.url}/collect_messages/{uid}"))
 
-        @response_handler
+        @response_handler(self.session.get(request))
         def handler(body: str):
             callback(body)
 
-        self.session.get(request).readyRead.connect(handler)
-
     def start_chat(
-        self, callback: Callable[[], None], uid: str, pub_key: str, signature: str = ""
+        self,
+        callback: Callable[[str], None],
+        uid: str,
+        pub_key: str,
+        signature: str = "",
     ):
 
         if self.server.is_counselor:
@@ -152,44 +140,38 @@ class HyperdomeClientApi:
                 }
             ).encode()
 
-            @response_handler
+            @response_handler(
+                self.session.post(
+                    request,
+                    data,
+                )
+            )
             def handler(body: str):
-                callback()
-
-            self.session.post(
-                request,
-                data,
-            ).readyRead.connect(handler)
+                callback(body)
 
         else:
             request = QNetworkRequest(QUrl(f"{self.server.url}/request_counselor"))
             data = json.dumps({"guest_id": uid, "pub_key": pub_key}).encode()
 
-            @response_handler
+            @response_handler(self.session.post(request, data))
             def handler(body: str):
-                callback()
+                callback(body)
 
-            self.session.post(request, data).finished.connect(handler)
+        callback("")
 
-        callback()
-
-    def probe_server(self, callback: Callable[[str], None]):
+    def probe_server(self, callback: Callable[[], None]):
         request = QNetworkRequest(QUrl(f"{self.server.url}/probe"))
 
-        @response_handler
+        @response_handler(self.session.get(request))
         def handler(body: str):
-            callback(body)
-
-        self.session.get(request).finished.connect(handler)
+            callback()
 
     def get_guest_pub_key(self, callback: Callable[[str], None], uid: str):
         request = QNetworkRequest(QUrl(f"{self.server.url}/poll_connected_guest/{uid}"))
 
-        @response_handler
+        @response_handler(self.session.get(request))
         def handler(body: str):
             callback(body)
-
-        self.session.get(request).finished.connect(handler)
 
     def signup_counselor(
         self, callback: Callable[[], None], passcode: str, pub_key: str, signature: str
@@ -204,11 +186,11 @@ class HyperdomeClientApi:
             }
         ).encode()
 
-        @response_handler
+        @response_handler(
+            self.session.post(
+                request,
+                data,
+            )
+        )
         def handler(body: str):
             callback()
-
-        self.session.post(
-            request,
-            data,
-        ).finished.connect(handler)
