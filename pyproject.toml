@@ -30,7 +30,7 @@ setuptools = "^65.6.3"
 pytest = "^7.2.0"
 pytest-qt = "^4.2.0"
 bandit = "^1.7.4"
-black = "^22.12.0"
+black = "^24.3.0"
 pywin32-ctypes = {version = "^0.2.0", platform = "windows"}
 hypothesis = "^6.61.3"
 coverage = {extras = ["toml"], version = "^7.0.4"}
